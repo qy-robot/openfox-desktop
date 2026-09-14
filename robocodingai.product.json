@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "displayName": "RoboCodingAI",
+  "subtitle": "by擎云机器人",
+  "component": "desktop",
+  "repository": "qy-robot/robocodingai-desktop",
+  "upstream": "https://github.com/anywhere-labs/dsh-desktop",
+  "upstreamBaseline": "d61b6f9614ed070b1f3ddcca3f08f80ac929b5ea",
+  "runtimeIntegrated": false,
+  "identityStatus": "reserved; runtime and installer wiring pending",
+  "stable": {
+    "applicationId": "io.github.qy-robot.robocodingai",
+    "macBundleId": "io.github.qy-robot.robocodingai",
+    "windowsAppUserModelId": "io.github.qy-robot.robocodingai",
+    "linuxDesktopFile": "io.github.qy-robot.robocodingai.desktop",
+    "packageName": "robocodingai",
+    "userDataDirectoryName": "RoboCodingAI",
+    "callbackScheme": "robocodingai",
+    "updateChannel": "stable"
+  },
+  "beta": {
+    "applicationId": "io.github.qy-robot.robocodingai.beta",
+    "macBundleId": "io.github.qy-robot.robocodingai.beta",
+    "windowsAppUserModelId": "io.github.qy-robot.robocodingai.beta",
+    "linuxDesktopFile": "io.github.qy-robot.robocodingai.beta.desktop",
+    "packageName": "robocodingai-beta",
+    "userDataDirectoryName": "RoboCodingAI Beta",
+    "callbackScheme": "robocodingai-beta",
+    "updateChannel": "beta"
+  }
+}

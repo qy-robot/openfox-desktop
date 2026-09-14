@@ -1,3 +1,11 @@
+# RoboCodingAI Desktop
+
+by擎云机器人
+
+RoboCodingAI product fork. See [product ownership and initialization status](ROBOCODINGAI.md). Original upstream documentation and license information follow unchanged below.
+
+---
+
 <p align="center">
   <a href="https://dshdesktop.cn"><img src="assets/desktop-hero-zh.png" alt="DSH Desktop：基于 DeepSeek Harness 构建的开源桌面客户端" width="100%"></a>
 </p>
