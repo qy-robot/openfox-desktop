@@ -35,8 +35,8 @@ const markPath = join(packageRoot, 'build', 'tray-icon.svg')
 const outputPath = join(packageRoot, 'build', 'app-icon.ico')
 
 /**
- * Reuse the repository's vector whale for frames where the full shaded artwork
- * loses recognizable detail. The flat dark-on-light treatment preserves the
+ * Reuse the repository's robot silhouette for frames where the full shaded artwork
+ * loses recognizable detail. The flat light-on-dark treatment preserves the
  * stable icon's silhouette at native Windows chrome sizes.
  * @returns {Promise<Buffer>} Self-contained SVG for small Windows frames.
  */
@@ -48,10 +48,10 @@ async function loadSmallFrameArtwork() {
   const mark = source
     .replace(/^<svg[^>]*>\s*/u, '')
     .replace(/<\/svg>\s*$/u, '')
-    .replaceAll(BRAND_BLUE, '#000000')
+    .replaceAll(BRAND_BLUE, '#FFFFFF')
   return Buffer.from(
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50">'
-    + '<rect width="50" height="50" rx="11" fill="#FFFFFF"/>'
+    '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 50 50">'
+    + '<rect width="50" height="50" rx="11" fill="#111111"/>'
     + `<g transform="translate(5 5) scale(0.8)">${mark}</g>`
     + '</svg>',
   )

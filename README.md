@@ -1,8 +1,8 @@
-# RoboCodingAI Desktop
+# RoboCoding Desktop
 
 by擎云机器人
 
-RoboCodingAI product fork. See [product ownership and initialization status](ROBOCODINGAI.md). Original upstream documentation and license information follow unchanged below.
+RoboCoding 产品 Fork。产品归属见 [ROBOCODINGAI.md](ROBOCODINGAI.md)，本地技能联调见 [开发说明](docs/robo-skills-local.md)。以下保留上游文档与许可证信息。
 
 ---
 

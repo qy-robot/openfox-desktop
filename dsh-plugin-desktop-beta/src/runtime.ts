@@ -180,6 +180,18 @@ export interface DesktopRuntime {
   /** Native network, update-download, and notification adapter. */
   readonly updates: DesktopUpdateAdapter
 
+  /** Read the refresh grant from Electron's OS-backed encrypted store. */
+  readAccountSecret?(): Promise<import('./robocoding-account-controller.ts').RoboCodingAccountSecret | undefined>
+
+  /** Replace the refresh grant in Electron's OS-backed encrypted store. */
+  writeAccountSecret?(secret: import('./robocoding-account-controller.ts').RoboCodingAccountSecret): Promise<void>
+
+  /** Remove the persisted refresh grant. */
+  clearAccountSecret?(): Promise<void>
+
+  /** Open one validated HTTPS (or loopback HTTP) platform URL in the system browser. */
+  openExternalUrl?(url: string): Promise<void>
+
   /**
    * Register one shell generation while the Cordis profile is activating.
    * @param spec - native shell inputs resolved from active Host services.
@@ -222,6 +234,9 @@ export interface DesktopRuntime {
 
   /** Open the desktop operating system's native workspace-folder chooser. */
   pickDirectory(): Promise<string | null>
+
+  /** Select a local skill bundle on any desktop platform. */
+  pickSkillDirectory(): Promise<string | null>
 
   /** Open the isolated native Profile creator, focusing an existing instance. */
   openProfileCreateWindow(options: Omit<ProfileCreateWindowOptions, 'locale'>): void

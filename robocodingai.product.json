@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "displayName": "RoboCodingAI",
+  "displayName": "RoboCoding",
   "subtitle": "by擎云机器人",
   "component": "desktop",
   "repository": "qy-robot/robocodingai-desktop",
   "upstream": "https://github.com/anywhere-labs/dsh-desktop",
   "upstreamBaseline": "d61b6f9614ed070b1f3ddcca3f08f80ac929b5ea",
   "runtimeIntegrated": false,
-  "identityStatus": "reserved; runtime and installer wiring pending",
+  "identityStatus": "display branding integrated in Desktop extended/advanced; installer identities and migration pending",
   "stable": {
     "applicationId": "io.github.qy-robot.robocodingai",
     "macBundleId": "io.github.qy-robot.robocodingai",

@@ -16,14 +16,14 @@ const CSS = `
   margin: 0;
   font-weight: 600;
 }
-.dshDesktopSettingsHeader h2 { font-size: 22px; line-height: 1.35; }
-.dshDesktopSettingsGroup h3 { font-size: 16px; line-height: 1.4; }
+.dshDesktopSettingsHeader h2 { font-size: 24px; line-height: 1.35; }
+.dshDesktopSettingsGroup h3 { font-size: 18px; line-height: 1.4; }
 .dshDesktopSettingsHeader p,
 .dshDesktopSettingsGroupIntro,
 .dshDesktopSettingsHint {
   margin: 6px 0 0;
   color: var(--dsw-alias-label-secondary);
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.6;
 }
 .dshDesktopSettingsGroup {
@@ -69,21 +69,21 @@ const CSS = `
 .dshDesktopSettingsToggleLabel { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .dshDesktopSettingsChoiceAside { flex: 0 0 auto; margin-left: 12px; }
 .dshDesktopSettingsDeleteConfirm { display: flex; align-items: flex-end; flex-direction: column; gap: 8px; max-width: 320px; }
-.dshDesktopSettingsDeleteWarning { color: var(--dsw-alias-state-warning-primary); font-size: 12px; line-height: 1.4; text-align: right; }
+.dshDesktopSettingsDeleteWarning { color: var(--dsw-alias-state-warning-primary); font-size: 14px; line-height: 1.4; text-align: right; }
 .dshDesktopSettingsDeleteActions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 .dshDesktopSettingsChoiceTitle {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
 }
 .dshDesktopSettingsChoiceBody {
   display: block;
   margin-top: 3px;
   color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.5;
 }
 .dshDesktopSettingsChoiceLink {
@@ -107,7 +107,7 @@ const CSS = `
   border-radius: 999px;
   background: var(--dsw-alias-bg-layer-2);
   color: var(--dsw-alias-label-secondary);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 400;
 }
 .dshDesktopSettingsForm {
@@ -122,7 +122,7 @@ const CSS = `
   gap: 6px;
   min-width: 0;
   color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
+  font-size: 14px;
 }
 .dshDesktopSettingsField > span { width: 100%; }
 .dshDesktopSettingsInput {
@@ -136,7 +136,7 @@ const CSS = `
   background: var(--dsw-alias-bg-layer-1);
   color: var(--dsw-alias-label-primary);
   font: inherit;
-  font-size: 13px;
+  font-size: 15px;
 }
 .dshDesktopSettingsInput:focus-visible {
   border-color: var(--dsw-alias-brand-primary);
@@ -152,7 +152,7 @@ const CSS = `
   color: var(--dsw-alias-label-primary);
   cursor: pointer;
   font: inherit;
-  font-size: 12px;
+  font-size: 14px;
 }
 .dshDesktopSettingsButton:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
 .dshDesktopSettingsButtonSecondary { color: var(--dsw-alias-label-secondary); }
@@ -193,7 +193,7 @@ const CSS = `
   color: var(--dsw-alias-label-primary);
   cursor: pointer;
   font: inherit;
-  font-size: 12px;
+  font-size: 14px;
   text-align: start;
   white-space: nowrap;
 }
@@ -213,7 +213,7 @@ const CSS = `
   color: var(--dsw-alias-label-primary);
   cursor: pointer;
   font: inherit;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 18px;
 }
 .dshDesktopSettingsHeaderButton svg { width: 14px; height: 14px; margin-left: 5px; }
@@ -222,7 +222,7 @@ const CSS = `
 .dshDesktopNativeActionError {
   max-width: 260px;
   color: var(--dsw-alias-state-error-primary);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.4;
 }
 .dshDesktopSettingsMaterialField {
@@ -246,7 +246,7 @@ const CSS = `
   background: var(--dsw-alias-bg-layer-1);
   color: var(--dsw-alias-label-primary);
   font: inherit;
-  font-size: 12px;
+  font-size: 14px;
 }
 .dshDesktopSettingsSelect:disabled { opacity: .55; }
 .dshDesktopSettingsNotice,
@@ -255,7 +255,7 @@ const CSS = `
   margin: 0;
   padding: 10px 12px;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.55;
 }
 .dshDesktopSettingsNotice { background: var(--dsw-alias-bg-layer-2); color: var(--dsw-alias-label-secondary); }
@@ -317,11 +317,11 @@ const CSS = `
 .dshDesktopSettingsLanFingerprint code {
   overflow-wrap: anywhere;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 11px;
+  font-size: 13px;
 }
 .dshDesktopSettingsLanFingerprint {
   color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.5;
 }
 .dshDesktopSettingsUrls {
@@ -338,7 +338,7 @@ const CSS = `
   overflow-wrap: anywhere;
   color: var(--dsw-alias-brand-primary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
+  font-size: 14px;
 }
 .dshDesktopSettingsDialogBackdrop {
   position: fixed;
@@ -358,8 +358,8 @@ const CSS = `
   background: var(--dsw-alias-bg-layer-1);
   box-shadow: 0 24px 64px color-mix(in srgb, #000 38%, transparent);
 }
-.dshDesktopSettingsDialog h3 { margin: 0; color: var(--dsw-alias-state-error-primary); font-size: 16px; }
-.dshDesktopSettingsDialog p { margin: 12px 0 0; color: var(--dsw-alias-label-secondary); font-size: 13px; line-height: 1.65; }
+.dshDesktopSettingsDialog h3 { margin: 0; color: var(--dsw-alias-state-error-primary); font-size: 18px; }
+.dshDesktopSettingsDialog p { margin: 12px 0 0; color: var(--dsw-alias-label-secondary); font-size: 15px; line-height: 1.65; }
 .dshDesktopSettingsDialogActions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 @media (max-width: 720px) {
   .dshDesktopSettingsChoice,

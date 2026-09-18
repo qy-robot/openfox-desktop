@@ -1,0 +1,17 @@
+{
+  "source": "localhost:5198 skill-market fixture",
+  "reviewedAt": "2026-09-17T09:40:00+08:00",
+  "verdict": "needs-small-refinement",
+  "keep": [
+    "horizontal category navigation",
+    "airy multi-column skill rows",
+    "search and installed controls",
+    "modal detail presentation"
+  ],
+  "fix": [
+    "deduplicate the company badge and identical publisher name",
+    "keep the primary add action visible while detail copy scrolls",
+    "reduce the market heading to one title and remove backend-oriented source wording"
+  ],
+  "scope": "RoboSkillMarket presentation only"
+}

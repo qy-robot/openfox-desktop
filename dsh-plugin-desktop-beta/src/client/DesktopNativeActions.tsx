@@ -1,6 +1,6 @@
 /** Shared launcher-backed actions rendered in settings and extended title bars. */
 
-import { Bug, ChevronDown, LifeBuoy, RefreshCw, RotateCw, SquareTerminal, Wrench } from 'lucide-react'
+import { Bug, ChevronDown, FileDown, LifeBuoy, RefreshCw, RotateCw, SquareTerminal, Wrench } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { DesktopSettingsApi } from './desktop-settings-api.ts'
 import type { DesktopSettingsLocaleKey } from './desktop-settings-locales.ts'
@@ -64,6 +64,44 @@ export function DesktopDeveloperMenuItems({
   )
 }
 
+interface DesktopSettingsMoreMenuItemsProps extends DesktopRestartMenuItemsProps {
+  readonly canExportDiagnostics: boolean
+  readonly onExportDiagnostics: () => void
+  readonly onOpenTerminal: () => void
+}
+
+/** Settings keeps infrequent support and restart actions behind one compact menu. */
+export function DesktopSettingsMoreMenuItems({
+  busy,
+  canExportDiagnostics,
+  t,
+  onExportDiagnostics,
+  onOpenTerminal,
+  onReload,
+  onRestart,
+  onRestartToRecovery,
+}: DesktopSettingsMoreMenuItemsProps) {
+  return (
+    <>
+      {canExportDiagnostics && (
+        <button type="button" className="dshDesktopActionMenuItem" role="menuitem" disabled={busy} onClick={onExportDiagnostics}>
+          <FileDown aria-hidden="true" /><span>{t('exportDiagnostics')}</span>
+        </button>
+      )}
+      <button type="button" className="dshDesktopActionMenuItem" role="menuitem" disabled={busy} onClick={onOpenTerminal}>
+        <SquareTerminal aria-hidden="true" /><span>{t('openTerminal')}</span>
+      </button>
+      <DesktopRestartMenuItems
+        busy={busy}
+        t={t}
+        onReload={onReload}
+        onRestart={onRestart}
+        onRestartToRecovery={onRestartToRecovery}
+      />
+    </>
+  )
+}
+
 export function DesktopNativeActions({ api, t, placement }: DesktopNativeActionsProps) {
   const [exportingDiagnostics, setExportingDiagnostics] = useState(false)
   const [opening, setOpening] = useState(false)
@@ -100,6 +138,7 @@ export function DesktopNativeActions({ api, t, placement }: DesktopNativeActions
   const exportDiagnostics = (): void => {
     if (busy || api.exportDiagnostics === undefined) return
     setExportingDiagnostics(true)
+    setRestartMenuOpen(false)
     setFailed(undefined)
     void api.exportDiagnostics()
       .catch(() => { setFailed('diagnostics') })
@@ -109,6 +148,7 @@ export function DesktopNativeActions({ api, t, placement }: DesktopNativeActions
   const open = (): void => {
     if (busy) return
     setOpening(true)
+    setRestartMenuOpen(false)
     setFailed(undefined)
     void api.openTerminal()
       .catch(() => { setFailed('terminal') })
@@ -156,24 +196,6 @@ export function DesktopNativeActions({ api, t, placement }: DesktopNativeActions
         {failed !== undefined && (
           <span className="dshDesktopNativeActionError" role="alert">{t(failureKey)}</span>
         )}
-        {api.exportDiagnostics !== undefined && (
-          <button
-            type="button"
-            className="dshDesktopSettingsHeaderButton"
-            disabled={busy}
-            onClick={exportDiagnostics}
-          >
-            {t(exportingDiagnostics ? 'exportingDiagnostics' : 'exportDiagnostics')}
-          </button>
-        )}
-        <button
-          type="button"
-          className="dshDesktopSettingsHeaderButton"
-          disabled={busy}
-          onClick={open}
-        >
-          {t(opening ? 'openingTerminal' : 'openTerminal')}
-        </button>
         <div className="dshDesktopNativeActionMenuAnchor" ref={restartMenuRef}>
           <button
             type="button"
@@ -183,14 +205,17 @@ export function DesktopNativeActions({ api, t, placement }: DesktopNativeActions
             disabled={busy}
             onClick={() => { setRestartMenuOpen(value => !value) }}
           >
-            {t(restarting ? 'restartingDesktop' : 'restartDesktop')}
+            {t(exportingDiagnostics ? 'exportingDiagnostics' : opening ? 'openingTerminal' : restarting ? 'restartingDesktop' : 'moreActions')}
             <ChevronDown aria-hidden="true" />
           </button>
           {restartMenuOpen && (
             <div className="dshDesktopActionMenu" role="menu">
-              <DesktopRestartMenuItems
+              <DesktopSettingsMoreMenuItems
                 busy={busy}
+                canExportDiagnostics={api.exportDiagnostics !== undefined}
                 t={t}
+                onExportDiagnostics={exportDiagnostics}
+                onOpenTerminal={open}
                 onReload={() => { runRendererAction('reload') }}
                 onRestart={() => { restart() }}
                 onRestartToRecovery={() => { restart(true) }}

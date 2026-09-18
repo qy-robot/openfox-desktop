@@ -24,7 +24,7 @@ export function createHostRuntime(rpc: HostRpc, snapshot: RuntimeSnapshot): Desk
   const shellSpecs = new Map<string, DesktopShellSpec>()
   const send = <T = void>(method: string, args: unknown[] = [], signal?: AbortSignal): Promise<T> => {
     const interactive = ['update:confirmDownload', 'update:showManualCheckResult', 'update:downloadAndOpen',
-      'native:pickDirectory', 'native:exportDiagnostics'].includes(method)
+      'native:pickDirectory', 'native:pickSkillDirectory', 'native:exportDiagnostics'].includes(method)
     const task = rpc.call<T>(method, args, signal, interactive ? 0 : undefined)
     calls.add(task)
     // Report fire-and-forget failures without creating an unhandled rejection.
@@ -97,10 +97,15 @@ export function createHostRuntime(rpc: HostRpc, snapshot: RuntimeSnapshot): Desk
     toggleDeveloperTools() { void send('native:toggleDeveloperTools') },
     exportDiagnostics: () => send('native:exportDiagnostics'),
     pickDirectory: () => send('native:pickDirectory'),
+    pickSkillDirectory: () => send('native:pickSkillDirectory'),
     validateDirectory: path => send('native:validateDirectory', [path]),
     reportRendererBoot: report => { void send('native:reportRendererBoot', [report]) },
     setLocalePreference(preference) { locale = preference ?? snapshot.locale; trayPublishers.forEach(publish => publish()); void send('native:setLocalePreference', [preference]) },
     setThemeSource(source) { void send('native:setThemeSource', [source]) },
+    readAccountSecret: () => send('native:readAccountSecret'),
+    writeAccountSecret: secret => send('native:writeAccountSecret', [secret]),
+    clearAccountSecret: () => send('native:clearAccountSecret'),
+    openExternalUrl: url => send('native:openExternalUrl', [url]),
     requestRestart: () => send('native:requestRestart'),
     requestRecoveryRestart: () => send('native:requestRecoveryRestart'),
     prepareToQuit() { void send('native:prepareToQuit') },
@@ -125,9 +130,13 @@ export function bindNativeRuntime(rpc: HostRpc, runtime: DesktopRuntime): () => 
   const callback = (method: string, args: unknown[] = []) => rpc.call(method, args)
   const report = (promise: Promise<unknown>) => { void promise.catch(error => process.stderr.write(`${String(error)}\n`)) }
   for (const method of ['show', 'notifyAttention', 'openTerminal', 'reloadRenderer', 'toggleDeveloperTools',
-    'exportDiagnostics', 'pickDirectory', 'validateDirectory', 'reportRendererBoot', 'setLocalePreference',
-    'setThemeSource', 'prepareToQuit'] as const) {
-    handle(`native:${method}`, args => (runtime[method] as (...args: any[]) => unknown).apply(runtime, args))
+    'exportDiagnostics', 'pickDirectory', 'pickSkillDirectory', 'validateDirectory', 'reportRendererBoot', 'setLocalePreference',
+    'setThemeSource', 'prepareToQuit', 'readAccountSecret', 'writeAccountSecret', 'clearAccountSecret', 'openExternalUrl'] as const) {
+    handle(`native:${method}`, args => {
+      const operation = runtime[method]
+      if (typeof operation !== 'function') throw new Error(`Desktop native capability ${method} is unavailable`)
+      return (operation as (...args: any[]) => unknown).apply(runtime, args)
+    })
   }
   // Acknowledge restart before teardown can close the channel used by this call.
   for (const method of ['requestRestart', 'requestRecoveryRestart'] as const) {

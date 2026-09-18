@@ -7,6 +7,13 @@
   },
   "include": ["scripts/**/*.ts", "src/*.ts", "tests/**/*.ts", "tests/**/*.tsx"],
   "exclude": [
+    "tests/client-branding.spec.ts",
+    "tests/robo-skills-client.spec.ts",
+    "tests/robo-skills-library.spec.ts",
+    "tests/robo-skill-market.spec.ts",
+    "tests/robo-service-onboarding.spec.ts",
+    "tests/robo-models*.spec.ts",
+    "tests/robo-account-*.spec.ts",
     "tests/client-boot-health.spec.ts",
     "tests/client-aa-settings.spec.ts",
     "tests/client-desktop-settings.spec.ts",

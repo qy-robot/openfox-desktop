@@ -11,6 +11,8 @@ import {
 } from '@deepseek-ai/dsh-client-locale'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-client-connection'
+import type {} from '@deepseek-ai/dsh-agent-default-model'
+import type {} from '@deepseek-ai/dsh-llm'
 import {
   THEME_SETTINGS_NAMESPACE,
   type ThemeSettings,
@@ -78,7 +80,35 @@ import {
   type PersistedWindowsWindowMaterial,
   windowsSupportsMica,
 } from './window-material.ts'
-import { DESKTOP_PRODUCT_NAME } from './product-identity.ts'
+import { DESKTOP_DISPLAY_NAME } from './product-identity.ts'
+import {
+  handleRoboSkillsProxyRequest,
+  ROBO_DEVICES_CATALOG_PATH,
+  ROBO_SKILLS_CATALOG_PATH,
+  ROBO_SKILLS_DEMO_RUNS_PATH,
+  ROBO_SKILLS_RUNS_PATH,
+} from './robo-skills-proxy.ts'
+import {
+  handleRoboLocalSkillPickerRequest,
+  handleRoboLocalSkillsRequest,
+  ROBO_LOCAL_SKILLS_PATH,
+  ROBO_LOCAL_SKILLS_PICK_DIRECTORY_PATH,
+} from './robo-local-skills.ts'
+import {
+  ROBOCODING_ACCOUNT_FUNDING_PATH,
+  ROBOCODING_ACCOUNT_LOGIN_PATH,
+  ROBOCODING_ACCOUNT_LOGOUT_PATH,
+  ROBOCODING_ACCOUNT_PATH,
+  ROBOCODING_ACCOUNT_PLATFORM_PATH,
+  ROBOCODING_ACCOUNT_REFRESH_PATH,
+} from './robocoding-account-contract.ts'
+import {
+  DEFAULT_ROBOCODING_PLATFORM_URL,
+  RoboCodingAccountController,
+  type RoboCodingAccountSettings,
+} from './robocoding-account-controller.ts'
+import { handleRoboCodingAccountRequest } from './robocoding-account-route.ts'
+import { RoboCodingLlmRegistration } from './robocoding-llm.ts'
 
 /** Stable Cordis plugin name. */
 export const name = 'desktop-shell'
@@ -138,6 +168,14 @@ export const DesktopSettingsSchema: z<DesktopSettings> = z.object({
   openBrowser: z.boolean().default(false),
   networkExposure: z.union(['loopback', 'lan'] as const).default('loopback'),
   logLevel: z.union(['debug', 'info', 'warn', 'error'] as const).default('info'),
+})
+
+const RoboCodingAccountSettingsSchema: z<RoboCodingAccountSettings> = z.object({
+  platformUrl: z.string().default(process.env.ROBOCODING_PLATFORM_URL || DEFAULT_ROBOCODING_PLATFORM_URL),
+  fundingMode: z.union(['personal_only', 'team_only'] as const).default('personal_only'),
+  teamId: z.number().step(1).min(0).default(0),
+  confirmedTeamId: z.number().step(1).min(0).default(0),
+  confirmedUserId: z.number().step(1).min(0).default(0),
 })
 
 /** Native window configuration. */
@@ -261,6 +299,55 @@ export function apply(ctx: Context, config: Config): void {
     },
   )
   const rendererOrigin = `http://127.0.0.1:${String(ctx.webServer.port)}`
+  ctx.settings.register('robocoding-skill-library', z.object({ skillIds: z.array(z.string().min(1).max(64)).max(2000).default([]) }))
+  ctx.settings.register('robocoding-onboarding', z.object({ completed: z.boolean().default(false) }))
+  if (runtime.readAccountSecret !== undefined && runtime.writeAccountSecret !== undefined
+    && runtime.clearAccountSecret !== undefined && runtime.openExternalUrl !== undefined) {
+    ctx.inject(['llm'], (accountCtx) => {
+      const accountSettings = accountCtx.settings.register('robocoding-account', RoboCodingAccountSettingsSchema)
+      const accountLlm = new RoboCodingLlmRegistration(accountCtx)
+      const account = new RoboCodingAccountController({
+        runtime: {
+          readAccountSecret: () => runtime.readAccountSecret!(), writeAccountSecret: secret => runtime.writeAccountSecret!(secret),
+          clearAccountSecret: () => runtime.clearAccountSecret!(), openExternalUrl: url => runtime.openExternalUrl!(url),
+        },
+        settings: accountSettings,
+        onRelay: (relay, models) => accountLlm.update(relay, models),
+        onModels: models => accountLlm.updateModels(models),
+        onLogout: () => accountLlm.clear(),
+        onRelayUnavailable: () => accountLlm.clear(),
+        defaultPlatformUrl: process.env.ROBOCODING_PLATFORM_URL || DEFAULT_ROBOCODING_PLATFORM_URL,
+      })
+      accountCtx.effect(() => {
+        void account.restore().catch(cause => accountCtx.logger.error(
+          `dsh-plugin-desktop: failed to restore RoboCoding account: ${cause instanceof Error ? cause.message : String(cause)}`,
+        ))
+        return () => { account.dispose(); accountLlm.dispose() }
+      }, 'dsh-plugin-desktop: RoboCoding account and model route')
+      accountCtx.inject(['sessions'], (sessionsCtx) => {
+        sessionsCtx.effect(() => {
+          const stopEvents = sessionsCtx.on('session/event', (session, event) => {
+            const sessionId = String(session.header.id)
+            if (event.type === 'turn/start') account.turnStarted(sessionId, event.data.turn)
+            else if (event.type === 'turn/end') account.turnEnded(sessionId, event.data.turn)
+          })
+          const stopDisposed = sessionsCtx.on('session/disposed', session => account.sessionDisposed(String(session.header.id)))
+          return () => { stopDisposed(); stopEvents(); account.sessionsDetached() }
+        }, 'dsh-plugin-desktop: lock RoboCoding funding during active turns')
+      })
+      const accountRoutes = [
+        [ROBOCODING_ACCOUNT_PATH, 'read'], [ROBOCODING_ACCOUNT_REFRESH_PATH, 'refresh'],
+        [ROBOCODING_ACCOUNT_LOGIN_PATH, 'login'], [ROBOCODING_ACCOUNT_FUNDING_PATH, 'funding'],
+        [ROBOCODING_ACCOUNT_LOGOUT_PATH, 'logout'], [ROBOCODING_ACCOUNT_PLATFORM_PATH, 'platform'],
+      ] as const
+      for (const [path, kind] of accountRoutes) {
+        accountCtx.effect(() => accountCtx.webServer.register({ kind: 'exact', path, handler: (req, res) => {
+          if (rejectDesktopRequest(accountCtx, req, res)) return
+          return handleRoboCodingAccountRequest(kind, req, res, account)
+        } }), `dsh-plugin-desktop: private RoboCoding account route ${path}`)
+      }
+    })
+  }
   ctx.effect(
     () => ctx.webServer.register({
       kind: 'exact',
@@ -294,6 +381,56 @@ export function apply(ctx: Context, config: Config): void {
   ctx.on('webserver/index-inject', table => {
     table.push(...desktopBootRecoveryInjections())
   })
+  for (const path of [ROBO_SKILLS_CATALOG_PATH, ROBO_DEVICES_CATALOG_PATH, ROBO_SKILLS_DEMO_RUNS_PATH, ROBO_SKILLS_RUNS_PATH] as const) {
+    ctx.effect(
+      () => ctx.webServer.register({
+        kind: 'exact',
+        path,
+        handler: (req, res) => {
+          if (rejectDesktopRequest(ctx, req, res)) return
+          return handleRoboSkillsProxyRequest(req, res, rendererOrigin, path, {
+            serviceUrl: process.env.ROBO_SKILLS_URL,
+            catalogUrl: 'https://api.openzrob.com/api/catalog',
+          })
+        },
+      }),
+      `dsh-plugin-desktop: private RoboCoding skills route ${path}`,
+    )
+  }
+  ctx.effect(
+    () => ctx.webServer.register({
+      kind: 'exact',
+      path: ROBO_LOCAL_SKILLS_PATH,
+      handler: (req, res) => {
+        if (rejectDesktopRequest(ctx, req, res)) return
+        return handleRoboLocalSkillsRequest(req, res, rendererOrigin, {
+          reportError: cause => ctx.logger.error(
+            `dsh-plugin-desktop: local skill operation failed: ${cause instanceof Error ? cause.message : String(cause)}`,
+          ),
+        })
+      },
+    }),
+    'dsh-plugin-desktop: private local skills route',
+  )
+  ctx.effect(
+    () => ctx.webServer.register({
+      kind: 'exact',
+      path: ROBO_LOCAL_SKILLS_PICK_DIRECTORY_PATH,
+      handler: (req, res) => {
+        if (rejectDesktopRequest(ctx, req, res)) return
+        return handleRoboLocalSkillPickerRequest(
+          req,
+          res,
+          rendererOrigin,
+          () => runtime.pickSkillDirectory(),
+          cause => ctx.logger.error(
+            `dsh-plugin-desktop: native skill directory picker failed: ${cause instanceof Error ? cause.message : String(cause)}`,
+          ),
+        )
+      },
+    }),
+    'dsh-plugin-desktop: private local skill directory picker route',
+  )
   const desktopSettings = ctx.get('desktopSettingsController')
   if (desktopSettings !== undefined) {
     const reportSettingsError = (operation: string, cause: unknown): void => {
@@ -478,8 +615,8 @@ export function apply(ctx: Context, config: Config): void {
         url,
         authenticationUrl: ctx.connection.authenticatedUrl(new URL(url).origin),
         rendererAccessHeader: browserAccess.rendererHeader,
-        productName: DESKTOP_PRODUCT_NAME,
-        windowTitle: 'DeepSeek Harness Desktop',
+        productName: DESKTOP_DISPLAY_NAME,
+        windowTitle: DESKTOP_DISPLAY_NAME,
         iconPath,
         trayIcons,
         readLocalePreference: () => {

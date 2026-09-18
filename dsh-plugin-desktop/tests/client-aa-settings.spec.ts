@@ -47,6 +47,14 @@ afterEach(async () => {
 })
 
 describe('AA settings clicks', () => {
+  it('removes the plugin marketplace while retaining AA settings', async () => {
+    const section = await mount(async () => ({ accepted: true, restartRequired: false }))
+    expect(section).not.toBeNull()
+    expect(container!.querySelector('#dsh-desktop-market-title')).toBeNull()
+    expect(container!.textContent).not.toContain(zh.marketTitle)
+    expect(container!.querySelector('a[href*="dsh-market"]')).toBeNull()
+  })
+
   it('shows a failed bundle load and allows retrying the already selected option', async () => {
     const select = vi.fn(async () => ({ accepted: true as const, restartRequired: true }))
     const section = await mount(select, { requested: true, effective: false })

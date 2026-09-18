@@ -8,6 +8,12 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
+import { RoboHeroBrand } from './branding.tsx'
+import { applyRoboBranding } from './robo-branding.ts'
+import { applyRoboSkills } from './robo-skills.tsx'
+import { applyRoboCodingAccount } from './robocoding-account.ts'
+import { applyRoboModels } from './robo-models.ts'
+import { applyRoboServiceOnboarding } from './robo-service-onboarding.ts'
 import { applyAdvancedShell } from './advanced-shell.ts'
 import { startRendererBootReporter } from './boot-health.ts'
 import { applyDesktopSettings } from './desktop-settings.ts'
@@ -88,6 +94,16 @@ export function apply(ctx: ClientContext): void {
     'dsh-plugin-desktop: native window geometry service',
   )
   const desktopSettings = applyDesktopSettings(ctx, environment)
+  applyRoboCodingAccount(ctx)
+  applyRoboServiceOnboarding(ctx)
+  ctx.inject(['remote.settings', 'remote.credentials', 'remote.llm', 'remote.session'], ready => { applyRoboModels(ready) })
+  applyRoboBranding(ctx)
+  ctx.slots.inject('conversation.hero.brand.mark', () =>
+    ctx.slots.register({ name: 'conversation.hero.brand.mark', priority: -100 }, RoboHeroBrand))
+  if (environment.mode !== 'compatibility') {
+    // Conversation needs the layout provided below; do not make it a root dependency.
+    ctx.inject(['conversation'], skillContext => { applyRoboSkills(skillContext) })
+  }
   ctx.effect(
     () => startRendererBootReporter(ctx.loader),
     'dsh-plugin-desktop: renderer boot health report',

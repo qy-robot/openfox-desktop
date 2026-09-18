@@ -1,0 +1,16 @@
+{
+  "iteration": 2,
+  "verdict": "partial",
+  "updated_at": "2026-09-15T12:12:37+08:00",
+  "evidence": [
+    "Native Electron extended-mode brand homepage displayed after delayed conversation injection fix.",
+    "Startup regression covered by 30 passing client-environment tests.",
+    "Actual adapter to HTTP proxy to Python service passed all four sample skills."
+  ],
+  "remaining": "Mac remains locked; native picker selection, send and rendered result are not yet visually verified.",
+  "previous_iteration": {
+    "iteration": 1,
+    "verdict": "fail",
+    "evidence": "Desktop root conversation injection caused layout dependency cycle; subsequently fixed."
+  }
+}

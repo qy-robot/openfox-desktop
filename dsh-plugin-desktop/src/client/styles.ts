@@ -11,6 +11,11 @@ import { SIDEBAR_COLLAPSED } from './layout-state.ts'
 /** Desktop-owned shell stylesheet kept as a plain string so the client bundle stays self-contained. */
 const DESKTOP_OWNED_STYLES = `
 html, body, #root { width: 100%; height: 100%; }
+/* Desktop UI defaults are two pixels above the upstream shell. Keep the
+   conversation font axis owned by the user's Appearance setting. */
+body:is([data-dsh-desktop-mode="extended"], [data-dsh-desktop-mode="advanced"]) { font-size: 18px; }
+.dshDesktopSidebarSurface [data-slot="sidebar"] > div,
+.dshDesktopSidebarSurface [data-slot="sidebar"] button { font-size: 16px; }
 body:is([data-dsh-desktop-mode="extended"], [data-dsh-desktop-mode="advanced"]) { margin: 0; background: transparent !important; }
 .dshDesktopFrame { position: relative; display: grid; grid-template-rows: 100%; width: 100%; height: 100%; overflow: hidden; background: transparent; transition: grid-template-columns var(--ds-transition-duration-slow) var(--ds-ease-in-out); }
 .dshDesktopSidebarSurface { --dsw-specific-sidebar-fill: transparent; position: relative; grid-column: 1; grid-row: 1; min-width: 0; overflow: hidden; background: transparent; border-right: 1px solid var(--dsw-alias-border-l1); }

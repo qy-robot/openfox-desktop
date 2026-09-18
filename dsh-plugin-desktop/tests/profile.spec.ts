@@ -401,8 +401,11 @@ virtualStoreDirMaxLength: 60
       name: 'dsh-plugin-desktop/webserver',
       config: { host: '127.0.0.1', port: 43_120 },
     }))
-    expect(patches).toContainEqual(expect.objectContaining({
-      id: 'agent-presets',
+    expect(patches).toContainEqual({ id: 'ui-agent-preset', disabled: true })
+    expect(patches).toContainEqual({ id: 'agent-presets', disabled: true })
+    expect(inserted).toContainEqual(expect.objectContaining({
+      id: 'desktop-agent-presets',
+      name: `${DESKTOP_PACKAGE_NAME}/agent-presets`,
       config: expect.objectContaining({
         roots: [
           { path: shippedPresetRoot(), trust: 'system' },
@@ -427,6 +430,17 @@ virtualStoreDirMaxLength: 60
     expect(Object.isFrozen(prepared.lanAddresses)).toBe(true)
 
     const rows = composeEntries([prepared.patches])
+    expect(rows.find(row => row.id === 'agent-default-model')).toEqual(expect.objectContaining({
+      name: '@deepseek-ai/dsh-agent-default-model',
+      config: { provider: 'robocoding', model: '' },
+    }))
+    expect(rows.find(row => row.id === 'llm-deepseek')).toEqual(expect.objectContaining({
+      name: '@deepseek-ai/dsh-llm-deepseek', disabled: true,
+    }))
+    expect(rows.find(row => row.id === 'ui-settings-models')).toEqual(expect.objectContaining({
+      name: '@deepseek-ai/dsh-client-ui-settings-models',
+      disabled: true,
+    }))
     for (const [id, name] of [
       ['ui-layout', '@deepseek-ai/dsh-client-ui-layout'],
       ['ui-sidebar', '@deepseek-ai/dsh-client-ui-sidebar'],
@@ -452,8 +466,8 @@ virtualStoreDirMaxLength: 60
       id: 'sandbox',
       name: '@deepseek-ai/dsh-sandbox-local',
     })
-    expect(rows.find(row => row.id === 'agent-presets')).toEqual(expect.objectContaining({
-      name: '@deepseek-ai/dsh-agent-presets',
+    expect(rows.find(row => row.id === 'desktop-agent-presets')).toEqual(expect.objectContaining({
+      name: `${DESKTOP_PACKAGE_NAME}/agent-presets`,
     }))
     expect(rows.map(row => row.id)).not.toContain('desktop-windows-agent-presets')
     expect(rows.find(row => row.id === 'pwsh-sandbox')).toEqual(expect.objectContaining({
@@ -553,7 +567,7 @@ virtualStoreDirMaxLength: 60
       || row.id === DESKTOP_MARKET_IDENTITIES.dshMarket.rowId)).toBe(false)
   })
 
-  it('inserts the community Market as one canonical row only after explicit selection', () => {
+  it('keeps the community Market disabled when persisted selection requests it', () => {
     const home = temporaryHome()
     const prepared = prepareDesktopProfile(undefined, home, 'darwin', 'desktop', undefined, {
       requested: 'community-market',
@@ -562,17 +576,18 @@ virtualStoreDirMaxLength: 60
     })
     const rows = composeEntries([prepared.patches])
 
-    expect(prepared.market.effective).toBe('community-market')
-    expect(rows.filter(row => row.id === DESKTOP_MARKET_IDENTITIES.community.rowId)).toEqual([{
-      id: DESKTOP_MARKET_IDENTITIES.community.rowId,
-      name: DESKTOP_MARKET_IDENTITIES.community.packageName,
-    }])
-    expect(rows.some(row => row.id === DESKTOP_MARKET_IDENTITIES.dshMarket.rowId)).toBe(false)
+    expect(prepared.market).toEqual({
+      requested: 'community-market',
+      effective: 'disabled',
+      legacyDefaulted: false,
+    })
+    expect(rows.some(row => row.id === DESKTOP_MARKET_IDENTITIES.community.rowId
+      || row.id === DESKTOP_MARKET_IDENTITIES.dshMarket.rowId)).toBe(false)
   })
 
-  it('loads the exact dshmarket dependency as a direct bundle only after explicit selection', () => {
+  it('filters dshmarket before loading even when persisted selection requests it', () => {
     const home = temporaryHome()
-    const profileMarketDir = installBundle(home, DESKTOP_MARKET_IDENTITIES.dshMarket.packageName, [
+    installBundle(home, DESKTOP_MARKET_IDENTITIES.dshMarket.packageName, [
       '- insert:',
       '    - id: dsh-market',
       '      name: dshmarket',
@@ -591,20 +606,20 @@ virtualStoreDirMaxLength: 60
     })
     const rows = composeEntries([prepared.patches])
 
-    expect(prepared.market.effective).toBe('dsh-market')
-    expect(prepared.profile.layers.find(layer =>
-      layer.packageName === DESKTOP_MARKET_IDENTITIES.dshMarket.packageName)?.packageDir,
-    ).toBe(profileMarketDir)
-    expect(rows.filter(row => row.id === DESKTOP_MARKET_IDENTITIES.dshMarket.rowId)).toEqual([{
-      id: DESKTOP_MARKET_IDENTITIES.dshMarket.rowId,
-      name: DESKTOP_MARKET_IDENTITIES.dshMarket.packageName,
-    }])
-    expect(rows.some(row => row.id === DESKTOP_MARKET_IDENTITIES.community.rowId)).toBe(false)
+    expect(prepared.market).toEqual({
+      requested: 'dsh-market',
+      effective: 'disabled',
+      legacyDefaulted: false,
+    })
+    expect(prepared.profile.layers.some(layer =>
+      layer.packageName === DESKTOP_MARKET_IDENTITIES.dshMarket.packageName)).toBe(false)
+    expect(rows.some(row => row.id === DESKTOP_MARKET_IDENTITIES.community.rowId
+      || row.id === DESKTOP_MARKET_IDENTITIES.dshMarket.rowId)).toBe(false)
   })
 
-  it('keeps the newer Desktop dshmarket when a Profile copy is older', () => {
+  it('does not overlay a persisted dshmarket dependency from either install', () => {
     const home = temporaryHome()
-    const oldProfileMarketDir = installBundle(home, DESKTOP_MARKET_IDENTITIES.dshMarket.packageName, [
+    installBundle(home, DESKTOP_MARKET_IDENTITIES.dshMarket.packageName, [
       '- insert:',
       '    - id: dsh-market',
       '      name: dshmarket',
@@ -622,16 +637,12 @@ virtualStoreDirMaxLength: 60
       effective: 'dsh-market',
       legacyDefaulted: false,
     })
-    const selected = prepared.profile.layers.find(layer =>
-      layer.packageName === DESKTOP_MARKET_IDENTITIES.dshMarket.packageName)
-    expect(selected?.packageDir).not.toBe(oldProfileMarketDir)
-    expect(JSON.parse(readFileSync(join(selected!.packageDir, 'package.json'), 'utf8'))).toMatchObject({
-      name: 'dshmarket',
-      version: '1.38.1',
-    })
+    expect(prepared.market.effective).toBe('disabled')
+    expect(prepared.profile.layers.some(layer =>
+      layer.packageName === DESKTOP_MARKET_IDENTITIES.dshMarket.packageName)).toBe(false)
   })
 
-  it('does not let community-management disables suppress a third-party market', () => {
+  it('preserves third-party plugin loading despite stale Market and disable state', () => {
     const home = temporaryHome()
     const packageName = 'third-party-plugin'
     installBundle(home, packageName, '- insert:\n    - id: third-party-marker\n      name: cordis:example\n')
@@ -668,7 +679,7 @@ virtualStoreDirMaxLength: 60
       managementStatePath,
       { requested: 'community-market', effective: 'community-market', legacyDefaulted: false },
     )
-    expect(composeEntries([community.patches])).not.toContainEqual(expect.objectContaining({
+    expect(composeEntries([community.patches])).toContainEqual(expect.objectContaining({
       id: 'third-party-marker',
     }))
   })
@@ -734,7 +745,7 @@ virtualStoreDirMaxLength: 60
     const rows = composeEntries([prepared.patches])
 
     expect(prepared.market.effective).toBe('disabled')
-    expect(prepared.marketFailure).toContain('conflicting Market provider Loader identity')
+    expect(prepared.marketFailure).toBeUndefined()
     expect(rows.some(row => row.id === DESKTOP_MARKET_IDENTITIES.community.rowId
       || row.id === DESKTOP_MARKET_IDENTITIES.dshMarket.rowId)).toBe(false)
     expect(rows.some(row => row.id === 'webserver')).toBe(true)
@@ -1046,9 +1057,10 @@ virtualStoreDirMaxLength: 60
       id: 'sandbox',
       name: '@deepseek-ai/dsh-sandbox-local',
     })
-    expect(rows.find(row => row.id === 'agent-presets')).toEqual(expect.objectContaining({
-      name: '@deepseek-ai/dsh-agent-presets',
+    expect(rows.find(row => row.id === 'desktop-agent-presets')).toEqual(expect.objectContaining({
+      name: `${DESKTOP_PACKAGE_NAME}/agent-presets`,
       config: expect.objectContaining({
+        default: 'standard',
         roots: [
           { path: shippedPresetRoot(), trust: 'system' },
           { path: join(home, '.agent-presets'), trust: 'user' },
@@ -1056,7 +1068,7 @@ virtualStoreDirMaxLength: 60
         includeUserRoot: false,
       }),
     }))
-    expect(rows.find(row => row.id === 'agent-presets')?.disabled).toBeFalsy()
+    expect(rows.find(row => row.id === 'desktop-agent-presets')?.disabled).toBeFalsy()
     expect(rows.map(row => row.id)).not.toContain('desktop-windows-agent-presets')
     expect(rows.find(row => row.id === 'pwsh-sandbox')).toEqual(expect.objectContaining({
       name: '@deepseek-ai/dsh-pwsh-sandbox',

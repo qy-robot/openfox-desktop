@@ -35,6 +35,8 @@ describe('Desktop Setup Wizard copy and contract', () => {
     expect(Object.keys(english)).toEqual(Object.keys(chinese))
     expect(Object.values(english).every(value => value.length > 0)).toBe(true)
     expect(Object.values(chinese).every(value => value.length > 0)).toBe(true)
+    expect(Object.values(english).join(' ')).not.toMatch(/DeepSeek|\bDSH\b/u)
+    expect(Object.values(chinese).join(' ')).not.toMatch(/DeepSeek|\bDSH\b/u)
   })
 
   it('explains LAN access-link permissions, HTTPS, and certificate trust in both locales', () => {
@@ -85,6 +87,22 @@ describe('Desktop Setup Wizard copy and contract', () => {
     expect(english.firstProfileSetup).toMatch(/first(?:-time| time)/iu)
     expect(english.firstProfileSetup).toMatch(/Desktop setup/iu)
     expect(english.startSetup).toBe('Start setup')
+  })
+
+  it('defaults first-run model access to the official account without asking for a DeepSeek key', () => {
+    const english = desktopSetupWizardCopy('en')
+    const chinese = desktopSetupWizardCopy('zh')
+    for (const copy of [english, chinese]) {
+      expect(copy.officialService).toContain('RoboCoding')
+      expect(copy.customModelsBody).toMatch(/API key/iu)
+      expect(copy.customModelsBody).toMatch(/auto|\u81ea\u52a8/iu)
+      expect(copy.customModelsBody).toMatch(/protocol|\u534f\u8bae/iu)
+      expect(copy.serviceBody).not.toContain('DeepSeek')
+      expect(copy.officialServiceBody).not.toContain('DeepSeek')
+    }
+    expect(chinese.serviceBody).toContain('无需填写 API Key')
+    expect(chinese.accountNextStep).toContain('打开应用后再登录')
+    expect(english.serviceBody).toContain('No API key is required')
   })
 
   it('treats browser opening as permission, not an automatic startup action', () => {

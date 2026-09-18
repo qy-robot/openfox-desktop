@@ -10,6 +10,7 @@ export default defineConfig([
       'module-resolution': 'src/module-resolution.ts',
       webserver: 'src/webserver.ts',
       profile: 'src/profile.ts',
+      'agent-presets': 'src/agent-presets.ts',
       'profile-manager': 'src/profile-manager.ts',
       'profile-service': 'src/profile-service.ts',
       'desktop-plugins': 'src/desktop-plugins.ts',

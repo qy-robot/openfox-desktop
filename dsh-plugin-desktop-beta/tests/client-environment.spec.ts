@@ -17,6 +17,7 @@ import {
 } from '../src/client/layout-state.ts'
 import { installDesktopOwnedStyles } from '../src/client/styles.ts'
 import { desktopWindowService, provideDesktopWindow } from '../src/client/window-service.ts'
+import { applyRoboSkills } from '../src/client/robo-skills.tsx'
 import {
   ADVANCED_MACOS_CONTENT_INSET,
   ADVANCED_MACOS_DRAG_LAYER_Z_INDEX,
@@ -26,6 +27,10 @@ import {
   MACOS_TRAFFIC_LIGHT_SAFE_WIDTH,
   WINDOWS_CAPTION_CONTROLS_WIDTH,
 } from '../src/window-chrome.ts'
+
+vi.mock('../src/client/robo-skills.tsx', () => ({ applyRoboSkills: vi.fn() }))
+vi.mock('../src/client/robo-models.ts', () => ({ applyRoboModels: vi.fn() }))
+vi.mock('../src/client/robo-service-onboarding.ts', () => ({ applyRoboServiceOnboarding: vi.fn() }))
 
 describe('desktop client environment', () => {
   it.each(['darwin', 'win32', 'linux'])('keeps compatibility chrome out of the %s client slot tree', platform => {
@@ -37,13 +42,16 @@ describe('desktop client environment', () => {
     const inject = vi.fn()
     const ctx = {
       effect,
+      inject: vi.fn(),
       slots: { inject },
       locale: { bind: () => (key: string) => key },
       settingsScope: { bind: () => ({}) },
     } as unknown as ClientContext
     try {
       apply(ctx)
-      expect(inject.mock.calls.map(([name]) => name)).toEqual(['settings.section', 'settings.action'])
+      expect(inject.mock.calls.map(([name]) => name)).toEqual([
+        'settings.section', 'settings.action', 'settings.section', 'sidebar.footer.action', 'sidebar.brand.mark', 'conversation.hero.brand.mark',
+      ])
       expect(effect.mock.calls.map(([, label]) => label)).not.toContain('desktop: independent compatibility frame styles')
     } finally {
       vi.unstubAllGlobals()
@@ -60,6 +68,108 @@ describe('desktop client environment', () => {
       expect(effect).not.toHaveBeenCalled()
     }
     finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it('provides the desktop layout without waiting for conversation and mounts skills only when it is ready', () => {
+    vi.stubGlobal('window', { location: { search: '?dsh-desktop-mode=advanced&dsh-desktop-platform=darwin&dsh-desktop-version=2.0.3&dsh-desktop-material=transparent' } })
+    const bodyDataset: Record<string, string> = {}
+    const bodyStyle = { setProperty: vi.fn(), removeProperty: vi.fn() }
+    const documentStyle = { colorScheme: '', removeProperty: vi.fn() }
+    const appended: unknown[] = []
+    vi.stubGlobal('document', {
+      body: {
+        dataset: bodyDataset,
+        style: bodyStyle,
+        setAttribute: vi.fn(),
+        removeAttribute: vi.fn(),
+      },
+      documentElement: { style: documentStyle },
+      getElementById: vi.fn(() => null),
+      createElement: vi.fn(() => ({
+        content: '',
+        dataset: {},
+        id: '',
+        isConnected: false,
+        name: '',
+        remove: vi.fn(),
+        style: { setProperty: vi.fn(), removeProperty: vi.fn() },
+        textContent: '',
+      })),
+      head: {
+        append: vi.fn((element: unknown) => { appended.push(element) }),
+        appendChild: vi.fn((element: unknown) => { appended.push(element); return element }),
+      },
+    })
+    vi.stubGlobal('getComputedStyle', () => ({ backgroundColor: 'rgb(20, 20, 20)' }))
+
+    const provided = new Map<string, unknown>()
+    const disposers: Array<() => void> = []
+    let releaseConversation: (() => void) | undefined
+    let context!: ClientContext
+    const slots = {
+      entries: vi.fn(() => []),
+      inject: vi.fn((_name: string, factory: () => unknown) => {
+        const registration = factory()
+        if (registration && typeof registration === 'object' && Symbol.iterator in registration) {
+          return [...registration as Iterable<unknown>]
+        }
+        return registration
+      }),
+      provideRoot: vi.fn(() => () => {}),
+      register: vi.fn(() => () => {}),
+      subscribe: vi.fn(() => () => {}),
+    }
+    const effect = vi.fn((factory: () => void | (() => void)) => {
+      const dispose = factory()
+      if (typeof dispose === 'function') disposers.push(dispose)
+      return dispose
+    })
+    context = {
+      effect,
+      inject: vi.fn((dependencies: readonly string[], callback: (readyContext: ClientContext) => void) => {
+        if (dependencies[0] === 'remote.settings') return
+        expect(dependencies).toEqual(['conversation'])
+        releaseConversation = () => {
+          expect(provided.get('layout')).toBeInstanceOf(DesktopLayoutState)
+          callback(context)
+        }
+      }),
+      loader: { await: vi.fn(), entries: vi.fn(() => []) },
+      locale: {
+        bind: vi.fn(() => (key: string) => key),
+        register: vi.fn(() => () => {}),
+      },
+      on: vi.fn(() => () => {}),
+      reflect: {
+        get: vi.fn(() => undefined),
+        provide: vi.fn((name: string, value: unknown) => {
+          provided.set(name, value)
+          return () => { provided.delete(name) }
+        }),
+      },
+      settingsScope: { bind: vi.fn(() => ({ set: vi.fn() })) },
+      slots,
+      theme: { getTheme: vi.fn(() => ({ active: { colorScheme: 'dark', tokens: {} } })) },
+    } as unknown as ClientContext
+    const skills = vi.mocked(applyRoboSkills)
+    skills.mockClear()
+
+    try {
+      apply(context)
+
+      expect(context.inject).toHaveBeenCalledTimes(2)
+      expect(provided.get('layout')).toBeInstanceOf(DesktopLayoutState)
+      expect(bodyDataset.dshDesktopMode).toBe('advanced')
+      expect(skills).not.toHaveBeenCalled()
+
+      releaseConversation?.()
+
+      expect(skills).toHaveBeenCalledOnce()
+      expect(skills).toHaveBeenCalledWith(context)
+    } finally {
+      disposers.reverse().forEach(dispose => { dispose() })
       vi.unstubAllGlobals()
     }
   })

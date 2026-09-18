@@ -134,7 +134,8 @@ body[data-dsh-desktop-mode="extended"]:not([data-dsh-desktop-material="off"]) {
   transform: translateX(-50%);
   pointer-events: none;
 }
-.dshDesktopFrameProduct { font-size: 13px; font-weight: 600; white-space: nowrap; }
+.dshDesktopFrameProduct { font-size: 15px; font-weight: 600; white-space: nowrap; }
+.dshDesktopFrameByline { color: var(--dsw-alias-label-secondary); font-size: 12px; font-weight: 500; white-space: nowrap; }
 .dshDesktopFrameVersion {
   min-height: 22px;
   padding: 2px 5px;
@@ -144,7 +145,7 @@ body[data-dsh-desktop-mode="extended"]:not([data-dsh-desktop-material="off"]) {
   color: var(--dsw-alias-label-secondary);
   cursor: default;
   font: inherit;
-  font-size: 11px;
+  font-size: 13px;
   pointer-events: auto;
   white-space: nowrap;
   -webkit-app-region: no-drag;
@@ -191,11 +192,11 @@ body[data-dsh-desktop-mode="extended"]:not([data-dsh-desktop-material="off"]) {
   justify-content: space-between;
   gap: 12px;
   color: var(--dsw-alias-label-secondary);
-  font-size: 11px;
+  font-size: 13px;
 }
 .dshDesktopVersionPopoverHeader strong {
   color: var(--dsw-alias-label-primary);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
 }
 .dshDesktopVersionCheckButton {
@@ -211,7 +212,7 @@ body[data-dsh-desktop-mode="extended"]:not([data-dsh-desktop-material="off"]) {
   color: var(--dsw-alias-label-primary);
   cursor: pointer;
   font: inherit;
-  font-size: 12px;
+  font-size: 14px;
   -webkit-app-region: no-drag;
 }
 .dshDesktopVersionCheckButton:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
@@ -223,7 +224,7 @@ body[data-dsh-desktop-mode="extended"]:not([data-dsh-desktop-material="off"]) {
 .dshDesktopVersionCheckButton svg { width: 14px; height: 14px; stroke-width: 1.8; }
 .dshDesktopVersionCheckError {
   color: var(--dsw-alias-state-error-primary);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.4;
 }
 .dshDesktopFrameMode {
@@ -237,7 +238,7 @@ body[data-dsh-desktop-mode="extended"]:not([data-dsh-desktop-material="off"]) {
   color: var(--dsw-alias-label-secondary);
   cursor: pointer;
   font: inherit;
-  font-size: 11px;
+  font-size: 13px;
   pointer-events: auto;
   white-space: nowrap;
   -webkit-app-region: no-drag;
@@ -258,7 +259,7 @@ body[data-dsh-desktop-mode="extended"]:not([data-dsh-desktop-material="off"]) {
 }
 .dshDesktopModePopoverHeader {
   color: var(--dsw-alias-label-secondary);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
 }
 .dshDesktopModeOptions {
@@ -306,13 +307,13 @@ body[data-dsh-desktop-mode="extended"]:not([data-dsh-desktop-material="off"]) {
   gap: 2px;
 }
 .dshDesktopModeOptionCopy strong {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.3;
 }
 .dshDesktopModeOptionCopy small {
   color: var(--dsw-alias-label-secondary);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 400;
   line-height: 1.35;
 }
@@ -385,7 +386,7 @@ body[data-dsh-desktop-mode="extended"]:not([data-dsh-desktop-material="off"]) {
   color: var(--dsw-alias-label-primary);
   cursor: pointer;
   font: inherit;
-  font-size: 12px;
+  font-size: 14px;
   text-align: start;
 }
 .dshDesktopActionMenuItem:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
@@ -405,7 +406,7 @@ body[data-dsh-desktop-mode="extended"]:not([data-dsh-desktop-material="off"]) {
 .dshDesktopNativeActionError {
   max-width: 260px;
   color: var(--dsw-alias-state-error-primary);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.4;
 }
 `

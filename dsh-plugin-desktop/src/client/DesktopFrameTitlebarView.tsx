@@ -7,6 +7,7 @@ import type { DesktopClientEnvironment, DesktopClientMode } from './environment.
 import { DesktopNativeActions } from './DesktopNativeActions.tsx'
 import { Button } from '../native-ui/components/ui/button.tsx'
 import type { DesktopSettingsLocaleKey } from './desktop-settings-locales.ts'
+import { ROBO_BRAND_BYLINE, ROBO_BRAND_NAME } from './branding.tsx'
 import {
   HoverCard,
   HoverCardContent,
@@ -175,7 +176,8 @@ export function DesktopFrameTitlebarView({ api, environment, setMode, t, remoteC
       data-material={environment.material}
     >
       <div className="dshDesktopFrameIdentity">
-        <span className="dshDesktopFrameProduct">DSH Desktop</span>
+        <span className="dshDesktopFrameProduct">{ROBO_BRAND_NAME}</span>
+        <span className="dshDesktopFrameByline">{ROBO_BRAND_BYLINE}</span>
         <DesktopVersionControl version={environment.version} checkForUpdates={api.checkForUpdates} t={t} />
         <DesktopModeControl
           mode={environment.mode}

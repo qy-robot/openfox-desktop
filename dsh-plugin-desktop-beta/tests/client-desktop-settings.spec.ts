@@ -7,6 +7,7 @@ import {
   DesktopDeveloperMenuItems,
   DesktopNativeActions,
   DesktopRestartMenuItems,
+  DesktopSettingsMoreMenuItems,
 } from '../src/client/DesktopNativeActions.tsx'
 import {
   DesktopModeControl,
@@ -506,18 +507,37 @@ describe('Desktop native action presentation', () => {
     expect(order).toEqual(['mode:advanced', 'restart'])
   })
 
-  it('keeps explicit text labels in settings', () => {
+  it('keeps infrequent Desktop actions behind one settings menu', () => {
     const markup = renderToStaticMarkup(createElement(DesktopNativeActions, {
       api,
       t,
       placement: 'settings',
     }))
 
-    expect(markup).toContain('Open DSH Terminal')
-    expect(markup).toContain('Export Diagnostics')
-    expect(markup).toContain('Restart')
+    expect(markup).toContain('More')
+    expect(markup).not.toContain('Open DSH Terminal')
+    expect(markup).not.toContain('Export Diagnostics')
+    expect(markup).not.toContain('>Restart<')
     expect(markup).toContain('aria-haspopup="menu"')
     expect(markup).not.toContain('Developer options')
+  })
+
+  it('keeps support and restart capabilities in the settings More menu', () => {
+    const markup = renderToStaticMarkup(createElement(DesktopSettingsMoreMenuItems, {
+      busy: false,
+      canExportDiagnostics: true,
+      t,
+      onExportDiagnostics: vi.fn(),
+      onOpenTerminal: vi.fn(),
+      onReload: vi.fn(),
+      onRestart: vi.fn(),
+      onRestartToRecovery: vi.fn(),
+    }))
+
+    expect(markup.match(/role="menuitem"/g)).toHaveLength(5)
+    expect(markup.indexOf('Export Diagnostics')).toBeLessThan(markup.indexOf('Open DSH Terminal'))
+    expect(markup.indexOf('Open DSH Terminal')).toBeLessThan(markup.indexOf('Reload interface'))
+    expect(markup.indexOf('Reload interface')).toBeLessThan(markup.indexOf('Restart'))
   })
 
   it('groups reload with both restart actions and leaves only Developer Tools in its menu', () => {

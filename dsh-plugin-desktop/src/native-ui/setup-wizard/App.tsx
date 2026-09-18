@@ -11,7 +11,6 @@ import {
   isDesktopSetupWizardInput,
   type DesktopSetupWizardInput,
   type DesktopSetupWizardMacosMaterial,
-  type DesktopSetupWizardMarket,
   type DesktopSetupWizardMode,
   type DesktopSetupWizardNetworkExposure,
   type DesktopSetupWizardNotifications,
@@ -45,19 +44,19 @@ type Locale = 'en' | 'zh'
 
 export type DesktopSetupWizardStep =
   | 'welcome'
+  | 'service'
   | 'mode'
   | 'material'
   | 'aa'
-  | 'market'
   | 'notifications'
   | 'browser'
   | 'success'
 
 export const DESKTOP_SETUP_WIZARD_STEPS = Object.freeze([
   'welcome',
+  'service',
   'mode',
   'material',
-  'market',
   'aa',
   'notifications',
   'browser',
@@ -120,7 +119,7 @@ export function decodeDesktopSetupWizardInput(search: string): DesktopSetupWizar
   return value
 }
 
-function normalizedSelection(input: DesktopSetupWizardInput): DesktopSetupWizardSelection {
+export function normalizeDesktopSetupWizardSelection(input: DesktopSetupWizardInput): DesktopSetupWizardSelection {
   const mode = input.platform === 'linux' ? 'compatibility' : input.mode
   const browserAccess = mode === 'compatibility' && (input.openBrowser || input.networkExposure === 'lan')
   return {
@@ -131,7 +130,7 @@ function normalizedSelection(input: DesktopSetupWizardInput): DesktopSetupWizard
       : input.windowsMaterial,
     openBrowser: browserAccess,
     networkExposure: browserAccess ? input.networkExposure : 'loopback',
-    market: input.market,
+    market: 'disabled',
     aaEnabled: input.aaEnabled === true,
     notifications: { ...input.notifications },
   }
@@ -333,41 +332,6 @@ function MaterialOptions({
   />)}</RadioGroup>
 }
 
-function MarketOptions({
-  copy,
-  selection,
-  update,
-}: {
-  readonly copy: DesktopSetupWizardCopy
-  readonly selection: DesktopSetupWizardSelection
-  readonly update: (selection: DesktopSetupWizardSelection) => void
-}): JSX.Element {
-  const markets: readonly { readonly value: DesktopSetupWizardMarket; readonly title: string; readonly body: string }[] = [
-    { value: 'disabled', title: copy.marketDisabled, body: copy.marketDisabledBody },
-    { value: 'community-market', title: copy.communityMarket, body: copy.communityMarketBody },
-    { value: 'dsh-market', title: copy.dshMarket, body: copy.dshMarketBody },
-  ]
-  return <RadioGroup
-    aria-label={copy.marketTitle}
-    aria-orientation="vertical"
-    name="setup-plugin-market"
-    onValueChange={value => {
-      if (value === 'disabled' || value === 'community-market' || value === 'dsh-market') {
-        update({ ...selection, market: value })
-      }
-    }}
-    value={selection.market}
-  >{markets.map(option => <Choice
-    {...(option.value === 'community-market' ? { badge: copy.beta } : {})}
-    body={option.body}
-    id={`setup-plugin-market-${option.value}`}
-    key={option.value}
-    selected={selection.market === option.value}
-    title={option.title}
-    value={option.value}
-  />)}</RadioGroup>
-}
-
 function NotificationOptions({
   copy,
   notifications,
@@ -448,6 +412,17 @@ export function SetupWizardStepPage({
   readonly requestBrowserAccess: (enabled: boolean) => void
   readonly requestExposure: (exposure: DesktopSetupWizardNetworkExposure) => void
 }): JSX.Element {
+  if (step === 'service') return <Page step={step} subtitle={copy.serviceBody} title={copy.serviceTitle}>
+    <section className="rounded-xl border bg-muted/30 p-4">
+      <h2 className="text-sm font-semibold">{copy.officialService}</h2>
+      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{copy.officialServiceBody}</p>
+      <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{copy.accountNextStep}</p>
+    </section>
+    <section className="rounded-xl border p-4">
+      <h2 className="text-sm font-semibold">{copy.customModels}</h2>
+      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{copy.customModelsBody}</p>
+    </section>
+  </Page>
   if (step === 'mode') return <Page step={step} subtitle={copy.presentationBody} title={copy.presentationTitle}><ModeOptions copy={copy} input={input} selection={selection} update={update} /></Page>
   if (step === 'material') return <Page step={step} subtitle={copy.windowMaterialBody} title={copy.windowMaterial}><MaterialOptions copy={copy} input={input} selection={selection} update={update} /></Page>
   if (step === 'aa') return <Page step={step} subtitle={copy.aaIntro} title={copy.aaTitle}>
@@ -464,7 +439,6 @@ export function SetupWizardStepPage({
       <p className="text-xs leading-relaxed text-muted-foreground">{copy.aaNextDesktop}</p>
     </aside>}
   </Page>
-  if (step === 'market') return <Page step={step} subtitle={copy.marketBody} title={copy.marketTitle}><MarketOptions copy={copy} selection={selection} update={update} /></Page>
   if (step === 'notifications') return <Page step={step} subtitle={copy.notificationsBody} title={copy.notificationsTitle}><NotificationOptions copy={copy} notifications={selection.notifications} update={notifications => { update({ ...selection, notifications }) }} /></Page>
   if (step === 'browser') return <Page step={step} subtitle={copy.browserBody} title={copy.browserTitle}><BrowserOptions copy={copy} requestBrowserAccess={requestBrowserAccess} requestExposure={requestExposure} selection={selection} /></Page>
   return <div data-setup-step={step} />
@@ -666,7 +640,7 @@ export function SetupWizardApp(): JSX.Element {
   const locale = localLocale(window.location.search)
   const copy = desktopSetupWizardCopy(locale)
   const input = decodeDesktopSetupWizardInput(window.location.search)
-  const [selection, setSelection] = useState<DesktopSetupWizardSelection | undefined>(() => input === undefined ? undefined : normalizedSelection(input))
+  const [selection, setSelection] = useState<DesktopSetupWizardSelection | undefined>(() => input === undefined ? undefined : normalizeDesktopSetupWizardSelection(input))
   const [step, setStep] = useState<DesktopSetupWizardStep>('welcome')
   const [lanAcknowledged, setLanAcknowledged] = useState(false)
   const [confirmLan, setConfirmLan] = useState<LanConfirmationReason>()

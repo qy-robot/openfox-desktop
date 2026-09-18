@@ -12,6 +12,7 @@ import {
   DESKTOP_SETUP_WIZARD_STEPS,
   desktopSetupWizardSkipRequiresLanAcknowledgement,
   nextDesktopSetupWizardStep,
+  normalizeDesktopSetupWizardSelection,
   previousDesktopSetupWizardStep,
   resolveDesktopSetupWizardBrowserAccessRequest,
   SetupWizardBrowserCompatibilityConfirmation,
@@ -100,9 +101,9 @@ describe('Setup Wizard step flow', () => {
   it('starts with an introduction and keeps browser access as the final setting page', () => {
     expect(DESKTOP_SETUP_WIZARD_STEPS).toEqual([
       'welcome',
+      'service',
       'mode',
       'material',
-      'market',
       'aa',
       'notifications',
       'browser',
@@ -114,17 +115,17 @@ describe('Setup Wizard step flow', () => {
     expect(DESKTOP_SETUP_WIZARD_STEPS.map(step => previousDesktopSetupWizardStep(step))).toEqual([
       undefined,
       'welcome',
+      'service',
       'mode',
       'material',
-      'market',
       'aa',
       'notifications',
       'browser',
     ])
     expect(DESKTOP_SETUP_WIZARD_STEPS.map(step => nextDesktopSetupWizardStep(step))).toEqual([
+      'service',
       'mode',
       'material',
-      'market',
       'aa',
       'notifications',
       'browser',
@@ -188,9 +189,9 @@ describe('Setup Wizard welcome page', () => {
 
 describe('Setup Wizard setting pages', () => {
   it.each([
+    ['service', 'serviceTitle', 'serviceBody'],
     ['mode', 'presentationTitle', 'presentationBody'],
     ['material', 'windowMaterial', 'windowMaterialBody'],
-    ['market', 'marketTitle', 'marketBody'],
     ['notifications', 'notificationsTitle', 'notificationsBody'],
     ['browser', 'browserTitle', 'browserBody'],
   ] as const)('renders the %s page with its own title and subtitle', (step, title, body) => {
@@ -201,17 +202,26 @@ describe('Setup Wizard setting pages', () => {
     expect(occurrences(markup, 'data-setup-step=')).toBe(1)
   })
 
-  it.each(['mode', 'material', 'market', 'notifications', 'browser'] as const)(
+  it.each(['service', 'mode', 'material', 'notifications', 'browser'] as const)(
     'lays out the %s page options vertically',
     (step) => {
       expect(renderStep(step)).toContain('data-orientation="vertical"')
     },
   )
 
+  it('presents account service first without collecting a provider key', () => {
+    const service = renderStep('service')
+    expect(service).toContain(copy.officialService)
+    expect(service).toContain(copy.accountNextStep)
+    expect(service).toContain(copy.customModels)
+    expect(service).toContain('自动识别协议并获取模型列表')
+    expect(service).not.toMatch(/<input|<textarea|type="password"/u)
+    expect(service).not.toContain('DeepSeek')
+  })
+
   it.each([
     ['mode', copy.presentationTitle],
     ['material', copy.windowMaterial],
-    ['market', copy.marketTitle],
     ['browser', copy.networkExposure],
   ] as const)('uses a named shadcn RadioGroup for the %s choices', (step, accessibleName) => {
     const markup = renderStep(step)
@@ -220,20 +230,19 @@ describe('Setup Wizard setting pages', () => {
     expect(markup).toContain('data-slot="radio-group-item"')
   })
 
-  it('does not combine the plugin market and browser settings', () => {
-    const market = renderStep('market')
-    const browser = renderStep('browser')
-    expect(market).toContain(copy.marketTitle)
-    expect(market).not.toContain(copy.browserTitle)
-    expect(market).not.toContain(copy.openBrowser)
-    expect(browser).toContain(copy.browserTitle)
-    expect(browser).not.toContain(copy.marketTitle)
-    expect(browser).not.toContain(copy.communityMarket)
-    expect(browser).not.toContain(copy.dshMarket)
+  it('removes plugin market setup and disables legacy market preferences', () => {
+    expect(DESKTOP_SETUP_WIZARD_STEPS).not.toContain('market')
+    expect(normalizeDesktopSetupWizardSelection(input)).toMatchObject({ market: 'disabled' })
+    for (const step of ['service', 'mode', 'material', 'aa', 'notifications', 'browser'] as const) {
+      const markup = renderStep(step)
+      expect(markup).not.toContain(copy.marketTitle)
+      expect(markup).not.toContain(copy.communityMarket)
+      expect(markup).not.toContain(copy.dshMarket)
+      expect(markup).not.toContain('setup-plugin-market')
+    }
   })
 
-  it('marks Community Market and LAN access as Beta features', () => {
-    const market = renderStep('market')
+  it('marks LAN access as a Beta feature', () => {
     const browser = renderStep('browser')
     const enabledBrowser = renderStep('browser', {
       ...selection,
@@ -241,9 +250,6 @@ describe('Setup Wizard setting pages', () => {
       openBrowser: true,
       networkExposure: 'lan',
     })
-    const communityOption = market.indexOf('for="setup-plugin-market-community-market"')
-    const nextMarketOption = market.indexOf('for="setup-plugin-market-dsh-market"')
-    const marketBadge = market.indexOf('data-slot="badge"')
     const lanOption = browser.indexOf('for="setup-network-exposure-lan"')
     const lanBadge = browser.indexOf('data-slot="badge"')
     const enabledLanOption = enabledBrowser.indexOf('for="setup-network-exposure-lan"')
@@ -252,12 +258,8 @@ describe('Setup Wizard setting pages', () => {
       enabledBrowser.indexOf('</label>', enabledLanOption),
     )
 
-    expect(occurrences(market, 'data-slot="badge"')).toBe(1)
     expect(occurrences(browser, 'data-slot="badge"')).toBe(1)
-    expect(market).toContain(copy.beta)
     expect(browser).toContain(copy.beta)
-    expect(marketBadge).toBeGreaterThan(communityOption)
-    expect(marketBadge).toBeLessThan(nextMarketOption)
     expect(lanBadge).toBeGreaterThan(lanOption)
     expect(browser.slice(lanOption)).toContain('disabled=""')
     expect(enabledLanChoice).not.toContain('disabled=""')
@@ -324,7 +326,7 @@ describe('Setup Wizard navigation and completion', () => {
       onBack: () => {},
       onNext: () => {},
       onSkip: () => {},
-      step: 'market',
+      step: 'aa',
     }))
     expect(markup).toContain('data-slot="dialog-trigger"')
     expect(markup).toContain('aria-haspopup="dialog"')
@@ -458,7 +460,7 @@ describe('Setup Wizard native UI boundaries', () => {
   })
 })
 
-it('offers AA opt-in with a Beta badge after the market page', () => {
+it('offers AA opt-in with a Beta badge after the material page', () => {
   const html = renderStep('aa')
   expect(html).toContain('Agents-Anywhere')
   expect(html).toContain('Beta')

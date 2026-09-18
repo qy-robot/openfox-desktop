@@ -1047,12 +1047,12 @@ describe('published package surface', () => {
     }
   })
 
-  it('keeps the fixed inverted Beta source icon', () => {
+  it('keeps the approved RoboCoding dark robot source icon', () => {
     const digest = createHash('sha256')
       .update(readFileSync(new URL('build/app-icon.png', packageRoot)))
       .digest('hex')
 
-    expect(digest).toBe('b661d0982f47b5a35a7e8c3524a7aa6a18e044eb64d2e480e01875b82dd2be7f')
+    expect(digest).toBe('badf5809d12c658bb5104911a9f85aab219e8e5f9a950175427df217f6baf8be')
   })
 
   it('generates a centered macOS icon with a 100-pixel visual inset', async () => {

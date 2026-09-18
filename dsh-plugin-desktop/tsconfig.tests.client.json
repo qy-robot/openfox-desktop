@@ -8,12 +8,19 @@
   "include": [
     "src/client/**/*.ts",
     "src/client/**/*.tsx",
+    "tests/client-branding.spec.ts",
     "tests/client-boot-health.spec.ts",
     "tests/client-directory-picker.spec.ts",
     "tests/client-aa-settings.spec.ts",
     "tests/client-desktop-settings.spec.ts",
     "tests/client-environment.spec.ts",
     "tests/client-layout-service.spec.ts",
+    "tests/robo-skills-client.spec.ts",
+    "tests/robo-skills-library.spec.ts",
+    "tests/robo-skill-market.spec.ts",
+    "tests/robo-service-onboarding.spec.ts",
+    "tests/robo-models*.spec.ts",
+    "tests/robo-account-*.spec.ts",
     "tests/theme-presenter.spec.ts"
   ]
 }

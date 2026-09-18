@@ -829,6 +829,21 @@ describe('Electron desktop runtime', () => {
     await release()
   })
 
+  it.each(['darwin', 'linux', 'win32'] as const)('selects local skill folders on %s without workspace restrictions', async platform => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue(platform)
+    electron.dialog.showOpenDialog.mockResolvedValue({ canceled: false, filePaths: ['/skills/my-skill'] })
+    const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
+    const runtime = new ElectronDesktopRuntime(async () => {})
+    runtime.setLocalePreference('zh')
+
+    await expect(runtime.pickSkillDirectory()).resolves.toBe('/skills/my-skill')
+    expect(electron.dialog.showOpenDialog).toHaveBeenCalledWith({
+      title: '选择技能文件夹', properties: ['openDirectory', 'dontAddToRecent'],
+    })
+    electron.dialog.showOpenDialog.mockResolvedValue({ canceled: true, filePaths: ['/skills/my-skill'] })
+    await expect(runtime.pickSkillDirectory()).resolves.toBeNull()
+  })
+
   it('blocks unsupported workspace volumes without returning a risky path', async () => {
     vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
     const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')

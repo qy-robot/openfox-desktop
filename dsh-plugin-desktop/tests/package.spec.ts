@@ -955,12 +955,12 @@ describe('published package surface', () => {
     }
   })
 
-  it('keeps the iOS Default source icon unmodified', () => {
+  it('keeps the approved RoboCoding dark robot source icon', () => {
     const digest = createHash('sha256')
       .update(readFileSync(new URL('build/app-icon.png', packageRoot)))
       .digest('hex')
 
-    expect(digest).toBe('315fbc6e57ff1f34894f21f66fb7f9f26deccf78333c71fad21a6cec64e7de80')
+    expect(digest).toBe('badf5809d12c658bb5104911a9f85aab219e8e5f9a950175427df217f6baf8be')
   })
 
   it('generates exact-DPI Windows application and installer icon frames', () => {

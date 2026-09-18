@@ -42,6 +42,16 @@ import type { DesktopRuntime, DesktopShellSpec } from '../src/runtime.ts'
 import { createDesktopBrowserAccess } from '../src/desktop-browser-access.ts'
 import { DESKTOP_LAN_HTTPS_CA_PATH, DesktopLanHttpsRuntime } from '../src/lan-https-runtime.ts'
 import { RENDERER_BOOT_REPORT_PATH, type RendererBootReport } from '../src/renderer-boot-contract.ts'
+import {
+  ROBO_DEVICES_CATALOG_PATH,
+  ROBO_SKILLS_CATALOG_PATH,
+  ROBO_SKILLS_DEMO_RUNS_PATH,
+  ROBO_SKILLS_RUNS_PATH,
+} from '../src/robo-skills-proxy.ts'
+import {
+  ROBO_LOCAL_SKILLS_PATH,
+  ROBO_LOCAL_SKILLS_PICK_DIRECTORY_PATH,
+} from '../src/robo-local-skills.ts'
 
 const config: DesktopConfig = {
   mode: 'compatibility',
@@ -67,6 +77,7 @@ interface PluginHarness {
   setThemeSource: ReturnType<typeof vi.fn<(source: ThemePreference) => void>>
   rendererBoot: ReturnType<typeof vi.fn<(report: RendererBootReport) => void>>
   pickDirectory: ReturnType<typeof vi.fn<() => Promise<string | null>>>
+  pickSkillDirectory: ReturnType<typeof vi.fn<() => Promise<string | null>>>
   validateDirectory: ReturnType<typeof vi.fn<(path: string) => Promise<boolean>>>
   browserAccess: ReturnType<typeof createDesktopBrowserAccess>
   lanHttps: DesktopLanHttpsRuntime
@@ -91,6 +102,7 @@ function createHarness(
   const setThemeSource = vi.fn<(source: ThemePreference) => void>()
   const rendererBoot = vi.fn<(report: RendererBootReport) => void>()
   const pickDirectory = vi.fn(async () => null)
+  const pickSkillDirectory = vi.fn(async () => null)
   const validateDirectory = vi.fn(async () => true)
   const requestRejection = vi.fn<(
     request: ConnectionTrustRequest,
@@ -139,6 +151,7 @@ function createHarness(
     toggleDeveloperTools: () => {},
     exportDiagnostics: async () => {},
     pickDirectory,
+    pickSkillDirectory,
     validateDirectory,
     openProfileCreateWindow: () => {},
     reportRendererBoot: rendererBoot,
@@ -207,6 +220,7 @@ function createHarness(
     setThemeSource,
     rendererBoot,
     pickDirectory,
+    pickSkillDirectory,
     validateDirectory,
     browserAccess,
     lanHttps,
@@ -347,8 +361,8 @@ describe('desktop Host plugin', () => {
       mode: 'compatibility',
       url: 'http://127.0.0.1:43120/?dsh-desktop-mode=compatibility&dsh-desktop-platform=darwin&dsh-desktop-version=2.0.0&dsh-desktop-material=transparent&dsh-desktop-titlebar-inset=36',
       authenticationUrl: 'http://127.0.0.1:43120/?token=test-token',
-      productName: 'DSH Desktop',
-      windowTitle: 'DeepSeek Harness Desktop',
+      productName: 'RoboCoding',
+      windowTitle: 'RoboCoding',
       rendererAccessHeader: {
         name: 'x-dsh-desktop-renderer',
         value: Buffer.alloc(32, 6).toString('base64url'),
@@ -431,6 +445,12 @@ describe('desktop Host plugin', () => {
       RENDERER_BOOT_REPORT_PATH,
       DESKTOP_DIRECTORY_PICKER_PATH,
       DESKTOP_DIRECTORY_VALIDATOR_PATH,
+      ROBO_DEVICES_CATALOG_PATH,
+      ROBO_SKILLS_CATALOG_PATH,
+      ROBO_SKILLS_DEMO_RUNS_PATH,
+      ROBO_SKILLS_RUNS_PATH,
+      ROBO_LOCAL_SKILLS_PATH,
+      ROBO_LOCAL_SKILLS_PICK_DIRECTORY_PATH,
     ].sort()
     const routes = harness.routes().filter(route => route.path !== DESKTOP_LAN_HTTPS_CA_PATH)
     expect(routes.map(route => route.path).sort()).toEqual(expectedPaths)
@@ -449,6 +469,7 @@ describe('desktop Host plugin', () => {
     expect(harness.requestRejection).toHaveBeenCalledTimes(routes.length)
     expect(harness.rendererBoot).not.toHaveBeenCalled()
     expect(harness.pickDirectory).not.toHaveBeenCalled()
+    expect(harness.pickSkillDirectory).not.toHaveBeenCalled()
     expect(harness.validateDirectory).not.toHaveBeenCalled()
   })
 

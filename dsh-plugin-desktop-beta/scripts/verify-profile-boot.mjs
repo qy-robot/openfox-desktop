@@ -214,7 +214,7 @@ try {
   if (!presetIds.includes('minimal') || !presetIds.includes('standard')) {
     throw new Error(`assembled Windows profile exposes unexpected presets: ${presetIds.join(', ')}`)
   }
-  if (agentPresets.defaultId !== 'minimal') {
+  if (agentPresets.defaultId !== 'standard') {
     throw new Error(`assembled Windows profile selected unexpected default ${agentPresets.defaultId}`)
   }
   const minimalPreset = await agentPresets.resolve('minimal')
@@ -352,6 +352,7 @@ try {
     }
   }
   for (const id of [
+    '@deepseek-ai/dsh-client-ui-agent-preset',
     '@deepseek-ai/dsh-client-ui-layout',
     '@deepseek-ai/dsh-client-ui-directory-picker-native',
   ]) {

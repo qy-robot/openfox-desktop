@@ -6,7 +6,9 @@ import {
   nativeTheme,
   net,
   Notification,
+  safeStorage,
   shell,
+  type OpenDialogOptions,
 } from 'electron'
 import { spawn } from 'node:child_process'
 import { RemoteControlOffer, remoteControlOfferCopy } from './remote-control-offer.ts'
@@ -66,6 +68,8 @@ import { ElectronWorkspaceAdmission } from './workspace-admission.ts'
 import { ProfileCreateWindow, type ProfileCreateWindowOptions } from './profile-create-window.ts'
 import { windowsBuildNumber } from './window-material.ts'
 import { desktopNativeCopy } from './native-dialog-copy.ts'
+import { parseRoboCodingExternalUrl } from './robocoding-platform.ts'
+import { RoboCodingSecretStore } from './robocoding-secret-store.ts'
 import {
   FileMainWindowStateStore,
   type MainWindowStateStore,
@@ -115,6 +119,15 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
   private rendererBootHealthy = false
   private profileCreateWindow: ProfileCreateWindow | undefined
   private restartRequest: Promise<void> | undefined
+  private readonly accountSecrets = new RoboCodingSecretStore(
+    join(app.getPath('userData'), 'account', 'session.bin'),
+    {
+      available: () => safeStorage.isEncryptionAvailable()
+        && (process.platform !== 'linux' || !['basic_text', 'unknown'].includes(safeStorage.getSelectedStorageBackend())),
+      seal: plaintext => safeStorage.encryptString(plaintext),
+      open: sealed => safeStorage.decryptString(Buffer.from(sealed)),
+    },
+  )
 
   constructor(
     private readonly restart: (target?: 'recovery' | 'safe-mode') => Promise<void>,
@@ -163,6 +176,14 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
   /** @inheritdoc */
   get locale(): DesktopLocale {
     return this.currentLocale
+  }
+
+  readAccountSecret() { return this.accountSecrets.read() }
+  writeAccountSecret(secret: import('./robocoding-account-controller.ts').RoboCodingAccountSecret) { return this.accountSecrets.write(secret) }
+  clearAccountSecret() { return this.accountSecrets.clear() }
+  async openExternalUrl(value: string): Promise<void> {
+    const url = parseRoboCodingExternalUrl(value)
+    await shell.openExternal(url.href)
   }
 
   /** Terminal failure class for the first Renderer boot report, when it failed. */
@@ -306,6 +327,18 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
   /** @inheritdoc */
   async pickDirectory(): Promise<string | null> {
     return await this.workspaceAdmission.pickDirectory()
+  }
+
+  /** @inheritdoc */
+  async pickSkillDirectory(): Promise<string | null> {
+    const options: OpenDialogOptions = {
+      title: this.currentLocale === 'zh' ? '选择技能文件夹' : 'Select Skill Folder',
+      properties: ['openDirectory', 'dontAddToRecent'],
+    }
+    const result = this.generation === undefined
+      ? await dialog.showOpenDialog(options)
+      : await this.generation.showOpenDialog(options)
+    return result.canceled ? null : result.filePaths[0] ?? null
   }
 
   /** @inheritdoc */

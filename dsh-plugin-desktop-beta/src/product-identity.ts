@@ -4,12 +4,16 @@ export const DESKTOP_RELEASE_IDENTITIES = Object.freeze({
     releaseChannel: 'stable' as const,
     packageName: 'dsh-plugin-desktop',
     productName: 'DSH Desktop',
+    displayName: 'RoboCoding',
+    byline: 'by擎云机器人',
     appId: 'ai.deepseek.dsh.desktop',
   }),
   beta: Object.freeze({
     releaseChannel: 'beta' as const,
     packageName: 'dsh-plugin-desktop-beta',
     productName: 'DSH Desktop Beta',
+    displayName: 'RoboCoding Beta',
+    byline: 'by擎云机器人',
     appId: 'ai.deepseek.dsh.desktop.beta',
   }),
 })
@@ -22,6 +26,9 @@ export const OTHER_DESKTOP_PRODUCT_IDENTITY = DESKTOP_RELEASE_IDENTITIES.stable
 export const DESKTOP_PACKAGE_NAME = DESKTOP_PRODUCT_IDENTITY.packageName
 export const STABLE_DESKTOP_PACKAGE_NAME = OTHER_DESKTOP_PRODUCT_IDENTITY.packageName
 export const DESKTOP_PRODUCT_NAME = DESKTOP_PRODUCT_IDENTITY.productName
+/** Public product copy, separate from the legacy name that locates app data. */
+export const DESKTOP_DISPLAY_NAME = DESKTOP_PRODUCT_IDENTITY.displayName
+export const DESKTOP_BRAND_BYLINE = DESKTOP_PRODUCT_IDENTITY.byline
 export const DESKTOP_APP_ID = DESKTOP_PRODUCT_IDENTITY.appId
 export const DESKTOP_RELEASE_CHANNEL = DESKTOP_PRODUCT_IDENTITY.releaseChannel
 

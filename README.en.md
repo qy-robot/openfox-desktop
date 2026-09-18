@@ -1,3 +1,11 @@
+# RoboCoding Desktop
+
+by擎云机器人
+
+RoboCoding product fork. See [product ownership](ROBOCODINGAI.md) and [local skills development](docs/robo-skills-local.md). Original upstream documentation and license information follow unchanged below.
+
+---
+
 <p align="center">
   <a href="https://dshdesktop.cn"><img src="assets/desktop-hero-en.png" alt="DSH Desktop, an open-source desktop client built on DeepSeek Harness" width="100%"></a>
 </p>

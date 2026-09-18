@@ -1,0 +1,28 @@
+{
+  "iteration": 2,
+  "verdict": "pass",
+  "review_method": "native_manual_review_plus_playwright_component_fixture",
+  "updated_at": "2026-09-16T00:53:30+08:00",
+  "native_evidence": [
+    "Stable Electron isolated profile visibly contained both 技能市场 and 设备 in the sidebar.",
+    "The native device workbench loaded Atlas 7 and Forge A6 from the temporary live Workbench catalog.",
+    "Native search reduced Forge results to one model.",
+    "Atlas 7 changed to 激光雷达实验环境 and was visibly marked 当前设备.",
+    "The native skill market defaulted to Atlas 7 and showed Atlas 导航巡检 plus 通用环境清单 while excluding Forge 安全预检.",
+    "Atlas 导航巡检 was added and the installed count changed to one.",
+    "The native wide dark-theme device and skill-market layouts were legible without visible clipping or overlap."
+  ],
+  "playwright_fixture_evidence": [
+    "The production RoboDeviceWorkbench component reconciled a removed Atlas selection against the post-unpublish catalog and visibly reported that the local record was cleared.",
+    "The production RoboSkillPicker component displayed Atlas 导航巡检 as 目录展示 and exposed a disabled 暂不可运行 button.",
+    "Playwright recorded no dynamic request after opening the catalog-only skill, so no demo-runs request was issued.",
+    "Light, dark, wide and 520-pixel narrow layouts were visually inspected; a narrow-heading line-wrap issue was fixed and rechecked."
+  ],
+  "screenshots": [
+    "output/playwright/devices-workbenches/device-stale-selection-light-wide.png",
+    "output/playwright/devices-workbenches/device-stale-selection-light-narrow.png",
+    "output/playwright/devices-workbenches/device-stale-selection-dark-wide.png",
+    "output/playwright/devices-workbenches/catalog-skill-unavailable-light-narrow.png"
+  ],
+  "boundary": "macOS locked before the final three states could be repeated in the native window; those states were verified with the exact production components in an isolated Playwright fixture, while the core catalog and selection flow was already verified natively against the live temporary service."
+}
