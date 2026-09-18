@@ -628,3 +628,10 @@
 - 完成：技能选择只保留待执行 chip，不再抢占主发送键；普通消息仍走 AI。新增 chip“运行”按钮，只有显式点击才注册 `/技能` claim 并生成本地报告；技能说明和成功提示同步标明“未发送给 AI”。
 - 验证：stable/Beta `robo-skills-client.spec.ts` 各 20/20；两版 typecheck；`check:desktop-variants` 通过。
 - 限制：需按最新代码重建本地 Beta 后再进行手工 UI 点击；未制作签名安装包。
+
+### 2026-09-18T23:45:00+08:00 | Codex | 最新交互修复已加载到本地 Beta
+
+- 基线：Desktop `robo/main` 提交 `0093adb408`，已推送 `origin/robo/main`。
+- 完成：按最新源码重建并重启 Beta，普通发送与显式“运行技能”分离的代码已加载。
+- 验证：本地演示服务健康检查返回 `status=ok、mode=local-demo`；新的 Beta Electron 主进程已运行。
+- 限制：本地验证，不是生产发布或签名安装包。
