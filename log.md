@@ -614,3 +614,10 @@
 - 完成：删除技能结果/错误到达后自动打开 `RoboSkillPicker` 的副作用；发送技能命令后保留结果，输入框仅显示“本地技能分析完成，点击‘技能’查看报告”，用户主动点击“技能”才查看报告。
 - 验证：stable/Beta `robo-skills-client.spec.ts` 各 20/20；两版 typecheck 通过；`check:desktop-variants` 通过（220 个共享源码文件对齐）。
 - 限制：选择技能后发送仍是显式 `/技能` 命令，不会变成普通 AI 对话；未执行 Electron 安装包级视觉回归。
+
+### 2026-09-18T23:32:00+08:00 | Codex | 按修复源码重启本地 Beta
+
+- 基线：Desktop `robo/main` 提交 `84f0b5a91c`，已推送 `origin/robo/main`。
+- 完成：停止旧本地 Skills/Beta 进程，按最新源码重新构建并启动本地 Beta；未触碰生产服务。
+- 验证：本地演示服务 `http://127.0.0.1:8765/health` 返回 `status=ok、mode=local-demo`；Beta Electron 主进程已运行。
+- 限制：本地服务仅支持固定只读分析；尚未制作签名安装包。
