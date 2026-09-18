@@ -63,7 +63,7 @@ export function createRoboSkillSession(api: RoboSkillsApi, input: SessionInput, 
           try {
             const result = await api.run(selection, text, runController.signal)
             update({ running: false, selection: undefined, skill: undefined, result })
-            return { kind: 'success', text: '本地示例分析完成，结果已显示在技能面板' }
+            return { kind: 'success', text: '本地技能分析完成，点击“技能”查看报告' }
           } catch (cause) {
             const message = cause instanceof Error ? cause.message : '本地示例分析失败，请重试'
             update({ running: false, error: message })

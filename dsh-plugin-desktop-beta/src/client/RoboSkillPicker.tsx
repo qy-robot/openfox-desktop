@@ -33,7 +33,6 @@ export function RoboSkillPicker({ api, session, library, device, openMarket, ope
   // owned token removal reach the persisted draft when switching to Market.
   useLayoutEffect(() => () => { session.remove() }, [session])
   const [open, setOpen] = useState(false)
-  useEffect(() => { if (state.result || state.error) setOpen(true) }, [state.result, state.error])
   const [localSkills, setLocalSkills] = useState<readonly RoboLocalSkill[]>([])
   const [localError, setLocalError] = useState('')
   useEffect(() => {

@@ -443,7 +443,7 @@ describe('RoboCoding skill session command', () => {
     expect(session.select(navigationSkill, navigationSelection)).toBe(true)
     const outcome = await harness.claims[0]?.submit('待分析日志', harness.context, [])
 
-    expect(outcome).toEqual({ kind: 'success', text: '本地示例分析完成，结果已显示在技能面板' })
+    expect(outcome).toEqual({ kind: 'success', text: '本地技能分析完成，点击“技能”查看报告' })
     expect(session.store.getSnapshot()).toEqual(expect.objectContaining({
       selection: undefined,
       skill: undefined,
@@ -644,8 +644,11 @@ describe('RoboCoding skill picker', () => {
       vi.mocked(api.run).mockResolvedValue(resultFor(navigationSelection, '本地结果已返回'))
       await act(async () => { await harness.claims.at(-1)?.submit('日志示例', harness.context, []) })
       await settleComponent()
+      expect(document.querySelector('[aria-label="本地技能状态"]')).toBeNull()
+      expect(document.querySelector('[aria-label="关闭技能选择器"]')).toBeNull()
+      click(document.querySelector('[aria-label="选择技能"]'))
+      await settleComponent()
       expect(document.querySelector('[aria-label="本地技能状态"]')?.textContent).toContain('本地结果已返回')
-      expect(document.querySelector('[aria-label="关闭技能选择器"]')).not.toBeNull()
       click(document.querySelector('[aria-label="关闭技能结果"]'))
       expect(session.store.getSnapshot().result).toBeUndefined()
     } finally {

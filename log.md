@@ -607,3 +607,10 @@
 - 完成：停止旧 Beta 与本地演示服务后，使用当前源码重新运行 `scripts/dev-desktop-skills-local.mjs`；本地 Skill 服务和 Electron Beta 均已启动。
 - 验证：`http://127.0.0.1:8765/health` 返回 `status=ok、mode=local-demo`；Beta Electron 主进程正在运行；启动构建完成。
 - 限制：本地演示服务只支持固定只读分析，不调用模型、不连接或控制真实机器人。
+
+### 2026-09-18T23:29:24+08:00 | Codex | 技能结果不再覆盖消息输入框
+
+- 基线：Desktop `robo/main/02a9faa31b`；本次只修改技能客户端 stable/Beta 及对应测试，未提交、推送或制作签名安装包。
+- 完成：删除技能结果/错误到达后自动打开 `RoboSkillPicker` 的副作用；发送技能命令后保留结果，输入框仅显示“本地技能分析完成，点击‘技能’查看报告”，用户主动点击“技能”才查看报告。
+- 验证：stable/Beta `robo-skills-client.spec.ts` 各 20/20；两版 typecheck 通过；`check:desktop-variants` 通过（220 个共享源码文件对齐）。
+- 限制：选择技能后发送仍是显式 `/技能` 命令，不会变成普通 AI 对话；未执行 Electron 安装包级视觉回归。
