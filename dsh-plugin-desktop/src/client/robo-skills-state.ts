@@ -31,15 +31,8 @@ export function createRoboSkillSession(api: RoboSkillsApi, input: SessionInput, 
   const update = (patch: Partial<RoboSkillState>) => { if (active) store.set({ ...store.getSnapshot(), ...patch }) }
   const off = input.state.subscribe(() => {
     const current = input.state.getSnapshot()
-    if (store.getSnapshot().selection && current.phase !== 'submitting' && current.claim?.token !== ROBO_SKILL_TOKEN) {
-      // View teardown releases the upstream claim before it drops the scoped
-      // event listener. Consume our owned prefix synchronously so a remount can
-      // never present a selected chip whose Enter path is plain/default submit.
-      if (current.phase === 'plain' && current.draft.startsWith(ROBO_SKILL_TOKEN)) {
-        actx.bail(actx, 'slash/input-consume-token', {
-          guard: { kind: 'span', span: { start: 0, end: ROBO_SKILL_TOKEN.length, draftRev: current.draftRev } },
-        })
-      }
+    if (store.getSnapshot().selection && ((current.claim && current.claim.token !== ROBO_SKILL_TOKEN)
+      || (current.phase === 'submitting' && current.claim?.token !== ROBO_SKILL_TOKEN))) {
       update({ selection: undefined, skill: undefined, error: undefined })
     }
   })
@@ -50,9 +43,23 @@ export function createRoboSkillSession(api: RoboSkillsApi, input: SessionInput, 
       const current = input.state.getSnapshot()
       if (current.phase === 'submitting' || current.phase === 'adjudicating'
         || (current.claim && current.claim.token !== ROBO_SKILL_TOKEN)) return false
-      const end = current.claim?.token === ROBO_SKILL_TOKEN ? ROBO_SKILL_TOKEN.length : 0
+      update({ selection, skill, modelId: selection.modelId ?? store.getSnapshot().modelId, profileId: selection.profileId ?? store.getSnapshot().profileId,
+        result: undefined, error: undefined })
+      return true
+    },
+    run(): boolean {
+      const selected = store.getSnapshot()
+      const current = input.state.getSnapshot()
+      if (!selected.selection || !selected.skill || current.phase === 'submitting' || current.phase === 'adjudicating'
+        || current.attachmentIds.length > 0) return false
+      if (!current.draft.trim()) {
+        update({ error: '请先填写要分析的文本' })
+        return false
+      }
+      const skill = selected.skill
+      const selection = selected.selection
       const accepted = input.beginCommand({ token: ROBO_SKILL_TOKEN,
-        hint: `本地示例 · ${skill.displayName} · 仅分析文本，不调用模型或设备`,
+        hint: `已选择 ${skill.displayName}；点击“运行技能”才会生成本地报告，普通发送仍走 AI`,
         attachments: false,
         async submit(text) {
           if (!library.getSnapshot().includes(skill.id)) return { kind: 'error', text: '此技能已从我的技能中移除，请先在技能市场添加' }
@@ -63,17 +70,17 @@ export function createRoboSkillSession(api: RoboSkillsApi, input: SessionInput, 
           try {
             const result = await api.run(selection, text, runController.signal)
             update({ running: false, selection: undefined, skill: undefined, result })
-            return { kind: 'success', text: '本地技能分析完成，点击“技能”查看报告' }
+            return { kind: 'success', text: '技能报告已生成；这条输入未发送给 AI' }
           } catch (cause) {
             const message = cause instanceof Error ? cause.message : '本地示例分析失败，请重试'
             update({ running: false, error: message })
             return { kind: 'error', text: message }
           } finally { runController = undefined }
         },
-      }, { start: 0, end, draftRev: current.draftRev })
-      if (accepted) update({ selection, skill, modelId: selection.modelId ?? store.getSnapshot().modelId, profileId: selection.profileId ?? store.getSnapshot().profileId,
-        result: undefined, error: undefined })
-      return accepted
+      }, { start: 0, end: 0, draftRev: current.draftRev })
+      if (!accepted) return false
+      input.submit()
+      return true
     },
     selectLocal(name: string): boolean {
       if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name)) return false
@@ -90,13 +97,13 @@ export function createRoboSkillSession(api: RoboSkillsApi, input: SessionInput, 
     },
     remove(): void {
       const current = input.state.getSnapshot()
-      // Selection is the ownership proof that permits removing the exact
-      // prefix; manually authored `/技能 ` text has no selection and is kept.
-      if (!store.getSnapshot().selection || !current.draft.startsWith(ROBO_SKILL_TOKEN)
-        || current.phase === 'submitting' || current.phase === 'adjudicating') return
-      actx.bail(actx, 'slash/input-consume-token', {
-        guard: { kind: 'span', span: { start: 0, end: ROBO_SKILL_TOKEN.length, draftRev: current.draftRev } },
-      })
+      if (!store.getSnapshot().selection || current.phase === 'submitting' || current.phase === 'adjudicating') return
+      if (current.claim?.token === ROBO_SKILL_TOKEN && current.draft.startsWith(ROBO_SKILL_TOKEN)) {
+        actx.bail(actx, 'slash/input-consume-token', {
+          guard: { kind: 'span', span: { start: 0, end: ROBO_SKILL_TOKEN.length, draftRev: current.draftRev } },
+        })
+      }
+      update({ selection: undefined, skill: undefined, error: undefined })
     },
     dismissResult(): void { update({ result: undefined, error: undefined }) },
     dispose(): void {

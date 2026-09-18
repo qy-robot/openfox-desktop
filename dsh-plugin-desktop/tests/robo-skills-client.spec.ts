@@ -408,6 +408,8 @@ describe('RoboCoding skill session command', () => {
     const session = createRoboSkillSession(api, harness.input, harness.context, library)
 
     expect(session.select(navigationSkill, navigationSelection)).toBe(true)
+    expect(harness.state.getSnapshot().draft).toBe('待分析日志')
+    expect(session.run()).toBe(true)
     const outcome = await harness.claims[0]?.submit('待分析日志', harness.context, [])
 
     expect(outcome).toEqual({ kind: 'error', text: '本地服务离线' })
@@ -418,7 +420,7 @@ describe('RoboCoding skill session command', () => {
       running: false,
     }))
     expect(harness.state.getSnapshot().draft).toBe(`${ROBO_SKILL_TOKEN}待分析日志`)
-    expect(harness.submitDefault).not.toHaveBeenCalled()
+    expect(harness.submitDefault).toHaveBeenCalledOnce()
     expect(api.run).toHaveBeenCalledWith(navigationSelection, '待分析日志', expect.any(AbortSignal))
 
     session.remove()
@@ -441,9 +443,10 @@ describe('RoboCoding skill session command', () => {
     const session = createRoboSkillSession(api, harness.input, harness.context, library)
 
     expect(session.select(navigationSkill, navigationSelection)).toBe(true)
+    expect(session.run()).toBe(true)
     const outcome = await harness.claims[0]?.submit('待分析日志', harness.context, [])
 
-    expect(outcome).toEqual({ kind: 'success', text: '本地技能分析完成，点击“技能”查看报告' })
+    expect(outcome).toEqual({ kind: 'success', text: '技能报告已生成；这条输入未发送给 AI' })
     expect(session.store.getSnapshot()).toEqual(expect.objectContaining({
       selection: undefined,
       skill: undefined,
@@ -451,13 +454,13 @@ describe('RoboCoding skill session command', () => {
       error: undefined,
       running: false,
     }))
-    expect(harness.submitDefault).not.toHaveBeenCalled()
+    expect(harness.submitDefault).toHaveBeenCalledOnce()
 
     session.dispose()
     library.dispose()
   })
 
-  it('removes only the skill token and preserves the user draft', () => {
+  it('removes a pending skill without changing the user draft', () => {
     const api = { catalog: vi.fn(), run: vi.fn() } as unknown as RoboSkillsApi
     const harness = sessionHarness('继续保留的说明')
     const library = skillLibrary(navigationSkill.id)
@@ -466,11 +469,6 @@ describe('RoboCoding skill session command', () => {
 
     session.remove()
 
-    expect(harness.context.bail).toHaveBeenCalledWith(
-      harness.context,
-      'slash/input-consume-token',
-      { guard: { kind: 'span', span: { start: 0, end: ROBO_SKILL_TOKEN.length, draftRev: 8 } } },
-    )
     expect(harness.state.getSnapshot().draft).toBe('继续保留的说明')
     expect(session.store.getSnapshot().selection).toBeUndefined()
     expect(harness.submitDefault).not.toHaveBeenCalled()
@@ -479,24 +477,17 @@ describe('RoboCoding skill session command', () => {
     library.dispose()
   })
 
-  it('removes its owned token after the composer view releases the claim', () => {
+  it('keeps a pending skill independent from the ordinary input phase', () => {
     const api = { catalog: vi.fn(), run: vi.fn() } as unknown as RoboSkillsApi
     const harness = sessionHarness('切换页面后仍保留')
     const library = skillLibrary(navigationSkill.id)
     const session = createRoboSkillSession(api, harness.input, harness.context, library)
     expect(session.select(navigationSkill, navigationSelection)).toBe(true)
-    const claimed = harness.state.getSnapshot()
-    const { claim: _claim, ...released } = claimed
-    harness.state.set({ ...released, phase: 'plain' })
-
-    expect(harness.context.bail).toHaveBeenCalledWith(harness.context, 'slash/input-consume-token', {
-      guard: { kind: 'span', span: { start: 0, end: ROBO_SKILL_TOKEN.length, draftRev: 8 } },
-    })
     expect(harness.state.getSnapshot().draft).toBe('切换页面后仍保留')
     expect(harness.state.getSnapshot().phase).toBe('plain')
-    expect(session.store.getSnapshot().selection).toBeUndefined()
+    expect(session.store.getSnapshot().selection).toEqual(navigationSelection)
     library.remove(navigationSkill.id)
-    expect(harness.state.getSnapshot().draft).toBe('切换页面后仍保留')
+    expect(session.store.getSnapshot().selection).toBeUndefined()
     session.dispose(); library.dispose()
   })
 
@@ -527,6 +518,7 @@ describe('RoboCoding skill session command', () => {
     expect(harness.beginCommand).not.toHaveBeenCalled()
     library.add(navigationSkill.id)
     expect(session.select(navigationSkill, navigationSelection)).toBe(true)
+    expect(session.run()).toBe(true)
     const submit = harness.claims[0]?.submit
 
     library.remove(navigationSkill.id)
@@ -641,6 +633,9 @@ describe('RoboCoding skill picker', () => {
       click(robotUse ?? null)
       expect(session.store.getSnapshot().selection).toEqual(navigationSelection)
       expect(container.textContent).toContain('导航日志诊断')
+      expect(harness.state.getSnapshot().draft).toBe('组件测试草稿')
+      click(container.querySelector('[aria-label="运行技能"]'))
+      expect(harness.claims).toHaveLength(1)
       vi.mocked(api.run).mockResolvedValue(resultFor(navigationSelection, '本地结果已返回'))
       await act(async () => { await harness.claims.at(-1)?.submit('日志示例', harness.context, []) })
       await settleComponent()

@@ -131,7 +131,7 @@ export function RoboSkillPicker({ api, session, library, device, openMarket, ope
                     <option value="">请选择开发方式</option>{allowedProfiles.map(profile => <option key={profile.id} value={profile.id}>{profile.label}</option>)}
                   </select></label>
                 </div>}
-                <p>{detail.id === 'bumi-sdk-development' ? '选择后填写 SDK、DDS 或报错文本并发送，仅做本地只读预检；不会执行命令、连接设备或修改文件。' : '选择后填写日志并发送，仅作示例文本分析。'}</p>
+                <p>{detail.id === 'bumi-sdk-development' ? '选择后填写 SDK、DDS 或报错文本；点击输入框旁的“运行技能”才做本地只读预检，普通发送仍走 AI。' : '选择后填写日志并点击“运行技能”，普通发送仍走 AI。'}</p>
                 <button type="button" className="roboSkillPrimary" disabled={!selection || state.running} onClick={add}>使用此技能</button>
                 </>}
               </section>}
@@ -142,7 +142,7 @@ export function RoboSkillPicker({ api, session, library, device, openMarket, ope
         </Popover.Positioner>
       </Popover.Portal>
     </Popover.Root>
-    {state.selection && <span className="roboSkillChip"><span title={state.skill?.displayName}>{state.skill?.displayName}</span><button type="button" disabled={state.running} aria-label="移除技能" onClick={() => { session.remove() }}><X size={13} /></button></span>}
+    {state.selection && <span className="roboSkillChip"><span title={state.skill?.displayName}>{state.skill?.displayName}</span><button type="button" disabled={state.running} aria-label="运行技能" onClick={() => { session.run() }}>运行</button><button type="button" disabled={state.running} aria-label="移除技能" onClick={() => { session.remove() }}><X size={13} /></button></span>}
   </>
 }
 

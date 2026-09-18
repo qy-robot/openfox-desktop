@@ -621,3 +621,10 @@
 - 完成：停止旧本地 Skills/Beta 进程，按最新源码重新构建并启动本地 Beta；未触碰生产服务。
 - 验证：本地演示服务 `http://127.0.0.1:8765/health` 返回 `status=ok、mode=local-demo`；Beta Electron 主进程已运行。
 - 限制：本地服务仅支持固定只读分析；尚未制作签名安装包。
+
+### 2026-09-18T23:41:00+08:00 | Codex | 拆分普通发送与技能运行
+
+- 基线：Desktop `robo/main` 提交 `94848567c4`；本次修改待提交。
+- 完成：技能选择只保留待执行 chip，不再抢占主发送键；普通消息仍走 AI。新增 chip“运行”按钮，只有显式点击才注册 `/技能` claim 并生成本地报告；技能说明和成功提示同步标明“未发送给 AI”。
+- 验证：stable/Beta `robo-skills-client.spec.ts` 各 20/20；两版 typecheck；`check:desktop-variants` 通过。
+- 限制：需按最新代码重建本地 Beta 后再进行手工 UI 点击；未制作签名安装包。
