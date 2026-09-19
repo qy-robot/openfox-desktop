@@ -3,8 +3,8 @@ import { ROBO_SKILL_MARKET_CSS } from './robo-skill-market-styles.ts'
 /** Extend the existing Desktop theme without a second token system. */
 export const ROBO_SKILLS_CSS = `
 .roboSkillTrigger,.roboDeviceTrigger,.roboSkillIcon,.roboSkillChip button,.roboSkillResult button { display:inline-flex;align-items:center;justify-content:center;gap:5px;border:0;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;cursor:pointer; }
-.roboDeviceTrigger { padding:6px 8px;white-space:nowrap;border-radius:8px;min-height:32px;font-size:15px; }.roboDeviceTrigger:hover { background:var(--dsw-alias-interactive-bg-hover); }
-.roboSkillTrigger { padding:6px 8px;white-space:nowrap;border-radius:8px;min-height:32px;font-size:15px; }
+.roboDeviceTrigger { padding:4px 6px;white-space:nowrap;border-radius:7px;min-height:28px;font-size:14px; }.roboDeviceTrigger:hover { background:var(--dsw-alias-interactive-bg-hover); }
+.roboSkillTrigger { padding:4px 6px;white-space:nowrap;border-radius:7px;min-height:28px;font-size:14px; }
 .roboSkillTrigger:hover,.roboSkillIcon:hover { background:var(--dsw-alias-interactive-bg-hover); }.roboSkillTrigger:disabled { opacity:.45;cursor:default; }
 .roboSkillPositioner { z-index:1000;width:min(var(--anchor-width),calc(100vw - 32px));max-width:calc(100vw - 32px); }
 .roboSkillPopup { box-sizing:border-box;width:100%;max-height:min(500px,var(--available-height,80vh));overflow:auto;border:1px solid var(--dsw-alias-border-l1);border-radius:18px;padding:14px;background:var(--dsw-specific-input-major,var(--dsw-alias-bg-layer-1,#fff));color:var(--dsw-alias-label-primary,#222);box-shadow:0 18px 48px #0000002e,0 2px 8px #0000001a;font:14px/1.5 system-ui,sans-serif;transform-origin:var(--transform-origin); }
@@ -26,7 +26,7 @@ export const ROBO_SKILLS_CSS = `
 .roboSkillDetail p { margin:14px 0; }
 .roboSkillPopup .roboSkillSearch input:focus-visible { outline:none; }
 .roboSkillEmpty { padding:20px 8px;text-align:center;color:var(--dsw-alias-label-secondary); }.roboSkillEmpty button { display:block;margin:8px auto 0; }.roboSkillError { margin:12px 0 0;color:var(--dsw-alias-state-warning-primary,#a34d14); }
-.roboSkillChip { display:inline-flex;align-items:center;gap:4px;padding:3px 6px;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;max-width:180px;font-size:14px; }.roboSkillChip>span { overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.roboSkillChip { display:inline-flex;align-items:center;gap:3px;padding:2px 4px;border:1px solid var(--dsw-alias-border-l1);border-radius:6px;max-width:160px;min-width:0;font-size:13px; }.roboSkillChip>span { flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }.roboSkillChip button { flex:0 0 26px;width:26px;height:24px;padding:0;white-space:nowrap; }
 .roboSkillResult { padding:10px 12px;margin-top:8px;border:1px solid var(--dsw-alias-border-l1);border-radius:10px;color:var(--dsw-alias-label-secondary);background:var(--dsw-alias-bg-layer-1);font:14px/1.6 system-ui;max-height:230px;overflow:auto;overflow-wrap:anywhere; }.roboSkillResult p { margin:0; }.roboSkillResult ul { margin:8px 0;padding-left:18px; }
 .roboSkillPopup :focus-visible,.roboSkillTrigger:focus-visible,.roboSkillChip button:focus-visible,.roboSkillResult button:focus-visible { outline:2px solid var(--dsw-alias-state-business-primary,#3267d6);outline-offset:2px; }.roboSkillPopup .roboSkillSearch:focus-within { border-color:var(--dsw-alias-state-business-primary,#3267d6);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--dsw-alias-state-business-primary,#3267d6) 16%,transparent); }
 @media(max-width:600px) { .roboSkillFilters { flex-direction:column; }.roboSkillChip { max-width:110px; }.roboSkillPositioner { width:calc(100vw - 32px); } }

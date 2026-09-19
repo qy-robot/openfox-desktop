@@ -333,6 +333,7 @@ describe('RoboCoding skill catalog client', () => {
     })).toThrow('技能目录存在重复标识')
     expect(() => parseRoboCatalog({
       ...catalogPayload,
+      featuredSkillIds: [],
       skills: [{
         ...catalogPayload.skills[0],
         targets: [{ modelId: 'qy-x1', profileIds: ['missing'] }],
@@ -408,7 +409,7 @@ describe('RoboCoding skill session command', () => {
     const session = createRoboSkillSession(api, harness.input, harness.context, library)
 
     expect(session.select(navigationSkill, navigationSelection)).toBe(true)
-    expect(harness.state.getSnapshot().draft).toBe('待分析日志')
+    expect(harness.state.getSnapshot().draft).toBe('/navigation-diagnostics 待分析日志')
     expect(session.run()).toBe(true)
     const outcome = await harness.claims[0]?.submit('待分析日志', harness.context, [])
 
@@ -483,7 +484,7 @@ describe('RoboCoding skill session command', () => {
     const library = skillLibrary(navigationSkill.id)
     const session = createRoboSkillSession(api, harness.input, harness.context, library)
     expect(session.select(navigationSkill, navigationSelection)).toBe(true)
-    expect(harness.state.getSnapshot().draft).toBe('切换页面后仍保留')
+    expect(harness.state.getSnapshot().draft).toBe('/navigation-diagnostics 切换页面后仍保留')
     expect(harness.state.getSnapshot().phase).toBe('plain')
     expect(session.store.getSnapshot().selection).toEqual(navigationSelection)
     library.remove(navigationSkill.id)
@@ -533,6 +534,44 @@ describe('RoboCoding skill session command', () => {
 })
 
 describe('RoboCoding skill picker', () => {
+  it('prioritizes an installed cloud skill over a same-named local slash skill', async () => {
+    vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
+    vi.stubGlobal('ResizeObserver', class { observe(): void {}; unobserve(): void {}; disconnect(): void {} })
+    const bumiCatalog = parseRoboCatalog({
+      ...catalogPayload,
+      featuredSkillIds: [],
+      skills: [{
+        id: 'bumi-sdk-development', displayName: 'Bumi SDK 开发助手', description: '云端 Bumi 只读预检',
+        version: '0.2.0', category: 'engineering', robotIndependent: true, targets: [], demo: true,
+      }],
+    })
+    vi.mocked(roboLocalSkillsApi.list).mockResolvedValue([
+      { name: 'bumi-sdk-development', description: '本地同名技能', path: '/local/bumi/SKILL.md' },
+      { name: 'local-helper', description: '本地助手', path: '/local/helper/SKILL.md' },
+    ])
+    const api = { catalog: vi.fn().mockResolvedValue(bumiCatalog), run: vi.fn() } as unknown as RoboSkillsApi
+    const harness = sessionHarness('Bumi 日志')
+    const library = skillLibrary('bumi-sdk-development')
+    const session = createRoboSkillSession(api, harness.input, harness.context, library)
+    const container = document.createElement('div'); document.body.append(container)
+    const root = createRoot(container)
+    try {
+      await act(async () => { root.render(createElement(RoboSkillPicker, { api, session, library, openMarket: vi.fn() })) })
+      click(document.querySelector('[aria-label="选择技能"]')); await settleComponent()
+      const rows = [...document.querySelectorAll('[aria-label="技能列表"] > button')]
+      expect(rows[0]?.textContent).toContain('Bumi SDK 开发助手')
+      expect(rows.some(row => row.textContent?.includes('本地同名技能'))).toBe(false)
+      expect(rows.some(row => row.textContent?.includes('local-helper'))).toBe(true)
+      click(rows[0] ?? null)
+      expect(harness.state.getSnapshot().draft).toBe('/bumi-sdk-development Bumi 日志')
+      expect(session.store.getSnapshot().selection?.skillId).toBe('bumi-sdk-development')
+      click(container.querySelector('[aria-label="移除技能"]'))
+      expect(harness.state.getSnapshot().draft).toBe('Bumi 日志')
+    } finally {
+      await act(async () => { root.unmount() }); session.dispose(); library.dispose(); container.remove(); vi.unstubAllGlobals()
+    }
+  })
+
   it('persists owned-token cleanup before the parent draft mirror unbinds', async () => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
     const api = { catalog: vi.fn().mockResolvedValue(catalog), run: vi.fn() } as unknown as RoboSkillsApi
@@ -633,19 +672,10 @@ describe('RoboCoding skill picker', () => {
       click(robotUse ?? null)
       expect(session.store.getSnapshot().selection).toEqual(navigationSelection)
       expect(container.textContent).toContain('导航日志诊断')
+      expect(harness.state.getSnapshot().draft).toBe('/navigation-diagnostics 组件测试草稿')
+      expect(container.querySelector('[aria-label="运行技能"]')).toBeNull()
+      click(container.querySelector('[aria-label="移除技能"]'))
       expect(harness.state.getSnapshot().draft).toBe('组件测试草稿')
-      click(container.querySelector('[aria-label="运行技能"]'))
-      expect(harness.claims).toHaveLength(1)
-      vi.mocked(api.run).mockResolvedValue(resultFor(navigationSelection, '本地结果已返回'))
-      await act(async () => { await harness.claims.at(-1)?.submit('日志示例', harness.context, []) })
-      await settleComponent()
-      expect(document.querySelector('[aria-label="本地技能状态"]')).toBeNull()
-      expect(document.querySelector('[aria-label="关闭技能选择器"]')).toBeNull()
-      click(document.querySelector('[aria-label="选择技能"]'))
-      await settleComponent()
-      expect(document.querySelector('[aria-label="本地技能状态"]')?.textContent).toContain('本地结果已返回')
-      click(document.querySelector('[aria-label="关闭技能结果"]'))
-      expect(session.store.getSnapshot().result).toBeUndefined()
     } finally {
       await act(async () => { root.unmount() })
       session.dispose()

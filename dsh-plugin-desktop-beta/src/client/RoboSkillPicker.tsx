@@ -65,7 +65,15 @@ export function RoboSkillPicker({ api, session, library, device, openMarket, ope
     return () => { controller.abort() }
   }, [api, devices, open, reload])
   const skills = useMemo(() => catalog && deviceReady ? filterRoboSkills(catalog, query, device === undefined ? '' : currentDevice.modelId, '').filter(skill => installed.includes(skill.id)) : [], [catalog, query, installed, deviceReady, device, currentDevice.modelId])
-  const visibleLocalSkills = useMemo(() => deviceReady ? localSkills.filter(skill => skill.userInvocable !== false && `${skill.name} ${skill.description}`.toLowerCase().includes(query.toLowerCase())) : [], [deviceReady, localSkills, query])
+  // A local `/技能` with the same stable id must never shadow a published
+  // RoboCoding skill. Keep the local fallback visible only when the cloud
+  // entry is not installed, so selecting Bumi always uses the cloud contract.
+  const visibleLocalSkills = useMemo(() => {
+    const cloudIds = new Set(skills.map(skill => skill.id))
+    return deviceReady ? localSkills.filter(skill => skill.userInvocable !== false
+      && !cloudIds.has(skill.name)
+      && `${skill.name} ${skill.description}`.toLowerCase().includes(query.toLowerCase())) : []
+  }, [deviceReady, localSkills, query, skills])
   const detail = catalog?.skills.find(skill => skill.id === detailId && installed.includes(skill.id))
   const robot = catalog?.robots.find(robot => robot.id === modelId)
   const allowedRobots = detail?.robotIndependent ? [] : catalog?.robots.filter(robot => detail?.targets.some(target => target.modelId === robot.id)) ?? []
@@ -111,14 +119,14 @@ export function RoboSkillPicker({ api, session, library, device, openMarket, ope
                 const next = event.key === 'Home' ? 0 : event.key === 'End' ? buttons.length - 1 : Math.max(0, Math.min(buttons.length - 1, index + (event.key === 'ArrowDown' ? 1 : -1)))
                 event.preventDefault(); buttons[next]?.focus()
               }}>
+                {skills.map(skill => <button type="button" key={skill.id} className="roboSkillRow" data-selected={detailId === skill.id} aria-pressed={detailId === skill.id} onClick={() => { choose(skill) }}>
+                  <span className="roboSkillRowIcon"><RoboSkillIcon icon={skill.icon} label={skill.displayName} /></span><span className="roboSkillRowCopy"><span className="roboSkillRowTitle"><strong>{skill.displayName}</strong><small>{!skill.demo ? (skill.execution === 'local-readonly' ? '云端技能 · 本地只读' : isRoboSkillRunnable(skill) ? '本地只读' : '目录展示') : skill.robotIndependent ? '通用' : `${skill.targets.length} 个型号`}</small></span>
+                  <span className="roboSkillRowDescription">{skill.summary}</span></span>
+                </button>)}
                 {visibleLocalSkills.map(skill => <button type="button" key={`local:${skill.name}`} className="roboSkillRow" onClick={() => {
                   if (session.selectLocal(skill.name)) { setOpen(false); setLocalError('') }
                   else setLocalError('请先结束当前命令，再选择本地技能。')
                 }}><span className="roboSkillRowIcon"><RoboSkillIcon label={skill.name} /></span><span className="roboSkillRowCopy"><span className="roboSkillRowTitle"><strong>{skill.name}</strong><small>本地</small></span><span className="roboSkillRowDescription">{skill.description}</span></span></button>)}
-                {skills.map(skill => <button type="button" key={skill.id} className="roboSkillRow" data-selected={detailId === skill.id} aria-pressed={detailId === skill.id} onClick={() => { choose(skill) }}>
-                  <span className="roboSkillRowIcon"><RoboSkillIcon icon={skill.icon} label={skill.displayName} /></span><span className="roboSkillRowCopy"><span className="roboSkillRowTitle"><strong>{skill.displayName}</strong><small>{!skill.demo ? (isRoboSkillRunnable(skill) ? '本地只读' : '目录展示') : skill.robotIndependent ? '通用' : `${skill.targets.length} 个型号`}</small></span>
-                  <span className="roboSkillRowDescription">{skill.summary}</span></span>
-                </button>)}
                 {!skills.length && !visibleLocalSkills.length && !error && <div className="roboSkillEmpty">{query ? '没有匹配的技能' : catalog?.skills.some(skill => installed.includes(skill.id)) ? '没有匹配的技能' : installed.length ? '已添加的技能暂不可用，请刷新或去技能市场添加其他技能。' : localSkills.length ? '还没有添加市场技能。' : '还没有添加技能，去技能市场看看。'}{query && <button type="button" onClick={() => { setQuery('') }}>清除搜索</button>}</div>}
               </div>}
               {detail && <section className="roboSkillDetail" aria-label="当前设备的技能详情">
@@ -131,7 +139,7 @@ export function RoboSkillPicker({ api, session, library, device, openMarket, ope
                     <option value="">请选择开发方式</option>{allowedProfiles.map(profile => <option key={profile.id} value={profile.id}>{profile.label}</option>)}
                   </select></label>
                 </div>}
-                <p>{detail.id === 'bumi-sdk-development' ? '选择后填写 SDK、DDS 或报错文本；点击输入框旁的“运行技能”才做本地只读预检，普通发送仍走 AI。' : '选择后填写日志并点击“运行技能”，普通发送仍走 AI。'}</p>
+                <p>选择后会把 <code>/{detail.id}</code> 插入输入框；补充问题或日志后直接发送，模型会按该技能处理。不支持附件。</p>
                 <button type="button" className="roboSkillPrimary" disabled={!selection || state.running} onClick={add}>使用此技能</button>
                 </>}
               </section>}
@@ -142,15 +150,15 @@ export function RoboSkillPicker({ api, session, library, device, openMarket, ope
         </Popover.Positioner>
       </Popover.Portal>
     </Popover.Root>
-    {state.selection && <span className="roboSkillChip"><span title={state.skill?.displayName}>{state.skill?.displayName}</span><button type="button" disabled={state.running} aria-label="运行技能" onClick={() => { session.run() }}>运行</button><button type="button" disabled={state.running} aria-label="移除技能" onClick={() => { session.remove() }}><X size={13} /></button></span>}
+    {state.selection && <span className="roboSkillChip"><span title={state.skill?.displayName}>{state.skill?.displayName}</span><button type="button" disabled={state.running} aria-label="移除技能" title="移除技能" onClick={() => { session.remove() }}><X size={13} /></button></span>}
   </>
 }
 
 export function RoboSkillResult({ session }: { readonly session: RoboSkillSession }) {
   const state = useSyncExternalStore(session.store.subscribe, session.store.getSnapshot, session.store.getSnapshot)
   if (!state.selection && !state.running && !state.result && !state.error) return null
-  return <section className="roboSkillResult" aria-label="本地技能状态" aria-live="polite">
-    {state.selection && <p>本地示例：{state.skill?.displayName}。发送后仅将输入文字交给本地技能服务；不支持附件。</p>}
+  return <section className="roboSkillResult" aria-label="技能状态" aria-live="polite">
+    {state.selection && <p>{state.selection.skillId === 'bumi-sdk-development' ? '云端技能：' : '技能：'}{state.skill?.displayName}。已插入 <code>/{state.selection.skillId}</code>，发送后由模型按技能处理。不支持附件。</p>}
     {state.running && <p role="status">正在运行本地安全分析…</p>}
     {state.error && <p role="alert">{state.error}</p>}
     {state.result && <><div className="roboSkillRowTitle"><strong>{state.result.summary}</strong><button type="button" onClick={() => { session.dismissResult() }} aria-label="关闭技能结果"><X size={14} /></button></div>
@@ -162,6 +170,6 @@ export function RoboSkillResult({ session }: { readonly session: RoboSkillSessio
         {!!state.result.bumi.deviceOperationProposals.length && <div><strong>设备操作提案</strong><ul>{state.result.bumi.deviceOperationProposals.map((item, index) => <li key={index}>{item.operation}：{item.purpose}（需审批，未连接设备）</li>)}</ul></div>}
         <div><strong>安全说明</strong><ul>{state.result.bumi.safetyNotes.map((note, index) => <li key={index}>{note}</li>)}</ul></div>
       </>}
-      <small>{state.result.bumi ? 'Bumi 本地结构化结果 · 未调用模型、未执行命令、未修改文件、未连接设备' : '本地示例结果 · 未调用模型或实体设备'}</small></>}
+      <small>{state.result.bumi ? 'Bumi 云端技能 · 本地结构化只读结果 · 未调用模型、未执行命令、未修改文件、未连接设备' : '本地示例结果 · 未调用模型或实体设备'}</small></>}
   </section>
 }

@@ -635,3 +635,45 @@
 - 完成：按最新源码重建并重启 Beta，普通发送与显式“运行技能”分离的代码已加载。
 - 验证：本地演示服务健康检查返回 `status=ok、mode=local-demo`；新的 Beta Electron 主进程已运行。
 - 限制：本地验证，不是生产发布或签名安装包。
+
+### 2026-09-19T10:28:47+08:00 | Codex | 云端技能优先与输入框浮层布局
+
+- 基线：Desktop `robo/main` 共享工作树；保留其他未提交修改，本轮未提交、推送或制作签名安装包。
+- 已完成：stable/Beta 技能选择器先显示已安装的云端目录技能；同名本地 `/技能` 不再抢占已安装云端技能。设备、技能和已选技能 chip 从 `conversation.input.left` 工具行迁移到 `conversation.input.overlay`，悬浮在输入框上方，避免底部工具栏换行成双层。
+- 验证：stable/Beta `robo-skills-client.spec.ts` 各 21/21；两版 typecheck/build 通过；`check:desktop-variants` 报告 220 个共享源码文件对齐；新增回归覆盖云端 Bumi 与同名本地技能优先级。
+- 未完成 / 限制：未重启原生 Electron、未制作签名安装包；普通发送与显式“运行技能”仍保持分离，Bumi 仍需点击“运行”触发只读分析。
+
+### 2026-09-19T10:38:10+08:00 | Codex | 本地 Beta 重启
+
+- 基线：Desktop `robo/main` 共享工作树；按当前源码重启本地演示服务与 Beta，未触碰生产。
+- 已完成：停止旧 `dev-desktop-skills-local` 进程后重新启动 `scripts/dev-desktop-skills-local.mjs`，重新构建并启动 Desktop Beta。
+- 验证：`http://127.0.0.1:8765/health` 返回 `{"status":"ok","mode":"local-demo"}`；Beta Electron 主进程 PID 67517 运行；本地应用端口 `43120` 返回 403（服务已监听并要求应用 Origin）。
+- 限制：本地演示服务仍为固定只读分析，不调用模型、不连接或控制真实机器人。
+
+### 2026-09-19T10:41:17+08:00 | Codex | 撤回输入框浮层并收紧控件
+
+- 基线：Desktop `robo/main` 共享工作树；保留其他未提交修改，未提交、推送或制作签名安装包。
+- 已完成：撤回 `conversation.input.overlay` 浮层方案，设备/技能控件恢复 `conversation.input.left` 原工具栏挂载；按钮与选中 chip 的内边距、字号和最大宽度收紧，保留云端技能优先逻辑。
+- 验证：stable/Beta `robo-skills-client.spec.ts` 各 21/21；两版 typecheck 通过；`check:desktop-variants` 报告 220 个共享源码文件对齐；本地 Skills 健康检查通过，Beta Electron PID 69430 运行。
+- 限制：未做签名安装包或生产发布；原生窗口已重启但尚未做截图级视觉验收。
+
+### 2026-09-19T10:44:58+08:00 | Codex | 技能 chip 运行按钮改为图标
+
+- 基线：Desktop `robo/main` 共享工作树；保留其他未提交修改，未提交、推送或制作签名安装包。
+- 已完成：移除 chip 中会被挤成竖排的“运行”文字，改为固定宽度的播放图标按钮；保留 `aria-label`/title 和点击运行行为，移除按钮增加 title；chip 文本与两个操作按钮设置不可收缩宽度。
+- 验证：stable/Beta `robo-skills-client.spec.ts` 各 21/21；两版 typecheck 通过；`check:desktop-variants` 报告 220 个共享源码文件对齐；本地 Skills 健康检查通过，Beta Electron PID 71341 运行。
+- 限制：未做截图级原生窗口验收或签名安装包发布。
+
+### 2026-09-19T11:12:24+08:00 | Codex | 云端技能选择改为原生斜杠指令
+
+- 基线：Desktop `robo/main` 共享工作树；保留其他未提交修改，本轮未提交、推送或制作签名安装包。
+- 完成：点击“使用此技能”通过 `slash/input-insert-text` 写入 `/<skill-id> `；Bumi 现在插入 `/bumi-sdk-development `；芯片移除“运行”按钮，只保留移除，普通发送直接交给模型；选择器插入的前缀可安全撤销。
+- 验证：stable/Beta `robo-skills-client.spec.ts` 各 21/21；Desktop `corepack yarn typecheck` 通过；`check:desktop-variants` 通过（220 个共享源码文件对齐）。
+- 限制：尚未按本轮源码重启 Electron；云端正文仍需宿主 skill provider 提供，Desktop 选择器已恢复标准 `/skill-id` 调用入口。
+
+### 2026-09-19T11:13:30+08:00 | Codex | 按斜杠指令修复重启本地 Beta
+
+- 基线：Desktop `robo/main` 共享工作树；当前修改待提交、未推送。
+- 完成：停止旧演示进程，按当前源码重新构建并启动 Desktop Beta；技能选择入口已加载。
+- 验证：Skills `/health` 返回 `status=ok、mode=local-demo`；Beta Electron PID 80300；Cua 识别到 `RoboCoding Beta` 窗口、设备和技能按钮。
+- 限制：当前窗口暂无可用模型，未进行实际发送回归；未制作签名安装包。
