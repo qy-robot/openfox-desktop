@@ -78,6 +78,7 @@
     "./package.json": "./package.json"
   },
   "files": [
+    "build/app-icon.ico",
     "build/app-icon.png",
     "build/app-icon-mac.png",
     "build/tray-icon.svg",
@@ -113,7 +114,7 @@
     }
   },
   "scripts": {
-    "build": "node scripts/generate-robo-brand-assets.mjs && node scripts/generate-mac-app-icon.mjs && node scripts/generate-tray-icons.mjs && node scripts/clean.mjs && tsdown && vite build --config vite.native-ui.config.ts && tsc -p tsconfig.json --emitDeclarationOnly && tsc -p tsconfig.client.json --emitDeclarationOnly",
+    "build": "node scripts/generate-robo-brand-assets.mjs && node scripts/generate-windows-app-icon.mjs && node scripts/generate-mac-app-icon.mjs && node scripts/generate-tray-icons.mjs && node scripts/clean.mjs && tsdown && vite build --config vite.native-ui.config.ts && tsc -p tsconfig.json --emitDeclarationOnly && tsc -p tsconfig.client.json --emitDeclarationOnly",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.client.json --noEmit && tsc -p tsconfig.native-ui.json --noEmit && tsc -p tsconfig.tests.json --noEmit && tsc -p tsconfig.tests.client.json --noEmit",
     "test": "vitest run",
     "verify:closure": "node --test scripts/runtime-closure.spec.mjs && node scripts/verify-runtime-closure.mjs",
@@ -332,7 +333,7 @@
   },
   "build": {
     "appId": "ai.deepseek.dsh.desktop.beta",
-    "productName": "DSH Desktop Beta",
+    "productName": "RoboCoding Beta",
     "asar": false,
     "npmRebuild": false,
     "afterPack": "./scripts/verify-packaged-runtime.ts",
@@ -351,6 +352,7 @@
       "nsis": "1.2.1"
     },
     "files": [
+      "build/app-icon.ico",
       "build/app-icon.png",
       "build/app-icon-mac.png",
       "build/tray-icon.svg",
@@ -395,8 +397,8 @@
           ]
         }
       ],
-      "artifactName": "DSH-Desktop-Beta-${version}-${arch}-Portable.${ext}",
-      "icon": "build/app-icon.png",
+      "artifactName": "RoboCoding-Beta-${version}-${arch}-Portable.${ext}",
+      "icon": "build/app-icon.ico",
       "asar": false
     },
     "nsis": {
@@ -409,9 +411,9 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "differentialPackage": false,
-      "shortcutName": "DSH Desktop Beta",
+      "shortcutName": "RoboCoding Beta",
       "useZip": false,
-      "artifactName": "DSH-Desktop-Beta-${version}-${arch}-Setup.${ext}"
+      "artifactName": "RoboCoding-Beta-${version}-${arch}-Setup.${ext}"
     },
     "linux": {
       "target": [

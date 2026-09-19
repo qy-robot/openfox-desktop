@@ -17,7 +17,7 @@ $taskCandidateInstaller = (Resolve-Path -LiteralPath $CandidateInstaller).Path
 $taskBaseExpectedVersion = (Get-Item -LiteralPath $taskBaseInstaller).VersionInfo.ProductVersion
 $taskCandidateExpectedVersion = (Get-Item -LiteralPath $taskCandidateInstaller).VersionInfo.ProductVersion
 $taskExistingProcesses = @(Get-CimInstance Win32_Process | Where-Object {
-  $_.Name -ieq 'DSH Desktop Beta.exe'
+  $_.Name -ieq 'RoboCoding Beta.exe'
 })
 $taskUninstallRoots = @(
   'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*'
@@ -25,7 +25,7 @@ $taskUninstallRoots = @(
   'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
 )
 $taskExistingInstalls = @(Get-ItemProperty $taskUninstallRoots -ErrorAction SilentlyContinue | Where-Object {
-  $_.DisplayName -match '^DSH Desktop'
+  $_.DisplayName -match '^RoboCoding'
 })
 
 if ($taskExistingProcesses.Count -gt 0 -or $taskExistingInstalls.Count -gt 0) {
@@ -35,11 +35,11 @@ if ($taskExistingProcesses.Count -gt 0 -or $taskExistingInstalls.Count -gt 0) {
 $taskTempRoot = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
 $taskRoot = Join-Path $taskTempRoot ("dsh-installer-upgrade-" + [guid]::NewGuid().ToString('N'))
 $taskInstallRoot = Join-Path $taskRoot 'app'
-$taskUserData = Join-Path $env:APPDATA 'DSH Desktop'
+$taskUserData = Join-Path $env:APPDATA 'RoboCoding'
 $taskDshHome = Join-Path $taskRoot 'dsh-home'
 $taskActiveRunMarker = Join-Path $taskUserData 'crash-evidence\active-run.json'
-$taskAppPath = Join-Path $taskInstallRoot 'DSH Desktop Beta.exe'
-$taskUninstallerPath = Join-Path $taskInstallRoot 'Uninstall DSH Desktop Beta.exe'
+$taskAppPath = Join-Path $taskInstallRoot 'RoboCoding Beta.exe'
+$taskUninstallerPath = Join-Path $taskInstallRoot 'Uninstall RoboCoding Beta.exe'
 if (Test-Path -LiteralPath $taskActiveRunMarker) {
   throw 'Refusing to overwrite an existing DSH Desktop active run marker.'
 }
@@ -235,7 +235,7 @@ try {
   $taskResult.testProcessesRemaining = $taskRemainingProcesses.Count
 
   $taskRemainingInstalls = @(Get-ItemProperty $taskUninstallRoots -ErrorAction SilentlyContinue | Where-Object {
-    $_.DisplayName -match '^DSH Desktop'
+    $_.DisplayName -match '^RoboCoding'
   })
   $taskResult.uninstallEntryRemoved = $taskRemainingInstalls.Count -eq 0
 
@@ -246,7 +246,7 @@ try {
     [Environment]::GetFolderPath('CommonStartMenu')
   ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) }
   $taskRemainingShortcuts = @($taskShortcutRoots | ForEach-Object {
-    Get-ChildItem -LiteralPath $_ -Filter '*DSH Desktop*' -Recurse -ErrorAction SilentlyContinue
+    Get-ChildItem -LiteralPath $_ -Filter '*RoboCoding*' -Recurse -ErrorAction SilentlyContinue
   })
   $taskResult.shortcutsRemoved = $taskRemainingShortcuts.Count -eq 0
 
