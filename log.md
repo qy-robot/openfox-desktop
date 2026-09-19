@@ -677,3 +677,48 @@
 - 完成：停止旧演示进程，按当前源码重新构建并启动 Desktop Beta；技能选择入口已加载。
 - 验证：Skills `/health` 返回 `status=ok、mode=local-demo`；Beta Electron PID 80300；Cua 识别到 `RoboCoding Beta` 窗口、设备和技能按钮。
 - 限制：当前窗口暂无可用模型，未进行实际发送回归；未制作签名安装包。
+
+### 2026-09-19T11:30:59+08:00 | Codex | 官方账号登录响应解析边界修复
+
+- 基线：Desktop `robo/main`；保留共享工作区其他未提交修改，本轮未提交、推送或发布安装包。
+- 完成：修复 stable/Beta 官方账户平台客户端对空响应、HTML/损坏 JSON 的直接 `JSON.parse`；空 5xx 响应转为带 HTTP 状态的错误，成功但损坏的响应转为稳定中文错误。账户本地路由拒绝空/非法 JSON 请求体并透传结构化错误码，客户端将 5xx 统一显示为官方服务暂时不可用。
+- 验证：两版平台边界与账户控制器测试各 21/21、账户侧栏测试各 11/11；两版 typecheck；`check:desktop-variants` 220 个共享源文件一致；`git diff --check` 通过。
+- 未完成 / 限制：未构建签名安装包或部署；未取得用户网络下的原始网关响应。
+
+### 2026-09-19T11:36:10+08:00 | Codex | 本地启动修复后的 Desktop Beta
+
+- 基线：Desktop `robo/main`；按当前工作树重建并启动本地联调。
+- 完成：停止旧的 `dev-desktop-skills-local` 与 Beta 进程，重新构建并启动 `node scripts/dev-desktop-skills-local.mjs`，当前运行的是本轮账户响应解析修复。
+- 验证：Skill 演示服务 `/health` 返回 `{"status":"ok","mode":"local-demo"}`；Beta Electron 主进程已运行，应用端口 `43120` 返回预期 `403`。
+- 限制：演示服务仅固定只读分析，不调用模型、不连接或控制真实机器人；未制作安装包。
+
+### 2026-09-19T11:42:19+08:00 | Codex | Desktop 回归锁定（工作区生成物清理）
+
+- 基线：Desktop `robo/main` 共享工作树；保留账户响应解析与技能调用的未提交改动。
+- 已完成：在清理根工作区生成物前后运行 stable/Beta 的技能、账户侧栏、平台回归套件；未修改 Desktop 源码或删除其依赖、构建产物。
+- 验证：两版本各 3 个测试文件、40/40 通过；清理目标已移入 `/tmp/robocodingai-ai-junk-20260919.iPqXzQ`，Desktop 子模块工作树中的功能改动保持不变。
+- 未完成 / 限制：未构建签名安装包；独立 `services/skills` 子模块缓存未越界清理。
+
+### 2026-09-19T11:59:10+08:00 | Codex | 云端 Bumi 接入 Host Skill Registry
+
+- 基线：Desktop `robo/main` 共享工作树；保留账号、技能 UI、Console 等其他未提交修改，本轮未提交、推送或制作签名安装包。
+- 根因：选择器写入的 `/bumi-sdk-development` 之前只是普通草稿文本；Host `dsh-tool-skill` 只能从 `ctx.skills` 加载已注册技能，因此模型会回退搜索 `~/.claude/skills` 并误报“看不到 skill”。
+- 已完成：stable/Beta Desktop 注册 `robocoding-cloud` Host provider；读取公开云端目录并生成可由 `/skill-id` 解析的模型契约；Bumi 内置只读 fallback，目录请求失败仍可识别；未把私有 `SKILL.md` 正文暴露给 Renderer 或公开目录。
+- 验证：stable/Beta 云端 provider 测试各 3/3；关联技能、账号侧栏、平台测试各 42/42；Desktop `typecheck`、stable/Beta build、`check:desktop-variants`（221 个共享源文件对齐）通过；本地 `/health` 返回 `status=ok、mode=local-demo`，Beta Electron PID 97851 已按新构建运行。
+- 未完成 / 限制：当前注入的是已发布的公开技能契约，不是私有正文；未制作签名安装包或生产发布；本地演示服务仍为固定只读分析，不调用模型、不连接或控制机器人。
+
+### 2026-09-19T12:20:38+08:00 | Codex | Bumi 旧占位公开字段兜底
+
+- 基线：Desktop `robo/main`；保留账号、技能 UI、Console 等其他未提交改动，本轮未提交或生产发布。
+- 根因：公开目录真实返回了 GitHub 旧导入的“待审核补充 / 审核后补充”占位快照，模型按响应原样展示；不是本地技能目录解析失败。
+- 已完成：stable/Beta provider 对 Bumi 旧占位字段做识别，继续使用内置只读公开契约；新增两版回归测试，阻断过期审核文案进入 Host skill 正文。
+- 验证：两版 provider 测试各 4/4、typecheck 通过、变体对齐 221 个源文件、Beta build 通过；本地 `/health` 正常，Beta 已按新构建重启。
+- 未完成 / 限制：线上 `/api/catalog/skills` 仍需由发布流程补齐并切换正确的 `listing.json` 快照；客户端兜底不会替代生产数据修复。
+
+### 2026-09-19T13:00:00+08:00 | Codex | Windows RoboCoding 打包品牌修正
+
+- 基线：Desktop `robo/main`；保留工作树中其他账号与技能改动，本轮仅提交 Windows 打包品牌相关文件。
+- 已完成：Stable/Beta 的 Windows NSIS 安装器、绿色 ZIP、解压后的可执行文件、快捷方式和校验脚本统一使用 `RoboCoding` / `RoboCoding Beta`；Beta 补齐 Windows ICO 生成脚本并使用 `build/app-icon.ico`。内部 DSH package/app-data identity 保持不变。
+- 验证：Stable/Beta package manifest、Windows installer/portable verifier 共 102 项（含跳过项）通过；Stable/Beta build 与 typecheck 通过；已推送 Desktop `e55f7c5dc5` 到 `origin/robo/main`。
+- 未完成 / 限制：未在原生 Windows 主机执行 NSIS 实际打包、签名和 SmartScreen 验收；本机为 macOS。
+- 下一步：Windows 电脑拉取根仓库后运行 `corepack.cmd yarn dist:win`，产物应为 `RoboCoding-<version>-x64-Setup.exe`。
