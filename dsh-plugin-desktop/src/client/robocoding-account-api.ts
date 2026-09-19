@@ -22,7 +22,7 @@ async function request(path: string, body?: object): Promise<RoboCodingAccountVi
   }
   if (!response.ok || value.success !== true) {
     const code = typeof value.error === 'string' ? value.error : typeof value.message === 'string' ? value.message : ''
-    if (code === 'server_error') throw new Error('官方服务暂时不可用，请稍后重试')
+    if (code === 'server_error' || /^http_5\d{2}$/u.test(code)) throw new Error('官方服务暂时不可用，请稍后重试')
     throw new Error(typeof value.message === 'string' ? value.message : '账户操作失败')
   }
   if (body !== undefined && typeof window !== 'undefined') window.dispatchEvent(new Event(ROBO_ACCOUNT_CHANGED))

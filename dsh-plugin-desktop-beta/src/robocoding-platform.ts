@@ -99,13 +99,13 @@ function responseData(value: unknown): unknown {
   return Object.prototype.hasOwnProperty.call(outer, 'data') ? outer.data : outer
 }
 
-async function readBoundedJson(response: Response): Promise<unknown> {
+async function readBoundedJson(response: Response): Promise<unknown | undefined> {
   const declared = response.headers.get('content-length')
   if (declared !== null && Number(declared) > MAX_RESPONSE_BYTES) {
     await response.body?.cancel()
     throw new Error('平台响应过大')
   }
-  if (response.body === null) throw new Error('平台响应为空')
+  if (response.body === null) return undefined
   const reader = response.body.getReader()
   const chunks: Uint8Array[] = []
   let size = 0
@@ -121,7 +121,17 @@ async function readBoundedJson(response: Response): Promise<unknown> {
       chunks.push(value)
     }
   } finally { reader.releaseLock() }
-  return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown
+  const text = Buffer.concat(chunks).toString('utf8').trim()
+  if (text === '') return undefined
+  try {
+    return JSON.parse(text) as unknown
+  } catch {
+    // Some gateways return an empty/HTML body on 5xx responses. Do not leak
+    // the native JSON.parse SyntaxError into the account dialog; the caller
+    // can turn an empty error body into a stable HTTP error below.
+    if (!response.ok) return undefined
+    throw new Error('平台返回了无效 JSON')
+  }
 }
 
 export class RoboCodingPlatformClient {
@@ -141,12 +151,18 @@ export class RoboCodingPlatformClient {
     })
     const value = await readBoundedJson(response)
     if (!response.ok) {
+      if (value === undefined) {
+        const error = new Error(`平台请求失败（HTTP ${String(response.status)}）`)
+        error.name = `http_${String(response.status)}`
+        throw error
+      }
       const body = record(value)
       const code = typeof body.error === 'string' ? body.error : `http_${String(response.status)}`
       const error = new Error(typeof body.message === 'string' ? body.message : code)
       error.name = code
       throw error
     }
+    if (value === undefined) throw new Error('平台响应为空')
     return responseData(value)
   }
 

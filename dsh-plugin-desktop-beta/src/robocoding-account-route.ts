@@ -25,7 +25,13 @@ async function body(req: IncomingMessage): Promise<unknown> {
     if (size > MAX_BODY_BYTES) throw new RangeError('request body is too large')
     chunks.push(value)
   }
-  return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown
+  const text = Buffer.concat(chunks).toString('utf8').trim()
+  if (text === '') throw new TypeError('request body is required')
+  try {
+    return JSON.parse(text) as unknown
+  } catch {
+    throw new TypeError('invalid request')
+  }
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -59,7 +65,9 @@ export async function handleRoboCodingAccountRequest(
     }
     json(res, 200, { success: true, data: controller.read() })
   } catch (cause) {
+    const message = cause instanceof Error ? cause.message : String(cause)
+    const error = cause instanceof Error && cause.name !== 'Error' ? cause.name : undefined
     json(res, cause instanceof RangeError ? 413 : 400, { success: false,
-      message: cause instanceof Error ? cause.message : String(cause) })
+      ...(error === undefined ? {} : { error }), message })
   }
 }

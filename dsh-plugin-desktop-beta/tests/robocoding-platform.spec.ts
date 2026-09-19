@@ -66,4 +66,16 @@ describe('RoboCoding platform boundary', () => {
     expect(init?.signal).toBeInstanceOf(AbortSignal)
   })
 
+  it('turns empty gateway errors into stable HTTP errors instead of leaking JSON.parse', async () => {
+    const fetcher = vi.fn(async () => new Response('', { status: 502 })) as typeof fetch
+    await expect(new RoboCodingPlatformClient(new URL('https://api.example.com'), fetcher)
+      .createDeviceGrant('Desktop')).rejects.toMatchObject({ name: 'http_502', message: '平台请求失败（HTTP 502）' })
+  })
+
+  it('reports malformed successful responses without exposing the native parser error', async () => {
+    const fetcher = vi.fn(async () => new Response('<html>gateway error</html>', { status: 200 })) as typeof fetch
+    await expect(new RoboCodingPlatformClient(new URL('https://api.example.com'), fetcher)
+      .createDeviceGrant('Desktop')).rejects.toThrow('平台返回了无效 JSON')
+  })
+
 })

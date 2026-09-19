@@ -173,6 +173,9 @@ describe('sidebar account card', () => {
       vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({ success: false, error: 'server_error', message: 'server_error' }), { status: 500 }))
       await expect(api.logout()).rejects.toThrow('官方服务暂时不可用，请稍后重试')
       expect(listener).toHaveBeenCalledOnce()
+      vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({ success: false, error: 'http_502', message: '平台请求失败（HTTP 502）' }), { status: 400 }))
+      await expect(api.logout()).rejects.toThrow('官方服务暂时不可用，请稍后重试')
+      expect(listener).toHaveBeenCalledOnce()
     } finally { window.removeEventListener(ROBO_ACCOUNT_CHANGED, listener) }
   })
 })

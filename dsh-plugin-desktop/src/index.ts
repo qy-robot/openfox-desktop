@@ -109,6 +109,7 @@ import {
 } from './robocoding-account-controller.ts'
 import { handleRoboCodingAccountRequest } from './robocoding-account-route.ts'
 import { RoboCodingLlmRegistration } from './robocoding-llm.ts'
+import { installRoboCloudSkills } from './robo-cloud-skills.ts'
 
 /** Stable Cordis plugin name. */
 export const name = 'desktop-shell'
@@ -259,6 +260,12 @@ export function apply(ctx: Context, config: Config): void {
     )
     return
   }
+  ctx.inject(['skills'], skillsCtx => {
+    skillsCtx.effect(
+      () => installRoboCloudSkills(skillsCtx),
+      'dsh-plugin-desktop: RoboCoding cloud skill provider',
+    )
+  })
   const appExit = ctx.get('appExit')
   if (appExit === undefined) {
     throw new Error('dsh-plugin-desktop: the launcher did not provide ctx.appExit')
