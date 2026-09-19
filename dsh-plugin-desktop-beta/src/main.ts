@@ -201,13 +201,13 @@ import { windowsSupportsMica } from './window-material.ts'
 import {
   DESKTOP_APP_ID,
   DESKTOP_PACKAGE_NAME,
-  DESKTOP_PRODUCT_NAME,
+  DESKTOP_DISPLAY_NAME,
   DESKTOP_RELEASE_CHANNEL,
 } from './product-identity.ts'
 import { desktopRecoveryCopy } from './recovery-copy.ts'
 
 const BIN_NAME = DESKTOP_PACKAGE_NAME
-const PRODUCT_NAME = DESKTOP_PRODUCT_NAME
+const PRODUCT_NAME = DESKTOP_DISPLAY_NAME
 
 function withDesktopDshHome(
   environment: LaunchEnvironmentSnapshot,

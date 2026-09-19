@@ -722,3 +722,11 @@
 - 验证：Stable/Beta package manifest、Windows installer/portable verifier 共 102 项（含跳过项）通过；Stable/Beta build 与 typecheck 通过；已推送 Desktop `e55f7c5dc5` 到 `origin/robo/main`。
 - 未完成 / 限制：未在原生 Windows 主机执行 NSIS 实际打包、签名和 SmartScreen 验收；本机为 macOS。
 - 下一步：Windows 电脑拉取根仓库后运行 `corepack.cmd yarn dist:win`，产物应为 `RoboCoding-<version>-x64-Setup.exe`。
+
+### 2026-09-19T16:06:00+08:00 | Codex | 修复运行时旧品牌覆盖打包品牌
+
+- 基线：Desktop `robo/main`；清理了工作树中未提交的 OpenFox 覆盖改动，恢复已推送的 RoboCoding 品牌资源。
+- 已完成：主进程和桌面对话窗口改用公开 `RoboCoding` / `RoboCoding Beta` 名称，同时保留内部 DSH package 与用户数据目录兼容标识；Windows 打包配置继续使用 RoboCoding 文件名与图标。
+- 验证：Stable/Beta typecheck；Stable 5 个回归文件 61/62 通过、Beta 5 个回归文件 65/66 通过（各 1 项跳过）。
+- 未完成 / 限制：未在原生 Windows 主机执行安装器构建。
+- 下一步：Windows 端必须更新根仓库和子模块后清理 `dsh-plugin-desktop\dist`，再执行 `corepack.cmd yarn dist:win`。
