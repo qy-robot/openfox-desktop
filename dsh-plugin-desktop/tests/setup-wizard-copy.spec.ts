@@ -93,7 +93,7 @@ describe('Desktop Setup Wizard copy and contract', () => {
     const english = desktopSetupWizardCopy('en')
     const chinese = desktopSetupWizardCopy('zh')
     for (const copy of [english, chinese]) {
-      expect(copy.officialService).toContain('RoboCoding')
+      expect(copy.officialService).toContain('OpenFox')
       expect(copy.customModelsBody).toMatch(/API key/iu)
       expect(copy.customModelsBody).toMatch(/auto|\u81ea\u52a8/iu)
       expect(copy.customModelsBody).toMatch(/protocol|\u534f\u8bae/iu)

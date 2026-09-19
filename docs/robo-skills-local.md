@@ -1,4 +1,4 @@
-# RoboCoding 本地技能联调 / Local skills development
+# OpenFox 本地技能联调 / Local skills development
 
 Desktop extended / advanced 模式保留原输入框，在工具栏增加“技能”。兼容模式保留上游客户端。
 The extended and advanced modes add a skills picker to the existing composer. Compatibility mode retains the upstream client.

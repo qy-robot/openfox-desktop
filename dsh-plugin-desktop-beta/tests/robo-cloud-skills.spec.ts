@@ -3,7 +3,7 @@ import { Context } from '@deepseek-ai/cordis'
 import SkillRegistry from '@deepseek-ai/dsh-skill'
 import { createRoboCloudSkillProvider, installRoboCloudSkills } from '../src/robo-cloud-skills.ts'
 
-describe('RoboCoding cloud skill provider', () => {
+describe('OpenFox cloud skill provider', () => {
   it('publishes the selected cloud skill as a host-resolvable definition', async () => {
     const fetcher = vi.fn(async () => new Response(JSON.stringify({
       skills: [{
@@ -32,7 +32,7 @@ describe('RoboCoding cloud skill provider', () => {
     expect(bumi).toBeDefined()
     expect(remote?.description).toBe('分析设备诊断信息')
     const definition = await provider.get(bumi!, {})
-    expect(definition?.content).toContain('RoboCoding 云端技能')
+    expect(definition?.content).toContain('OpenFox 云端技能')
     expect(definition?.content).toContain('不要搜索本地同名目录')
     expect(definition?.content).toContain('不要声称“看不到该 skill”')
   })

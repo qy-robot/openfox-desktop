@@ -762,7 +762,7 @@ describe('published package surface', () => {
   it('fixes the installed application identity', () => {
     expect(workspaceManifest.version).toBeUndefined()
     expect(manifest.version).toBe('2.0.10')
-    expect(manifest.build?.productName).toBe('RoboCoding')
+    expect(manifest.build?.productName).toBe('OpenFox')
     expect(manifest.build?.appId).toBe('ai.deepseek.dsh.desktop')
     expect(manifest.build?.asar).toBe(false)
     expect(manifest.build).not.toHaveProperty('asarUnpack')
@@ -805,7 +805,7 @@ describe('published package surface', () => {
       target: 'nsis',
       arch: ['x64'],
     }])
-    expect(manifest.build?.win?.artifactName).toBe('RoboCoding-${version}-${arch}-Portable.${ext}')
+    expect(manifest.build?.win?.artifactName).toBe('OpenFox-${version}-${arch}-Portable.${ext}')
     expect(manifest.build?.nsis).toEqual({
       include: 'installer.nsh',
       installerIcon: 'build/app-icon.ico',
@@ -817,10 +817,10 @@ describe('published package surface', () => {
       createDesktopShortcut: true,
       createStartMenuShortcut: true,
       differentialPackage: false,
-      shortcutName: 'RoboCoding',
+      shortcutName: 'OpenFox',
       uninstallerIcon: 'build/app-icon.ico',
       useZip: false,
-      artifactName: 'RoboCoding-${version}-${arch}-Setup.${ext}',
+      artifactName: 'OpenFox-${version}-${arch}-Setup.${ext}',
     })
     expect(manifest.build?.linux?.icon).toBe('build/app-icon.png')
   })
@@ -955,7 +955,7 @@ describe('published package surface', () => {
     }
   })
 
-  it('keeps the approved RoboCoding dark robot source icon', () => {
+  it('keeps the approved OpenFox dark robot source icon', () => {
     const digest = createHash('sha256')
       .update(readFileSync(new URL('build/app-icon.png', packageRoot)))
       .digest('hex')

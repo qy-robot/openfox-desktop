@@ -332,7 +332,7 @@
   },
   "build": {
     "appId": "ai.deepseek.dsh.desktop",
-    "productName": "RoboCoding",
+    "productName": "OpenFox",
     "asar": false,
     "afterPack": "./scripts/verify-packaged-runtime.ts",
     "afterAllArtifactBuild": "./scripts/verify-electron-fuses.ts",
@@ -395,7 +395,7 @@
           ]
         }
       ],
-      "artifactName": "RoboCoding-${version}-${arch}-Portable.${ext}",
+      "artifactName": "OpenFox-${version}-${arch}-Portable.${ext}",
       "icon": "build/app-icon.ico"
     },
     "nsis": {
@@ -409,10 +409,10 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "differentialPackage": false,
-      "shortcutName": "RoboCoding",
+      "shortcutName": "OpenFox",
       "uninstallerIcon": "build/app-icon.ico",
       "useZip": false,
-      "artifactName": "RoboCoding-${version}-${arch}-Setup.${ext}"
+      "artifactName": "OpenFox-${version}-${arch}-Setup.${ext}"
     },
     "linux": {
       "target": [

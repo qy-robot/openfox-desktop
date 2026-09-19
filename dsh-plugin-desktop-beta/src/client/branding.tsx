@@ -1,9 +1,10 @@
-/** RoboCoding's small, Desktop-owned brand occupants. */
+/** OpenFox's small, Desktop-owned brand occupants. */
 
 import { useState } from 'react'
+import { ROBO_APP_ICON_DATA_URL } from './robo-app-icon.ts'
 
-export const ROBO_BRAND_NAME = 'RoboCoding'
-export const ROBO_BRAND_BYLINE = 'by擎云机器人'
+export const ROBO_BRAND_NAME = 'OpenFox'
+export const ROBO_BRAND_BYLINE = ''
 export const ROBO_HERO_SLOGANS = [
   '不是学好了再干，而是在干中学。',
   '先让机器人动起来，再让想法更准确。',
@@ -84,6 +85,15 @@ button:has([data-slot="sidebar.brand.mark"] .roboBrandMark) > svg {
   letter-spacing: -0.035em;
   line-height: 26px;
 }
+.roboBrandMark {
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  background: #fff center / contain no-repeat;
+  background-image: url('${ROBO_APP_ICON_DATA_URL}');
+  border-radius: 10px;
+}
 .roboBrandName small {
   margin-top: 3px;
   color: var(--dsw-alias-label-secondary);
@@ -95,14 +105,14 @@ button:has([data-slot="sidebar.brand.mark"] .roboBrandMark) > svg {
 `
 
 export function RoboBrandMark() {
-  return <span className="roboBrandMark" hidden aria-hidden="true" />
+  return <span className="roboBrandMark" aria-hidden="true" />
 }
 
 export function RoboBrandName() {
   return (
     <span className="roboBrandName">
       <span className="roboBrandWordmark">{ROBO_BRAND_NAME}</span>
-      <small>{ROBO_BRAND_BYLINE}</small>
+      {ROBO_BRAND_BYLINE ? <small>{ROBO_BRAND_BYLINE}</small> : null}
     </span>
   )
 }

@@ -17,7 +17,7 @@ $taskCandidateInstaller = (Resolve-Path -LiteralPath $CandidateInstaller).Path
 $taskBaseExpectedVersion = (Get-Item -LiteralPath $taskBaseInstaller).VersionInfo.ProductVersion
 $taskCandidateExpectedVersion = (Get-Item -LiteralPath $taskCandidateInstaller).VersionInfo.ProductVersion
 $taskExistingProcesses = @(Get-CimInstance Win32_Process | Where-Object {
-  $_.Name -ieq 'RoboCoding.exe'
+  $_.Name -ieq 'OpenFox.exe'
 })
 $taskUninstallRoots = @(
   'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*'
@@ -25,7 +25,7 @@ $taskUninstallRoots = @(
   'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
 )
 $taskExistingInstalls = @(Get-ItemProperty $taskUninstallRoots -ErrorAction SilentlyContinue | Where-Object {
-  $_.DisplayName -match '^RoboCoding'
+  $_.DisplayName -match '^OpenFox'
 })
 
 if ($taskExistingProcesses.Count -gt 0 -or $taskExistingInstalls.Count -gt 0) {
@@ -35,11 +35,11 @@ if ($taskExistingProcesses.Count -gt 0 -or $taskExistingInstalls.Count -gt 0) {
 $taskTempRoot = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
 $taskRoot = Join-Path $taskTempRoot ("dsh-installer-upgrade-" + [guid]::NewGuid().ToString('N'))
 $taskInstallRoot = Join-Path $taskRoot 'app'
-$taskUserData = Join-Path $env:APPDATA 'RoboCoding'
+$taskUserData = Join-Path $env:APPDATA 'OpenFox'
 $taskDshHome = Join-Path $taskRoot 'dsh-home'
 $taskActiveRunMarker = Join-Path $taskUserData 'crash-evidence\active-run.json'
-$taskAppPath = Join-Path $taskInstallRoot 'RoboCoding.exe'
-$taskUninstallerPath = Join-Path $taskInstallRoot 'Uninstall RoboCoding.exe'
+$taskAppPath = Join-Path $taskInstallRoot 'OpenFox.exe'
+$taskUninstallerPath = Join-Path $taskInstallRoot 'Uninstall OpenFox.exe'
 if (Test-Path -LiteralPath $taskActiveRunMarker) {
   throw 'Refusing to overwrite an existing DSH Desktop active run marker.'
 }
@@ -235,7 +235,7 @@ try {
   $taskResult.testProcessesRemaining = $taskRemainingProcesses.Count
 
   $taskRemainingInstalls = @(Get-ItemProperty $taskUninstallRoots -ErrorAction SilentlyContinue | Where-Object {
-    $_.DisplayName -match '^RoboCoding'
+    $_.DisplayName -match '^OpenFox'
   })
   $taskResult.uninstallEntryRemoved = $taskRemainingInstalls.Count -eq 0
 
@@ -246,7 +246,7 @@ try {
     [Environment]::GetFolderPath('CommonStartMenu')
   ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) }
   $taskRemainingShortcuts = @($taskShortcutRoots | ForEach-Object {
-    Get-ChildItem -LiteralPath $_ -Filter '*RoboCoding*' -Recurse -ErrorAction SilentlyContinue
+    Get-ChildItem -LiteralPath $_ -Filter '*OpenFox*' -Recurse -ErrorAction SilentlyContinue
   })
   $taskResult.shortcutsRemoved = $taskRemainingShortcuts.Count -eq 0
 

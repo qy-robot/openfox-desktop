@@ -63,7 +63,7 @@ describe('official service onboarding', () => {
     const ui = await mount()
     try {
       expect(ui.container.textContent).not.toContain('DeepSeek')
-      expect(ui.container.querySelector('[role=dialog]')?.getAttribute('aria-label')).toBe('开始使用 RoboCoding')
+      expect(ui.container.querySelector('[role=dialog]')?.getAttribute('aria-label')).toBe('开始使用 OpenFox')
       expect(ui.container.textContent).not.toContain('不是学好了再干')
       expect(ui.container.textContent).not.toContain('无需填写 API Key')
       expect(ui.container.querySelector('h3')).toBeNull()

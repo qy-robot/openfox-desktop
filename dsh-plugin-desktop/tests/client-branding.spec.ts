@@ -28,8 +28,8 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 
-describe('RoboCoding branding', () => {
-  it('renders a text-only wordmark and readable byline', async () => {
+describe('OpenFox branding', () => {
+  it('renders the OpenFox wordmark and logo mark', async () => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
     container = document.createElement('div')
     document.body.append(container)
@@ -43,9 +43,10 @@ describe('RoboCoding branding', () => {
 
     expect(container.querySelector('.roboBrandWordmark')?.textContent).toBe(ROBO_BRAND_NAME)
     expect(container.querySelector('img')).toBeNull()
-    expect(container.querySelector<HTMLElement>('.roboBrandMark')?.hidden).toBe(true)
+    expect(container.querySelector<HTMLElement>('.roboBrandMark')?.hidden).toBe(false)
     expect(container.querySelector('.roboBrandName strong')).toBeNull()
-    expect(container.querySelector('.roboBrandName small')?.textContent).toBe(ROBO_BRAND_BYLINE)
+    expect(container.querySelector('.roboBrandName small')).toBeNull()
+    expect(ROBO_BRAND_BYLINE).toBe('')
   })
 
   it('chooses a preset slogan once when the hero opens', async () => {

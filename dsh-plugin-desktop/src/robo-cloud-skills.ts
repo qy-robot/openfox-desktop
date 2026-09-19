@@ -1,4 +1,4 @@
-/** Host-side bridge for published RoboCoding skills.
+/** Host-side bridge for published OpenFox skills.
  *
  * The renderer's Robo skill catalog intentionally exposes public metadata only.
  * This provider gives the Host skill registry the same public contract, so a
@@ -10,7 +10,7 @@ import type { SkillCandidate, SkillDefinition, SkillProvider, SkillRegistry } fr
 
 const PROVIDER_NAME = 'robocoding-cloud'
 const PROVIDER_RANK = 250
-const CATALOG_URL = 'https://api.openzrob.com/api/catalog'
+const CATALOG_URL = 'https://api.openfox.work/api/catalog'
 const MAX_RESPONSE_BYTES = 1_048_576
 const SKILL_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u
 
@@ -109,8 +109,8 @@ function parseCatalog(value: unknown): PublicCloudSkill[] {
 function skillContent(skill: PublicCloudSkill): string {
   const details = skill.details
   const lines = [
-    `你正在使用 RoboCoding 云端技能「${skill.displayName}」（/${skill.id}）。`,
-    '这是已发布的 RoboCoding 云端技能契约，不是本机 ~/.claude/skills 下的本地技能。不要搜索本地同名目录来判断它是否存在。',
+    `你正在使用 OpenFox 云端技能「${skill.displayName}」（/${skill.id}）。`,
+    '这是已发布的 OpenFox 云端技能契约，不是本机 ~/.claude/skills 下的本地技能。不要搜索本地同名目录来判断它是否存在。',
     `技能版本：${skill.version ?? '以云端目录为准'}`,
     `能力说明：${details?.overview ?? skill.summary ?? skill.description}`,
   ]
@@ -132,7 +132,7 @@ function toDefinition(skill: PublicCloudSkill): SkillDefinition {
     invocation: { modelInvocable: true, userInvocable: true },
     source: 'custom',
     provider: PROVIDER_NAME,
-    resourceBase: { kind: 'opaque', description: 'RoboCoding 云端技能服务' },
+    resourceBase: { kind: 'opaque', description: 'OpenFox 云端技能服务' },
     content: skillContent(skill),
   }
 }

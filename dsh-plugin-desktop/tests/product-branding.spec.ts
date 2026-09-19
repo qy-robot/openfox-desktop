@@ -9,8 +9,8 @@ import {
 
 describe('Desktop product branding', () => {
   it('changes public copy without migrating the stable installation identity', () => {
-    expect(DESKTOP_DISPLAY_NAME).toBe('RoboCoding')
-    expect(DESKTOP_BRAND_BYLINE).toBe('by擎云机器人')
+    expect(DESKTOP_DISPLAY_NAME).toBe('OpenFox')
+    expect(DESKTOP_BRAND_BYLINE).toBe('')
     expect(DESKTOP_PACKAGE_NAME).toBe('dsh-plugin-desktop')
     expect(DESKTOP_PRODUCT_NAME).toBe('DSH Desktop')
     expect(DESKTOP_APP_ID).toBe('ai.deepseek.dsh.desktop')

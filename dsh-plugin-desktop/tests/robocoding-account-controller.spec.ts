@@ -47,7 +47,7 @@ function json(value: unknown, status = 200): Response {
   return new Response(JSON.stringify(value), { status, headers: { 'content-type': 'application/json' } })
 }
 
-describe('RoboCoding account controller', () => {
+describe('OpenFox account controller', () => {
   it('migrates an empty platform to the production ai origin on first restore', async () => {
     const mounted = harness(vi.fn() as unknown as typeof fetch, null, { platformUrl: '' })
     await mounted.controller.restore()
@@ -56,7 +56,7 @@ describe('RoboCoding account controller', () => {
   })
 
   it('clears a legacy www session when adopting the ai origin', async () => {
-    const mounted = harness(vi.fn() as unknown as typeof fetch, undefined, { platformUrl: 'https://www.openzrob.com' })
+    const mounted = harness(vi.fn() as unknown as typeof fetch, undefined, { platformUrl: 'https://www.openfox.work' })
     await mounted.controller.restore()
     expect(mounted.runtime.clearAccountSecret).toHaveBeenCalledOnce()
     expect(mounted.settings.update).toHaveBeenCalledWith({ platformUrl: DEFAULT_ROBOCODING_PLATFORM_URL, fundingMode: 'personal_only', teamId: 0, confirmedTeamId: 0, confirmedUserId: 0 })

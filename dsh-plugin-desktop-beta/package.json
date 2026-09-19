@@ -333,7 +333,7 @@
   },
   "build": {
     "appId": "ai.deepseek.dsh.desktop.beta",
-    "productName": "RoboCoding Beta",
+    "productName": "OpenFox Beta",
     "asar": false,
     "npmRebuild": false,
     "afterPack": "./scripts/verify-packaged-runtime.ts",
@@ -397,7 +397,7 @@
           ]
         }
       ],
-      "artifactName": "RoboCoding-Beta-${version}-${arch}-Portable.${ext}",
+      "artifactName": "OpenFox-Beta-${version}-${arch}-Portable.${ext}",
       "icon": "build/app-icon.ico",
       "asar": false
     },
@@ -411,9 +411,9 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "differentialPackage": false,
-      "shortcutName": "RoboCoding Beta",
+      "shortcutName": "OpenFox Beta",
       "useZip": false,
-      "artifactName": "RoboCoding-Beta-${version}-${arch}-Setup.${ext}"
+      "artifactName": "OpenFox-Beta-${version}-${arch}-Setup.${ext}"
     },
     "linux": {
       "target": [

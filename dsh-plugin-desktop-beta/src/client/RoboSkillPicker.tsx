@@ -66,7 +66,7 @@ export function RoboSkillPicker({ api, session, library, device, openMarket, ope
   }, [api, devices, open, reload])
   const skills = useMemo(() => catalog && deviceReady ? filterRoboSkills(catalog, query, device === undefined ? '' : currentDevice.modelId, '').filter(skill => installed.includes(skill.id)) : [], [catalog, query, installed, deviceReady, device, currentDevice.modelId])
   // A local `/技能` with the same stable id must never shadow a published
-  // RoboCoding skill. Keep the local fallback visible only when the cloud
+  // OpenFox skill. Keep the local fallback visible only when the cloud
   // entry is not installed, so selecting Bumi always uses the cloud contract.
   const visibleLocalSkills = useMemo(() => {
     const cloudIds = new Set(skills.map(skill => skill.id))

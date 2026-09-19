@@ -87,7 +87,7 @@ export function RoboServiceOnboarding({ complete, openSection, api, scope }: Set
   }
   if (!visible) return null
   const officialConfigured = account !== undefined && account.platformUrl !== '' && account.state !== 'unconfigured'
-  return <Modal open title="开始使用 RoboCoding" closeLabel="稍后配置" onClose={() => { if (!busy) void finish() }} className="roboServiceWelcome">
+  return <Modal open title="开始使用 OpenFox" closeLabel="稍后配置" onClose={() => { if (!busy) void finish() }} className="roboServiceWelcome">
     <div className="roboServiceWelcomeBody">
       <button type="button" className="roboServicePrimary" disabled={busy} onClick={() => { void finish('robocoding-account', officialConfigured) }}>
         {busy ? '正在连接…' : officialConfigured ? '登录官方账号' : '配置官方服务'}

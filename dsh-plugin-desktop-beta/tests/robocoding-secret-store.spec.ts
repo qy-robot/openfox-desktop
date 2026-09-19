@@ -7,7 +7,7 @@ import { RoboCodingSecretStore } from '../src/robocoding-secret-store.ts'
 const roots: string[] = []
 afterEach(async () => { await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true }))) })
 
-describe('RoboCoding secret store', () => {
+describe('OpenFox secret store', () => {
   it('persists only protected bytes and restores the refresh grant', async () => {
     const root = await mkdtemp(join(tmpdir(), 'robocoding-secret-')); roots.push(root)
     const path = join(root, 'account', 'session.bin')

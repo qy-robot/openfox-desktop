@@ -730,3 +730,8 @@
 - 验证：Stable/Beta typecheck；Stable 5 个回归文件 61/62 通过、Beta 5 个回归文件 65/66 通过（各 1 项跳过）。
 - 未完成 / 限制：未在原生 Windows 主机执行安装器构建。
 - 下一步：Windows 端必须更新根仓库和子模块后清理 `dsh-plugin-desktop\dist`，再执行 `corepack.cmd yarn dist:win`。
+
+### 2026-09-19T16:11:23+08:00 | Codex | OpenFox 品牌图标与域名迁移
+
+- stable/Beta 同步公开文案为 OpenFox，域名切换至 `openfox.work`、`api/ai/account/dash` 子域名；用户狐狸代码商标已转换为 RGBA16 主图并重新生成 Desktop 图标资源。
+- 验证：variant 对齐通过；两版品牌/向导/技能市场/代理定向测试 48/48、49/49 通过；未制作安装包或发布。

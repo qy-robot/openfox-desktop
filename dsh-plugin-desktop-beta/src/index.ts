@@ -263,7 +263,7 @@ export function apply(ctx: Context, config: Config): void {
   ctx.inject(['skills'], skillsCtx => {
     skillsCtx.effect(
       () => installRoboCloudSkills(skillsCtx),
-      'dsh-plugin-desktop: RoboCoding cloud skill provider',
+      'dsh-plugin-desktop: OpenFox cloud skill provider',
     )
   })
   const appExit = ctx.get('appExit')
@@ -327,10 +327,10 @@ export function apply(ctx: Context, config: Config): void {
       })
       accountCtx.effect(() => {
         void account.restore().catch(cause => accountCtx.logger.error(
-          `dsh-plugin-desktop: failed to restore RoboCoding account: ${cause instanceof Error ? cause.message : String(cause)}`,
+          `dsh-plugin-desktop: failed to restore OpenFox account: ${cause instanceof Error ? cause.message : String(cause)}`,
         ))
         return () => { account.dispose(); accountLlm.dispose() }
-      }, 'dsh-plugin-desktop: RoboCoding account and model route')
+      }, 'dsh-plugin-desktop: OpenFox account and model route')
       accountCtx.inject(['sessions'], (sessionsCtx) => {
         sessionsCtx.effect(() => {
           const stopEvents = sessionsCtx.on('session/event', (session, event) => {
@@ -340,7 +340,7 @@ export function apply(ctx: Context, config: Config): void {
           })
           const stopDisposed = sessionsCtx.on('session/disposed', session => account.sessionDisposed(String(session.header.id)))
           return () => { stopDisposed(); stopEvents(); account.sessionsDetached() }
-        }, 'dsh-plugin-desktop: lock RoboCoding funding during active turns')
+        }, 'dsh-plugin-desktop: lock OpenFox funding during active turns')
       })
       const accountRoutes = [
         [ROBOCODING_ACCOUNT_PATH, 'read'], [ROBOCODING_ACCOUNT_REFRESH_PATH, 'refresh'],
@@ -351,7 +351,7 @@ export function apply(ctx: Context, config: Config): void {
         accountCtx.effect(() => accountCtx.webServer.register({ kind: 'exact', path, handler: (req, res) => {
           if (rejectDesktopRequest(accountCtx, req, res)) return
           return handleRoboCodingAccountRequest(kind, req, res, account)
-        } }), `dsh-plugin-desktop: private RoboCoding account route ${path}`)
+        } }), `dsh-plugin-desktop: private OpenFox account route ${path}`)
       }
     })
   }
@@ -397,11 +397,11 @@ export function apply(ctx: Context, config: Config): void {
           if (rejectDesktopRequest(ctx, req, res)) return
           return handleRoboSkillsProxyRequest(req, res, rendererOrigin, path, {
             serviceUrl: process.env.ROBO_SKILLS_URL,
-            catalogUrl: 'https://api.openzrob.com/api/catalog',
+            catalogUrl: 'https://api.openfox.work/api/catalog',
           })
         },
       }),
-      `dsh-plugin-desktop: private RoboCoding skills route ${path}`,
+      `dsh-plugin-desktop: private OpenFox skills route ${path}`,
     )
   }
   ctx.effect(

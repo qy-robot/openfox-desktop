@@ -1,4 +1,4 @@
-/** Local-only proxy between the Desktop renderer and RoboCoding skills service. */
+/** Local-only proxy between the Desktop renderer and OpenFox skills service. */
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { publicDeviceDetails, publicPublisher } from './robo-catalog-metadata.ts'
@@ -547,9 +547,9 @@ export async function handleRoboSkillsProxyRequest(
     base = localServiceOrigin(options.serviceUrl)
     if (base === undefined && method === 'GET' && options.catalogUrl) {
       // Only the fixed first-party public endpoint is accepted; renderer input cannot change it.
-      if (options.catalogUrl !== 'https://api.openzrob.com/api/catalog') throw new InvalidServiceUrlError()
+      if (options.catalogUrl !== 'https://api.openfox.work/api/catalog') throw new InvalidServiceUrlError()
       base = new URL(routePath === ROBO_DEVICES_CATALOG_PATH
-        ? 'https://api.openzrob.com/api/catalog/devices'
+        ? 'https://api.openfox.work/api/catalog/devices'
         : options.catalogUrl)
       remoteCatalog = true
     }

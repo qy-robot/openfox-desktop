@@ -155,7 +155,7 @@ async function responseJson(response: Response): Promise<Record<string, unknown>
   return await response.json() as Record<string, unknown>
 }
 
-describe('RoboCoding local skills proxy', () => {
+describe('OpenFox local skills proxy', () => {
   it('returns an explicit 503 while the local service is not configured', async () => {
     const proxy = await startProxy(ROBO_SKILLS_CATALOG_PATH)
     const response = await fetch(`${proxy.origin}${ROBO_SKILLS_CATALOG_PATH}`, {
@@ -435,14 +435,14 @@ describe('RoboCoding local skills proxy', () => {
       robots: catalog.robots.map(robot => ({ ...robot, description: 'Robot', configuration: { network: 'Wi-Fi' }, tutorialUrl: 'https://docs.feishu.cn/wiki/setup' })),
       skills: catalog.skills.map(skill => ({ ...skill, publisher: { kind: 'company', displayName: '小高', labels: ['擎云·小高'], subject: 'private-account' } })),
     }
-    const proxy = await startProxy(ROBO_SKILLS_CATALOG_PATH, { catalogUrl: 'https://api.openzrob.com/api/catalog', fetch: async (url, init) => {
+    const proxy = await startProxy(ROBO_SKILLS_CATALOG_PATH, { catalogUrl: 'https://api.openfox.work/api/catalog', fetch: async (url, init) => {
       requested = String(url); credentials = init?.credentials
       return new Response(JSON.stringify(upstreamCatalog), { headers: { 'content-type': 'application/json' } })
     } })
     const response = await fetch(`${proxy.origin}${ROBO_SKILLS_CATALOG_PATH}`, { headers: { origin: proxy.origin } })
     expect(response.status).toBe(200)
     const body = await response.json() as typeof upstreamCatalog
-    expect(requested).toBe('https://api.openzrob.com/api/catalog')
+    expect(requested).toBe('https://api.openfox.work/api/catalog')
     expect(credentials).toBe('omit')
     expect(body.robots[0]?.tutorialUrl).toBe('https://docs.feishu.cn/wiki/setup')
     expect(body.skills[0]?.publisher).toEqual({ kind: 'company', displayName: '小高', labels: ['擎云·小高'] })
@@ -453,19 +453,19 @@ describe('RoboCoding local skills proxy', () => {
   it('loads the independent first-party device catalog without depending on skills', async () => {
     let requested = ''
     const devices = { schemaVersion: 1, mode: 'catalog', robots: catalog.robots }
-    const proxy = await startProxy(ROBO_DEVICES_CATALOG_PATH, { catalogUrl: 'https://api.openzrob.com/api/catalog', fetch: async (url) => {
+    const proxy = await startProxy(ROBO_DEVICES_CATALOG_PATH, { catalogUrl: 'https://api.openfox.work/api/catalog', fetch: async (url) => {
       requested = String(url)
       return new Response(JSON.stringify(devices), { headers: { 'content-type': 'application/json' } })
     } })
     const response = await fetch(`${proxy.origin}${ROBO_DEVICES_CATALOG_PATH}`, { headers: { origin: proxy.origin } })
     expect(response.status).toBe(200)
-    expect(requested).toBe('https://api.openzrob.com/api/catalog/devices')
+    expect(requested).toBe('https://api.openfox.work/api/catalog/devices')
     expect(await response.json()).toEqual({ schemaVersion: 1, mode: 'catalog', robots: publicCatalog.robots, categories: [], skills: [], featuredSkillIds: [] })
   })
 
   it('reports an unpublished first-party catalog without disguising it as a bad gateway', async () => {
     const proxy = await startProxy(ROBO_SKILLS_CATALOG_PATH, {
-      catalogUrl: 'https://api.openzrob.com/api/catalog',
+      catalogUrl: 'https://api.openfox.work/api/catalog',
       fetch: async () => new Response(JSON.stringify({ error: 'not found' }), {
         status: 404,
         headers: { 'content-type': 'application/json' },

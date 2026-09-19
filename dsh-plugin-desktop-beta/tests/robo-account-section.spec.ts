@@ -56,7 +56,7 @@ afterEach(async () => {
   vi.unstubAllGlobals()
 })
 
-describe('RoboCoding account settings', () => {
+describe('OpenFox account settings', () => {
   it('uses the default service without exposing connection settings', async () => {
     const { api, container } = await mount(signedOut)
     expect(container.querySelector('details')).toBeNull()

@@ -32,7 +32,7 @@ function remoteHarness(providerValues: Record<string, unknown> = {}) {
   return { api: createRoboModelsApi(context), mutate, set, unset, discoverModels, modelCatalog }
 }
 
-describe('RoboCoding custom-model API', () => {
+describe('OpenFox custom-model API', () => {
   it('normalizes pasted operation URLs without dropping gateway path prefixes', () => {
     expect(endpointProtocolHint('https://host/acme/v1/chat/completions')).toBe('openai-completions')
     expect(normalizeRoboModelBaseURL('https://host/acme/v1/chat/completions/', 'openai-completions')).toBe('https://host/acme/v1')
@@ -147,7 +147,7 @@ function change(element: HTMLInputElement | HTMLTextAreaElement, value: string):
 }
 async function settle(): Promise<void> { await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)) }) }
 
-describe('RoboCoding custom-model GUI', () => {
+describe('OpenFox custom-model GUI', () => {
   it('switches the default model across services and preserves read-only controls', async () => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
     let view: RoboModelsView = {

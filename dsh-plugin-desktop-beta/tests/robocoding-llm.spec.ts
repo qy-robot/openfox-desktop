@@ -8,7 +8,7 @@ const relay = (key: string, fundingMode: 'personal_only' | 'team_only' = 'person
   key, fundingMode, teamId, baseUrl: 'https://api.example.com', expiresAt: new Date(Date.now() + 60_000).toISOString(),
 })
 
-describe('RoboCoding LLM registration', () => {
+describe('OpenFox LLM registration', () => {
   it('keeps an explicitly saved custom default when the official account is restored', async () => {
     const selection = { provider: 'my-gateway', model: 'my-model' }
     const saveSelection = vi.fn()
@@ -54,7 +54,7 @@ describe('RoboCoding LLM registration', () => {
       await registration.update(relay('pending-catalog'), [])
       expect(ctx.llm.listProviders()).toEqual([])
       await registration.update(relay('signed-in'), ['official-model'])
-      expect(ctx.llm.listProviders()).toEqual([expect.objectContaining({ id: 'robocoding', name: 'RoboCoding' })])
+      expect(ctx.llm.listProviders()).toEqual([expect.objectContaining({ id: 'robocoding', name: 'OpenFox' })])
       await registration.updateModels(['new-model'])
       expect((await ctx.llm.listModels('robocoding')).map(model => model.id)).toEqual(['new-model'])
       await registration.updateModels([])
@@ -68,7 +68,7 @@ describe('RoboCoding LLM registration', () => {
       await ctx.fiber.dispose()
     }
   })
-  it('selects RoboCoding once, preserves later user choices, and only repairs an unavailable RoboCoding model', async () => {
+  it('selects OpenFox once, preserves later user choices, and only repairs an unavailable OpenFox model', async () => {
     let selection = { provider: 'deepseek', model: 'deepseek-chat' }
     const saveSelection = vi.fn(async (next: { provider: string; model: string }) => { selection = next })
     const replace = vi.fn()

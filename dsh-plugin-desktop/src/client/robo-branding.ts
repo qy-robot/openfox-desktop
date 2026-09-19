@@ -5,7 +5,7 @@ import { installRoboBrandStyles, RoboBrandMark, RoboBrandName } from './branding
 
 /** Fill the upstream sidebar's documented brand slots without replacing its layout. */
 export function applyRoboBranding(ctx: ClientContext): void {
-  ctx.effect(installRoboBrandStyles, 'dsh-plugin-desktop: RoboCoding brand styles')
+  ctx.effect(installRoboBrandStyles, 'dsh-plugin-desktop: OpenFox brand styles')
   ctx.slots.inject('sidebar.brand.mark', () =>
     ctx.slots.inject('sidebar.brand.name', function* () {
       yield ctx.slots.register({ name: 'sidebar.brand.mark', priority: -100 }, RoboBrandMark)

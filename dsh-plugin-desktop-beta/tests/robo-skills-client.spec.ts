@@ -236,7 +236,7 @@ function changeValue(element: Element | null, value: string): void {
   })
 }
 
-describe('RoboCoding skill catalog client', () => {
+describe('OpenFox skill catalog client', () => {
   it('keeps the published Bumi skill runnable through the bundled read-only preflight', async () => {
     const bumi = parseRoboCatalog({
       ...catalogPayload,
@@ -380,7 +380,7 @@ describe('RoboCoding skill catalog client', () => {
   })
 })
 
-describe('RoboCoding skill session command', () => {
+describe('OpenFox skill session command', () => {
   it('keeps selections isolated between conversation sessions', () => {
     const api = { catalog: vi.fn(), run: vi.fn() } as unknown as RoboSkillsApi
     const first = sessionHarness('第一会话草稿')
@@ -533,7 +533,7 @@ describe('RoboCoding skill session command', () => {
   })
 })
 
-describe('RoboCoding skill picker', () => {
+describe('OpenFox skill picker', () => {
   it('prioritizes an installed cloud skill over a same-named local slash skill', async () => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
     vi.stubGlobal('ResizeObserver', class { observe(): void {}; unobserve(): void {}; disconnect(): void {} })

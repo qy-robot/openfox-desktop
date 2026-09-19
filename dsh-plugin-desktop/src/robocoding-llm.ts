@@ -8,7 +8,7 @@ import type { RoboCodingRelayCredential } from './robocoding-platform.ts'
 const PROVIDER = 'robocoding'
 
 class RoboCodingAdapter extends DeepSeekAdapter {
-  override providerInfo(provider: string) { return { id: provider, name: 'RoboCoding' } }
+  override providerInfo(provider: string) { return { id: provider, name: 'OpenFox' } }
 }
 
 export class RoboCodingLlmRegistration {
@@ -32,7 +32,7 @@ export class RoboCodingLlmRegistration {
       },
       resolveApiKey: async connection => {
         const key = this.credentials.get(connection.apiKeyEnv)
-        if (key === undefined) throw new Error('请先登录 RoboCoding，或刷新账户后重试')
+        if (key === undefined) throw new Error('请先登录 OpenFox，或刷新账户后重试')
         return key
       },
       resolveUserId: () => userId ??= getOrCreateAnonymousUserId(),

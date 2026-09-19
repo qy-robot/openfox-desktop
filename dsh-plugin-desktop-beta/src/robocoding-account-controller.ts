@@ -35,8 +35,8 @@ export interface RoboCodingAccountControllerOptions {
   readonly defaultPlatformUrl?: string
 }
 
-export const DEFAULT_ROBOCODING_PLATFORM_URL = 'https://ai.openzrob.com'
-const LEGACY_DEFAULT_ROBOCODING_PLATFORM_URL = 'https://www.openzrob.com'
+export const DEFAULT_ROBOCODING_PLATFORM_URL = 'https://ai.openfox.work'
+const LEGACY_DEFAULT_ROBOCODING_PLATFORM_URL = 'https://www.openfox.work'
 
 const wait = (milliseconds: number, signal: AbortSignal): Promise<void> => new Promise((resolve, reject) => {
   const timer = setTimeout(resolve, milliseconds)
@@ -131,7 +131,7 @@ export class RoboCodingAccountController {
     this.assertAccountMutable()
     const generation = this.invalidateAuthorization()
     const client = this.client()
-    const grant = await client.createDeviceGrant('RoboCoding Desktop')
+    const grant = await client.createDeviceGrant('OpenFox Desktop')
     this.assertCurrent(generation)
     const expiresAt = new Date(Date.now() + grant.expiresIn * 1000).toISOString()
     this.grant = { ...grant, expiresAt }

@@ -1,8 +1,8 @@
-# RoboCoding
+# OpenFox
 
-by擎云机器人
 
-This is the RoboCoding product fork of [DSH Desktop](https://github.com/anywhere-labs/dsh-desktop). Product repository: `qy-robot/robocodingai-desktop`.
+
+This is the OpenFox product fork of [DSH Desktop](https://github.com/anywhere-labs/dsh-desktop). Product repository: `qy-robot/robocodingai-desktop`.
 
 Repository initialization preserves the original desktop implementation, licenses, dependency identities and pinned Harness runtime. `robocodingai.product.json` records the confirmed brand and reserved platform identifiers; the application UI and installers do not consume those values yet.
 

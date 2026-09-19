@@ -1,8 +1,8 @@
-# RoboCoding Desktop
+# OpenFox Desktop
 
-by擎云机器人
 
-RoboCoding product fork. See [product ownership](ROBOCODINGAI.md) and [local skills development](docs/robo-skills-local.md). Original upstream documentation and license information follow unchanged below.
+
+OpenFox product fork. See [product ownership](ROBOCODINGAI.md) and [local skills development](docs/robo-skills-local.md). Original upstream documentation and license information follow unchanged below.
 
 ---
 

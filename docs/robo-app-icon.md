@@ -1,4 +1,4 @@
-# RoboCoding application icon
+# OpenFox application icon
 
 The approved dark robot artwork is the application icon for both desktop editions. Icon artwork contains no lettering or company subtitle. Product wording and application identities remain separately configured.
 

@@ -1,8 +1,8 @@
-# RoboCoding Desktop
+# OpenFox Desktop
 
-by擎云机器人
 
-RoboCoding 产品 Fork。产品归属见 [ROBOCODINGAI.md](ROBOCODINGAI.md)，本地技能联调见 [开发说明](docs/robo-skills-local.md)。以下保留上游文档与许可证信息。
+
+OpenFox 产品 Fork。产品归属见 [ROBOCODINGAI.md](ROBOCODINGAI.md)，本地技能联调见 [开发说明](docs/robo-skills-local.md)。以下保留上游文档与许可证信息。
 
 ---
 

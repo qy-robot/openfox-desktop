@@ -932,7 +932,7 @@ export function prepareDesktopProfile(
     throw new Error(`${BIN_NAME}: desktop profile has no supported ${UPSTREAM_MODELS_SETTINGS_ROW_ID} row`)
   }
   patches.push({ id: UPSTREAM_MODELS_SETTINGS_ROW_ID, disabled: true })
-  // RoboCoding supplies the official catalog; do not advertise the bundled direct provider.
+  // OpenFox supplies the official catalog; do not advertise the bundled direct provider.
   const directProvider = rows.get('llm-deepseek')
   if (directProvider?.name === '@deepseek-ai/dsh-llm-deepseek') {
     patches.push({ id: directProvider.id, disabled: true })

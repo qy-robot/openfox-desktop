@@ -8,7 +8,7 @@ import { ROBO_SIDEBAR_ACCOUNT_CSS } from './robo-sidebar-account-styles.ts'
 
 export function applyRoboCodingAccount(ctx: ClientContext): void {
   const api = createRoboCodingAccountApi()
-  ctx.effect(installRoboCodingAccountStyles, 'dsh-plugin-desktop: RoboCoding account styles')
+  ctx.effect(installRoboCodingAccountStyles, 'dsh-plugin-desktop: OpenFox account styles')
   ctx.effect(() => {
     const style = document.createElement('style')
     style.dataset.roboSidebarAccount = 'true'

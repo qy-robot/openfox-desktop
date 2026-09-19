@@ -361,8 +361,8 @@ describe('desktop Host plugin', () => {
       mode: 'compatibility',
       url: 'http://127.0.0.1:43120/?dsh-desktop-mode=compatibility&dsh-desktop-platform=darwin&dsh-desktop-version=2.0.0&dsh-desktop-material=transparent&dsh-desktop-titlebar-inset=36',
       authenticationUrl: 'http://127.0.0.1:43120/?token=test-token',
-      productName: 'RoboCoding',
-      windowTitle: 'RoboCoding',
+      productName: 'OpenFox',
+      windowTitle: 'OpenFox',
       rendererAccessHeader: {
         name: 'x-dsh-desktop-renderer',
         value: Buffer.alloc(32, 6).toString('base64url'),

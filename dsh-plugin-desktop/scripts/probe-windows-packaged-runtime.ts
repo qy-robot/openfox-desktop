@@ -31,7 +31,7 @@ export function probeInstalledWindowsRuntime(
   platform: NodeJS.Platform = process.platform,
 ): InstalledWindowsRuntimeProbe {
   const root = resolve(installRoot)
-  const executable = join(root, 'RoboCoding.exe')
+  const executable = join(root, 'OpenFox.exe')
   try {
     if (platform !== 'win32') {
       throw new Error('installed Windows runtime probe requires a native Windows host')
@@ -42,8 +42,8 @@ export function probeInstalledWindowsRuntime(
       electronPlatformName: 'win32',
       arch: 1,
       packager: {
-        executableName: 'RoboCoding',
-        appInfo: { productFilename: 'RoboCoding' },
+        executableName: 'OpenFox',
+        appInfo: { productFilename: 'OpenFox' },
       },
     })
     return { installRoot: root, executable, success: true, error: null }

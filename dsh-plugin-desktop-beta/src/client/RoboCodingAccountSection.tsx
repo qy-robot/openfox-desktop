@@ -74,7 +74,7 @@ export function RoboCodingAccountSection({ api }: RoboCodingAccountSectionProps)
     {(view?.state === 'unconfigured' || view?.state === 'signed_out' || view?.state === 'error') && <section className="roboAccountSignIn">
       <div className="roboAccountSignInMark" aria-hidden="true"><UserRound size={22} strokeWidth={1.8} /></div>
       <div className="roboAccountSignInCopy">
-        <h3>RoboCoding 官方服务</h3>
+        <h3>OpenFox 官方服务</h3>
         {view.platformUrl === '' && <span className="roboAccountServiceStatus">服务未连接</span>}
       </div>
       <button type="button" className="roboAccountPrimary" disabled={busy || view.platformUrl === ''}

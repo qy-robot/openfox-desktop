@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { parseRoboCodingPlatformUrl, RoboCodingPlatformClient } from '../src/robocoding-platform.ts'
 
-describe('RoboCoding platform boundary', () => {
+describe('OpenFox platform boundary', () => {
   it('accepts HTTPS and loopback development URLs but rejects remote plaintext and embedded credentials', () => {
     expect(parseRoboCodingPlatformUrl('https://api.example.com/').href).toBe('https://api.example.com/')
     expect(parseRoboCodingPlatformUrl('http://127.0.0.1:3000').origin).toBe('http://127.0.0.1:3000')

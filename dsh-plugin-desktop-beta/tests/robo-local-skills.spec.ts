@@ -68,7 +68,7 @@ async function createBundle(
   return bundle
 }
 
-describe('RoboCoding local skill folder import', () => {
+describe('OpenFox local skill folder import', () => {
   it('copies a valid bundle with resources and exposes it through filesystem discovery', async () => {
     const root = await temporaryDirectory()
     const source = await createBundle(root, 'camera-check', 'Inspect a camera image', false)
@@ -257,7 +257,7 @@ describe('RoboCoding local skill folder import', () => {
   })
 })
 
-describe('RoboCoding local skill native picker route', () => {
+describe('OpenFox local skill native picker route', () => {
   it('returns a selected folder or cancellation and enforces method and origin', async () => {
     const pick = vi.fn(async () => '/local/skill')
     let origin = ''

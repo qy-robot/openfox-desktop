@@ -135,7 +135,7 @@ export function RoboModelsSection({ api, accountApi }: RoboModelsSectionProps) {
   return <div className="roboModels">
     <header><h2>模型服务</h2></header>
     <section className="roboModelsCard roboModelsOfficial">
-      <div className="roboModelsOfficialHead"><div className="roboModelsOfficialBody"><div className="roboModelsTitleLine"><h3>RoboCoding 官方服务</h3></div><p className="roboModelsHint">登录即用，按账户点数结算。</p></div>
+      <div className="roboModelsOfficialHead"><div className="roboModelsOfficialBody"><div className="roboModelsTitleLine"><h3>OpenFox 官方服务</h3></div><p className="roboModelsHint">登录即用，按账户点数结算。</p></div>
         <button type="button" className="roboModelsButton roboModelsButtonPrimary" onClick={() => setShowOfficialAccount(true)}>账户设置</button></div>
       <div className="roboModelsOfficialModels">
         {view?.officialModelsError ? <p role="status" className="roboModelsError">官方模型暂不可用：{view.officialModelsError}</p> : null}

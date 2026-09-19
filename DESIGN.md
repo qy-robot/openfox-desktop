@@ -1,6 +1,6 @@
-# RoboCoding Desktop Design
+# OpenFox Desktop Design
 
-Product name: **RoboCoding**. Subtitle: **by擎云机器人**.
+Product name: **OpenFox**. Subtitle: ****.
 
 This public product synopsis accompanies the existing DSH Desktop fork. The detailed internal design contract is maintained in the private `qy-robot/robocodingai-workspace` root `DESIGN.md`.
 
@@ -18,7 +18,7 @@ This public product synopsis accompanies the existing DSH Desktop fork. The deta
 
 ## Account and settings surfaces
 
-- RoboCoding does not expose or load a plugin marketplace, including saved provider choices from older versions. Keep the robot skill market and device directory as separate product features.
+- OpenFox does not expose or load a plugin marketplace, including saved provider choices from older versions. Keep the robot skill market and device directory as separate product features.
 
 - Keep a persistent account card directly above Settings in the sidebar footer. Show the real account and personal balance; a signed-out or unavailable service must not look authenticated.
 - Use an upward account menu for account management, teams, balance refresh and sign-out. The collapsed sidebar retains an accessible avatar trigger.
