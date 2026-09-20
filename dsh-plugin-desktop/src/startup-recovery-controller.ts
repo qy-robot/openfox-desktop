@@ -184,7 +184,7 @@ export class DesktopStartupRecoveryController {
       throw new Error(`${BIN_NAME}: invalid startup recovery generation id`)
     }
     for (const [label, value] of [
-      ['Harness home', options.pluginState.homeDir],
+      ['OpenFox Home', options.pluginState.homeDir],
       ['plugin state path', options.pluginState.statePath],
     ] as const) {
       if (!isAbsolute(value) || value.includes('\0')) {

@@ -21,7 +21,7 @@ describe('Windows volume diagnostics', () => {
   })
 
   it('skips non-Windows hosts without touching the query', () => {
-    const result = diagnoseWindowsVolumes('darwin', [{ label: 'DSH home', path: '/Users/a/.dsh' }], () => {
+    const result = diagnoseWindowsVolumes('darwin', [{ label: 'OpenFox Home', path: '/Users/a/.openfox' }], () => {
       throw new Error('should not run')
     })
 
@@ -114,12 +114,12 @@ describe('Windows volume diagnostics', () => {
 
   it('formats the concern for stderr diagnostics', () => {
     expect(formatWindowsVolumeConcern({
-      label: 'DSH home',
-      path: 'E:\\.dsh',
+      label: 'OpenFox Home',
+      path: 'E:\\.openfox',
       root: 'E:\\',
       fileSystem: 'FAT32',
       driveType: 2,
       reason: 'unsupported',
-    })).toContain('DSH home: unsupported (path=E:\\.dsh; root=E:\\; fs=FAT32; driveType=2)')
+    })).toContain('OpenFox Home: unsupported (path=E:\\.openfox; root=E:\\; fs=FAT32; driveType=2)')
   })
 })

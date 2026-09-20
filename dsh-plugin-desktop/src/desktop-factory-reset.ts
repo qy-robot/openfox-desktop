@@ -1,4 +1,4 @@
-/** Recoverable factory reset for the active Desktop-owned DSH data directory. */
+/** Recoverable factory reset for the active OpenFox Home directory. */
 
 import { lstatSync } from 'node:fs'
 import { mkdir, readdir } from 'node:fs/promises'
@@ -15,7 +15,7 @@ const DIRECTORY_MODE = 0o700
 const MAX_PATH_BYTES = 32 * 1024
 
 export interface DesktopFactoryResetOptions {
-  /** Exact active DSH Home selected by the launcher. */
+  /** Exact active OpenFox Home selected by the launcher. */
   readonly homeDir: string
   /** Current edition's Electron user-data directory containing external preferences. */
   readonly userDataDir: string
@@ -71,17 +71,17 @@ export function assertDesktopFactoryResetTarget(
     profiles = lstatSync(profilesPath)
   } catch (cause) {
     if ((cause as NodeJS.ErrnoException).code === 'ENOENT') {
-      throw new Error(`${DESKTOP_PACKAGE_NAME}: factory-reset target is not an initialized DSH Home`)
+      throw new Error(`${DESKTOP_PACKAGE_NAME}: factory-reset target is not an initialized OpenFox Home`)
     }
     throw cause
   }
   if (!profiles.isDirectory() || profiles.isSymbolicLink()) {
-    throw new Error(`${DESKTOP_PACKAGE_NAME}: factory-reset target is not an initialized DSH Home`)
+      throw new Error(`${DESKTOP_PACKAGE_NAME}: factory-reset target is not an initialized OpenFox Home`)
   }
   return target
 }
 
-/** Move the exact DSH Home to trash, then recreate only its empty root for clean startup. */
+/** Move the exact OpenFox Home to trash, then recreate only its empty root for clean startup. */
 export async function resetDesktopDataDirectory(
   options: DesktopFactoryResetOptions,
 ): Promise<string> {

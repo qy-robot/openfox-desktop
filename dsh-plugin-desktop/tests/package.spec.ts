@@ -960,7 +960,7 @@ describe('published package surface', () => {
       .update(readFileSync(new URL('build/app-icon.png', packageRoot)))
       .digest('hex')
 
-    expect(digest).toBe('badf5809d12c658bb5104911a9f85aab219e8e5f9a950175427df217f6baf8be')
+    expect(digest).toBe('1ce0119d27e91417a9ee1f9301ca232545a92d1b37e126bb4a931ad407a6c05f')
   })
 
   it('generates exact-DPI Windows application and installer icon frames', () => {

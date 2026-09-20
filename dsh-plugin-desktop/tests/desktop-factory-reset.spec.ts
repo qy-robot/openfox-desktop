@@ -143,7 +143,7 @@ describe('Desktop factory reset', () => {
       .toThrow('contains protected')
     const empty = join(root, 'empty')
     mkdirSync(empty)
-    expect(() => assertDesktopFactoryResetTarget(empty, [root], 'darwin')).toThrow('not an initialized DSH Home')
+    expect(() => assertDesktopFactoryResetTarget(empty, [root], 'darwin')).toThrow('not an initialized OpenFox Home')
     expect(assertDesktopFactoryResetTarget(home, [root], 'darwin')).toBe(home)
   })
 })

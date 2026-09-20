@@ -323,6 +323,10 @@ export function apply(ctx: Context, config: Config): void {
         onModels: models => accountLlm.updateModels(models),
         onLogout: () => accountLlm.clear(),
         onRelayUnavailable: () => accountLlm.clear(),
+        // Reuse Electron's proxy-aware network adapter. The Node/Undici global
+        // fetch does not inherit the desktop session's proxy/TLS behavior.
+        fetcher: (input, init) => runtime.updates.request(
+          typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, init ?? {}),
         defaultPlatformUrl: process.env.ROBOCODING_PLATFORM_URL || DEFAULT_ROBOCODING_PLATFORM_URL,
       })
       accountCtx.effect(() => {

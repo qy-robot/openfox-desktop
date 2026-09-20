@@ -1,4 +1,4 @@
-/** Desktop-owned DSH Home selection that never copies or mutates the previous Home. */
+/** OpenFox Home selection that never copies or mutates the previous directory. */
 
 import {
   chmodSync,
@@ -199,8 +199,8 @@ function parseLocationState(text: string): DesktopDataDirectoryStateV1 {
   }
   return Object.freeze({
     version: STATE_VERSION,
-    activeHome: canonicalPath(value.activeHome, 'active DSH home'),
-    previousHome: value.previousHome === null ? null : canonicalPath(value.previousHome, 'previous DSH home'),
+    activeHome: canonicalPath(value.activeHome, 'active OpenFox Home'),
+    previousHome: value.previousHome === null ? null : canonicalPath(value.previousHome, 'previous OpenFox Home'),
     generation: value.generation as number,
     updatedAt: canonicalTimestamp(value.updatedAt, 'updatedAt'),
   })
@@ -234,13 +234,13 @@ export function resolveDesktopDataDirectory(
   const state = readDesktopDataDirectoryState(userDataDir)
   if (state === undefined) {
     return Object.freeze({
-      homeDir: canonicalPath(fallbackHome, 'fallback DSH home'),
+      homeDir: canonicalPath(fallbackHome, 'fallback OpenFox Home'),
       previousHome: null,
       generation: 0,
       source: fallbackSource,
     })
   }
-  assertRealDirectory(state.activeHome, 'source-unavailable', 'configured DSH home')
+  assertRealDirectory(state.activeHome, 'source-unavailable', 'configured OpenFox Home')
   return Object.freeze({
     homeDir: state.activeHome,
     previousHome: state.previousHome,
@@ -274,8 +274,8 @@ function resolvedTargetPaths(
   targetDirectory: string,
   platform: NodeJS.Platform = process.platform,
 ): { readonly source: string; readonly target: string } {
-  const source = canonicalPath(currentHome, 'current DSH home')
-  const target = canonicalPath(targetDirectory, 'target DSH home')
+  const source = canonicalPath(currentHome, 'current OpenFox Home')
+  const target = canonicalPath(targetDirectory, 'target OpenFox Home')
   const root = parse(target).root
   if (normalizedForComparison(target, platform) === normalizedForComparison(root, platform)
     || contains(source, target, platform) || contains(target, source, platform)) {
@@ -287,7 +287,7 @@ function resolvedTargetPaths(
   return { source, target }
 }
 
-/** Validate a target without reading, copying, writing, renaming, or deleting the current DSH Home. */
+/** Validate a target without reading, copying, writing, renaming, or deleting the current OpenFox Home. */
 export function inspectDesktopDataDirectoryTarget(
   currentHome: string,
   targetDirectory: string,
@@ -296,14 +296,14 @@ export function inspectDesktopDataDirectoryTarget(
 ): DesktopDataDirectoryTarget {
   signal?.throwIfAborted()
   const { target } = resolvedTargetPaths(currentHome, targetDirectory, platform)
-  assertRealDirectory(target, 'target-unavailable', 'target DSH home')
+  assertRealDirectory(target, 'target-unavailable', 'target OpenFox Home')
   signal?.throwIfAborted()
   const entries = readdirSync(target)
   if (entries.length === 0) return Object.freeze({ targetHome: target, kind: 'empty' })
   if (!validDesktopProfileExists(target)) {
     throw new DesktopDataDirectoryError(
       'target-invalid',
-      'a non-empty target must be an existing DSH data directory with a Desktop-compatible Profile',
+      'a non-empty target must be an existing OpenFox Home directory with a Desktop-compatible Profile',
     )
   }
   return Object.freeze({ targetHome: target, kind: 'existing' })
@@ -318,7 +318,7 @@ function assertCurrentLocation(
   if (state !== undefined && state.generation === expected.generation
     && normalizedForComparison(state.activeHome, process.platform)
       === normalizedForComparison(expected.homeDir, process.platform)) return
-  throw new DesktopDataDirectoryError('busy', 'the active DSH data directory changed while Recovery Assistant was open')
+  throw new DesktopDataDirectoryError('busy', 'the active OpenFox Home directory changed while Recovery Assistant was open')
 }
 
 /** Select a validated target atomically; no content is copied from or changed in the old directory. */
@@ -385,7 +385,7 @@ export function assertDesktopDataDirectoryCommandGeneration(
   }
   throw new DesktopDataDirectoryError(
     'busy',
-    'this managed terminal belongs to an older DSH data directory; reopen it from DSH Desktop',
+    'this managed terminal belongs to an older OpenFox Home directory; reopen it from OpenFox',
   )
 }
 

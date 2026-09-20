@@ -152,14 +152,14 @@ describe('Desktop DSH data directory', () => {
     expect(existsSync(join(existingTarget, 'settings.yaml'))).toBe(false)
     assertDesktopDataDirectoryCommandGeneration(userData, existingTarget, 1)
     expect(() => assertDesktopDataDirectoryCommandGeneration(userData, source, 0)).toThrow(
-      'older DSH data directory',
+      'older OpenFox Home directory',
     )
   })
 
   it('creates a missing default target as an empty directory before selecting it', async () => {
     const { root, userData, source } = fixture()
     const initial = resolveDesktopDataDirectory(userData, source, 'default')
-    const defaultTarget = join(root, '.dsh')
+    const defaultTarget = join(root, '.openfox')
 
     const result = await selectDesktopDataDirectory(userData, initial, defaultTarget, {
       createIfMissing: true,
@@ -200,7 +200,7 @@ describe('Desktop DSH data directory', () => {
     await selectDesktopDataDirectory(userData, initial, emptyTarget)
     rmSync(emptyTarget, { recursive: true })
     expect(() => resolveDesktopDataDirectory(userData, source, 'default')).toThrow(
-      'configured DSH home is unavailable',
+      'configured OpenFox Home is unavailable',
     )
   })
 

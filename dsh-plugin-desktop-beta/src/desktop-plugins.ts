@@ -199,7 +199,7 @@ function safePackageName(value: unknown): value is string {
 function assertStateBootstrap(bootstrap: DesktopPluginStateBootstrap): void {
   assertDesktopProfileName(bootstrap.profileName)
   for (const [label, value] of [
-    ['Harness home', bootstrap.homeDir],
+    ['OpenFox Home', bootstrap.homeDir],
     ['state path', bootstrap.statePath],
   ] as const) {
     if (!isAbsolute(value) || value.includes('\0')) {
@@ -619,7 +619,7 @@ function renderState(state: DesktopPluginStateV1): string {
 function assertBootstrap(bootstrap: DesktopPluginsBootstrap): void {
   assertDesktopProfileName(bootstrap.profileName)
   for (const [label, value] of [
-    ['Harness home', bootstrap.homeDir],
+    ['OpenFox Home', bootstrap.homeDir],
     ['state path', bootstrap.statePath],
     ['install anchor', bootstrap.installAnchor],
   ] as const) {

@@ -4,7 +4,7 @@ English | [中文](README.zh.md)
 
 `dsh-plugin-desktop-beta` runs the Beta channel of DSH Desktop in Electron while remaining part of the ordinary Cordis composition. The installed application is named **DSH Desktop Beta**. The package provides only the `dsh-plugin-desktop-beta` executable and the `dsh-desktop-beta` alias, so it does not conflict with the stable npm package or commands.
 
-The stable `dsh-plugin-desktop` package and this Beta package can be installed on the same machine. They use separate application names, system identities, shortcuts, single-instance locks, and Electron user-data directories. Both intentionally use the same `DSH_HOME` (or the default `~/.dsh`), so profiles, settings, plugins, and sessions are shared. Simultaneous installation is supported; reliable simultaneous execution is not, because both applications can contend for shared profile files, ports, and dependency state. Automatic updates stay on the Beta channel; the tray provides an explicit action that installs the stable edition alongside Beta.
+The stable `dsh-plugin-desktop` package and this Beta package can be installed on the same machine. They use separate application names, system identities, shortcuts, single-instance locks, and Electron user-data directories. Both intentionally use the same `DSH_HOME` (or the OpenFox default `~/.openfox`), so profiles, settings, plugins, and sessions are shared. Simultaneous installation is supported; reliable simultaneous execution is not, because both applications can contend for shared profile files, ports, and dependency state. Automatic updates stay on the Beta channel; the tray provides an explicit action that installs the stable edition alongside Beta.
 
 ## Architecture
 
@@ -151,7 +151,7 @@ npx dsh-plugin-desktop-beta
 
 The package installs two equivalent Beta-only commands, `dsh-desktop-beta` and `dsh-plugin-desktop-beta`. Both launch the packaged Electron launcher (`lib/main.js`) when invoked without arguments.
 
-- **Global install** — `npm install -g dsh-plugin-desktop-beta` installs the `electron` peer automatically, and `dsh-desktop-beta` then starts the application against the shared default DSH home:
+- **Global install** — `npm install -g dsh-plugin-desktop-beta` installs the `electron` peer automatically, and `dsh-desktop-beta` then starts the application against the shared OpenFox default `~/.openfox` home:
   ```sh
   dsh-desktop-beta
   ```

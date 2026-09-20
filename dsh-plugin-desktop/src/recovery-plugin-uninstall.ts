@@ -129,7 +129,7 @@ export async function removeRecoveryPlugin(
     ['application executable', options.appExecutable],
     ['DSH bootstrap', options.dshBootstrapPath],
     ['Profile directory', options.profileDir],
-    ['Harness home', options.homeDir],
+    ['OpenFox Home', options.homeDir],
     ['Node command directory', options.nodeBinDir],
     ['Node command', options.nodeShimPath],
     ['pnpm command directory', options.pnpmBinDir],

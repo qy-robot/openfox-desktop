@@ -4,7 +4,7 @@ import { startIsolatedDesktopHost } from './host-process.ts'
 import { app, crashReporter, safeStorage, shell } from 'electron'
 import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   boot,
@@ -15,7 +15,6 @@ import {
   type FailLoudProcess,
 } from '@deepseek-ai/dsh-app-boot'
 import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
-import { defaultDshHome, resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import {
   DSH_LAUNCH_ENVIRONMENT_KEY,
   type LaunchEnvironmentSnapshot,
@@ -66,6 +65,7 @@ import {
 import { LogFileSink } from './log-files.ts'
 import { maskSecrets } from './mask-secrets.ts'
 import { resolveDesktopShellEnvironment } from './shell-environment.ts'
+import { defaultOpenFoxHome, hasConfiguredDshHome, resolveOpenFoxHome } from './desktop-home-path.ts'
 import { installProfilePackageResolver } from './module-resolution.ts'
 import { packagedDependencyPath } from './packaged-runtime-path.ts'
 import {
@@ -300,7 +300,7 @@ function notifyWindowsVolumeConcerns(
   const label = runtime.locale === 'zh'
     ? concernLabel === 'application install' ? '应用安装目录'
       : concernLabel === 'desktop user data' ? '桌面用户数据'
-        : concernLabel === 'DSH home' ? 'DSH 主目录'
+        : concernLabel === 'OpenFox Home' ? 'OpenFox Home'
           : '某个配置路径'
     : concernLabel ?? 'A configured path'
   try {
@@ -686,9 +686,9 @@ async function start(): Promise<void> {
     })
     const dshBootstrapPath = fileURLToPath(new URL('./desktop-cli.js', import.meta.url))
     const releasePnpmRuntime = generation.own(() => { pnpmRuntime.dispose() })
-    const fallbackHome = resolveDshHome()
-    const defaultHome = resolve(defaultDshHome())
-    const fallbackSource = process.env.DSH_HOME === undefined ? 'default' : 'environment'
+    const fallbackHome = resolveOpenFoxHome(process.env)
+    const defaultHome = defaultOpenFoxHome()
+    const fallbackSource = hasConfiguredDshHome(process.env) ? 'environment' : 'default'
     let dataDirectoryLocation: DesktopDataDirectoryLocation | undefined
     let homeDir: string
     if (safeModePaths !== undefined) {
@@ -714,7 +714,7 @@ async function start(): Promise<void> {
     const windowsVolumeConcerns = diagnoseWindowsVolumes(process.platform, [
       { label: 'application install', path: process.execPath },
       { label: 'desktop user data', path: desktopUserDataDir },
-      { label: 'DSH home', path: homeDir },
+      { label: 'OpenFox Home', path: homeDir },
     ])
     warnWindowsVolumeConcerns(electronLogger, windowsVolumeConcerns)
     const selectionStatePath = join(profileUserDataDir, 'profile-selection', 'state.json')
@@ -972,21 +972,21 @@ async function start(): Promise<void> {
           await selectRecoveryDataDirectory(
             targetDirectory,
             signal,
-            'change DSH data directory from Recovery Assistant',
+            'change OpenFox Home directory from Recovery Assistant',
           )
         },
         restoreDefaultDirectory: async (signal: AbortSignal, createIfMissing: boolean) => {
           await selectRecoveryDataDirectory(
             defaultHome,
             signal,
-            'restore default DSH data directory from Recovery Assistant',
+            'restore default OpenFox Home directory from Recovery Assistant',
             createIfMissing,
           )
         },
         resetDirectory: async () => {
           const lease = acquireDesktopDataOperationLock(
             desktopUserDataDir,
-            'factory reset DSH data directory from Recovery Assistant',
+            'factory reset OpenFox Home directory from Recovery Assistant',
           )
           try {
             await resetDesktopDataDirectory({

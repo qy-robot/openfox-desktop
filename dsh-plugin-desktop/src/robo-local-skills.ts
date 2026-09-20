@@ -4,7 +4,7 @@ import { chmod, lstat, mkdir, open, readFile, readdir, rename, rm, stat, writeFi
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
-import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
+import { resolveOpenFoxHome } from './desktop-home-path.ts'
 import { FileSystemSkillProvider } from '@deepseek-ai/dsh-skill-filesystem'
 import { isSameOriginLoopbackRequest } from './robo-skills-proxy.ts'
 
@@ -240,7 +240,7 @@ async function importSkill(directory: string, options: RoboLocalSkillsOptions): 
   const sourceSkill = sourceSkills.find(skill => resolve(skill.path) === skillFile)
   if (sourceSkill === undefined) throw new LocalSkillRequestError(400, 'SKILL.md 不是有效的本地技能')
 
-  const dshHome = resolveDshHome(options.dshHome)
+  const dshHome = options.dshHome === undefined ? resolveOpenFoxHome() : options.dshHome
   const skillsRoot = join(dshHome, 'skills')
   const destination = directChild(skillsRoot, sourceSkill.name)
   try {
@@ -288,7 +288,7 @@ async function serializeMutation<T>(dshHome: string, operation: () => Promise<T>
 }
 
 async function deleteSkill(name: string, options: RoboLocalSkillsOptions): Promise<void> {
-  const dshHome = resolveDshHome(options.dshHome)
+  const dshHome = options.dshHome === undefined ? resolveOpenFoxHome() : options.dshHome
   const skillsRoot = join(dshHome, 'skills')
   const destination = directChild(skillsRoot, name)
   const registry = await readRegistry(dshHome)
@@ -332,7 +332,7 @@ export async function handleRoboLocalSkillsRequest(
     return finishJson(res, 403, { error: 'forbidden' })
   }
   try {
-    const dshHome = resolveDshHome(options.dshHome)
+    const dshHome = options.dshHome === undefined ? resolveOpenFoxHome() : options.dshHome
     if (req.method === 'GET') {
       const registry = await readRegistry(dshHome)
       const skills = (await discoverSkills(join(dshHome, 'skills'))).filter(

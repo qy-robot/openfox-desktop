@@ -338,7 +338,7 @@ describe('Desktop startup recovery confirmations', () => {
 
     expect(desktopDialog.show).toHaveBeenCalledWith(expect.objectContaining({
       title: '更改数据目录？',
-      detail: '请选择空文件夹或已有的 DSH 数据目录。空文件夹将用于创建新环境；原数据目录会保留。',
+      detail: '请选择空文件夹或已有的 OpenFox Home 目录。空文件夹将用于创建新环境；原数据目录会保留。',
       buttons: ['选择目录', '取消'],
       defaultId: 1,
       cancelId: 1,
@@ -397,7 +397,7 @@ describe('Desktop startup recovery confirmations', () => {
 
     await privateRecovery.handleAction({ action: 'browse-data-directory' })
     expect(electronDialog.showOpenDialog).toHaveBeenCalledWith(parent, expect.objectContaining({
-      title: 'Select a DSH data directory',
+      title: 'Select an OpenFox Home directory',
       properties: ['openDirectory', 'createDirectory', 'dontAddToRecent'],
     }))
     expect(changeDirectory).not.toHaveBeenCalled()
@@ -449,7 +449,7 @@ describe('Desktop startup recovery confirmations', () => {
       type: 'question',
       title: '恢复默认数据目录？',
       message: '切换到系统默认数据目录并重启？',
-      detail: 'DSH Desktop 将改为使用当前系统的默认数据目录。当前数据目录不会被删除。',
+      detail: 'OpenFox 将改为使用当前系统的默认 OpenFox Home 目录。当前数据目录不会被删除。',
       buttons: ['恢复默认并重启', '取消'],
       defaultId: 1,
       cancelId: 1,
@@ -498,7 +498,7 @@ describe('Desktop startup recovery confirmations', () => {
       type: 'question',
       title: '新建默认数据目录？',
       message: '默认数据目录不存在，是否新建？',
-      detail: 'DSH Desktop 将在默认路径创建一个全新的环境并重启。当前数据目录不会被删除。',
+      detail: 'OpenFox 将在默认路径创建一个全新的 OpenFox Home 环境并重启。当前数据目录不会被删除。',
       buttons: ['新建并重启', '取消'],
       defaultId: 1,
       cancelId: 1,
