@@ -68,6 +68,20 @@ describe('OpenFox LLM registration', () => {
       await ctx.fiber.dispose()
     }
   })
+  it('caps official GLM catalog entries at the zhipu output ceiling and leaves other models untouched', async () => {
+    const ctx = new Context()
+    await ctx.plugin(LlmRuntime)
+    const registration = new RoboCodingLlmRegistration(ctx)
+    try {
+      await registration.update(relay('signed-in'), ['glm-5.3-flash', 'glm-5.2', 'deepseek-flash'])
+      expect((await ctx.llm.resolveModelInfo('robocoding', 'glm-5.3-flash')).defaultMaxTokens).toBe(131_072)
+      expect((await ctx.llm.resolveModelInfo('robocoding', 'glm-5.2')).defaultMaxTokens).toBe(131_072)
+      expect((await ctx.llm.resolveModelInfo('robocoding', 'deepseek-flash')).defaultMaxTokens).toBe(256_000)
+    } finally {
+      registration.dispose()
+      await ctx.fiber.dispose()
+    }
+  })
   it('selects OpenFox once, preserves later user choices, and only repairs an unavailable OpenFox model', async () => {
     let selection = { provider: 'deepseek', model: 'deepseek-chat' }
     const saveSelection = vi.fn(async (next: { provider: string; model: string }) => { selection = next })

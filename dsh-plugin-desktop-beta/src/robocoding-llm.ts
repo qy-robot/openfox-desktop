@@ -7,6 +7,15 @@ import type { RoboCodingRelayCredential } from './robocoding-platform.ts'
 
 const PROVIDER = 'robocoding'
 
+// Zhipu GLM rejects max_tokens above 131072 with INVALID_REQUEST; without a
+// catalog cap every request falls back to the adapter's 256000 default and
+// the whole message fails.
+const GLM_OUTPUT_TOKENS_CAP = 131_072
+
+function officialModelEntry(id: string): { id: string, name: string, maxTokens?: number } {
+  return { id, name: id, ...id.startsWith('glm-') ? { maxTokens: GLM_OUTPUT_TOKENS_CAP } : {} }
+}
+
 class RoboCodingAdapter extends DeepSeekAdapter {
   override providerInfo(provider: string) { return { id: provider, name: 'OpenFox' } }
 }
@@ -28,7 +37,7 @@ export class RoboCodingLlmRegistration {
           baseURL: 'https://unconfigured.invalid', apiKeyEnv: 'ROBOCODING_SIGN_IN_REQUIRED', models: [],
         })
         return resolveAdapterOptions({ baseURL: current.relay.baseUrl, apiKeyEnv: current.ref,
-          models: current.models.map(id => ({ id, name: id })) })
+          models: current.models.map(officialModelEntry) })
       },
       resolveApiKey: async connection => {
         const key = this.credentials.get(connection.apiKeyEnv)
