@@ -55,12 +55,24 @@ describe('OpenFox account controller', () => {
     expect(mounted.controller.read()).toMatchObject({ state: 'signed_out', platformUrl: DEFAULT_ROBOCODING_PLATFORM_URL })
   })
 
-  it('clears a legacy www session when adopting the ai origin', async () => {
-    const mounted = harness(vi.fn() as unknown as typeof fetch, undefined, { platformUrl: 'https://www.openfox.work' })
+  it('migrates a legacy www configuration to the current default without dropping the session', async () => {
+    const mounted = harness(vi.fn() as unknown as typeof fetch, null, { platformUrl: 'https://www.openfox.work' })
     await mounted.controller.restore()
-    expect(mounted.runtime.clearAccountSecret).toHaveBeenCalledOnce()
+    expect(mounted.runtime.clearAccountSecret).not.toHaveBeenCalled()
     expect(mounted.settings.update).toHaveBeenCalledWith({ platformUrl: DEFAULT_ROBOCODING_PLATFORM_URL, fundingMode: 'personal_only', teamId: 0, confirmedTeamId: 0, confirmedUserId: 0 })
     expect(mounted.controller.read()).toMatchObject({ state: 'signed_out', platformUrl: DEFAULT_ROBOCODING_PLATFORM_URL })
+  })
+
+  it('rebinds a stored ai.openfox.work session to the current default origin', async () => {
+    const mounted = harness(vi.fn() as unknown as typeof fetch, {
+      refreshToken: 'refresh-1', sessionId: 'session-1', platformOrigin: 'https://ai.openfox.work',
+    }, { platformUrl: 'https://ai.openfox.work' })
+    await mounted.controller.restore()
+    expect(mounted.runtime.clearAccountSecret).not.toHaveBeenCalled()
+    expect(mounted.runtime.writeAccountSecret).toHaveBeenCalledWith({
+      refreshToken: 'refresh-1', sessionId: 'session-1', platformOrigin: 'https://ai.openzrob.com',
+    })
+    expect(mounted.settings.update).toHaveBeenCalledWith({ platformUrl: DEFAULT_ROBOCODING_PLATFORM_URL, fundingMode: 'personal_only', teamId: 0, confirmedTeamId: 0, confirmedUserId: 0 })
   })
 
   it.each(['http://127.0.0.1:3000', 'https://platform.example.com'])(

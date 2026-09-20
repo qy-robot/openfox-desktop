@@ -79,7 +79,7 @@ export function RoboLocalSkills({ open, manage, onClose, onAdded, onCount, api =
         {error && <p role="alert">{error}</p>}
         <footer><button type="button" className="roboMarketAdded" disabled={busy} onClick={onClose}>取消</button><button type="submit" className="roboMarketAdd" disabled={busy || !directory.trim()}>{busy ? '处理中…' : '添加到本机'}</button></footer>
       </form>
-      <p className="roboLocalSkillPublish">想分享技能？<a href="https://dash.openfox.work/workbench/skills" target="_blank" rel="noopener noreferrer">前往官网工作台上传</a>，审核通过后上架。</p>
+      <p className="roboLocalSkillPublish">想分享技能？<a href="https://dash.openzrob.com/workbench/skills" target="_blank" rel="noopener noreferrer">前往官网工作台上传</a>，审核通过后上架。</p>
     </dialog>}
   </>
 }

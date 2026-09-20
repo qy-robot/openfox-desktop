@@ -35,8 +35,11 @@ export interface RoboCodingAccountControllerOptions {
   readonly defaultPlatformUrl?: string
 }
 
-export const DEFAULT_ROBOCODING_PLATFORM_URL = 'https://ai.openfox.work'
-const LEGACY_DEFAULT_ROBOCODING_PLATFORM_URL = 'https://www.openfox.work'
+export const DEFAULT_ROBOCODING_PLATFORM_URL = 'https://ai.openzrob.com'
+// First-party platform hosts stay interchangeable while DNS/ICP filing decides
+// which origin is reachable; a configured predecessor host migrates to the
+// current default without discarding a stored same-backend session.
+const LEGACY_DEFAULT_ROBOCODING_PLATFORM_URLS = ['https://www.openfox.work', 'https://ai.openfox.work'] as const
 
 const wait = (milliseconds: number, signal: AbortSignal): Promise<void> => new Promise((resolve, reject) => {
   const timer = setTimeout(resolve, milliseconds)
@@ -65,8 +68,15 @@ export class RoboCodingAccountController {
 
   async restore(): Promise<void> {
     const configuredPlatformUrl = this.options.settings.get().platformUrl
-    if (configuredPlatformUrl === LEGACY_DEFAULT_ROBOCODING_PLATFORM_URL) {
-      await this.options.runtime.clearAccountSecret()
+    if ((LEGACY_DEFAULT_ROBOCODING_PLATFORM_URLS as readonly string[]).includes(configuredPlatformUrl)) {
+      const secret = await this.options.runtime.readAccountSecret()
+      if (secret !== undefined && secret.platformOrigin === configuredPlatformUrl) {
+        // Both origins serve the same backend: keep the session, only rebind the origin.
+        await this.mutateSecret(() => this.options.runtime.writeAccountSecret({
+          refreshToken: secret.refreshToken, sessionId: secret.sessionId,
+          platformOrigin: new URL(DEFAULT_ROBOCODING_PLATFORM_URL).origin,
+        }))
+      }
       await this.options.settings.update({ platformUrl: DEFAULT_ROBOCODING_PLATFORM_URL, fundingMode: 'personal_only', teamId: 0,
         confirmedTeamId: 0, confirmedUserId: 0 })
     }

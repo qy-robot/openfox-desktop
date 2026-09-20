@@ -4,6 +4,13 @@
 
 ## 当前状态
 
+- 2026-09-20T13:48:11+08:00 | ZCode | 平台地址新旧域名兼容（zrob/fox 双向），Beta 2.0.10-beta.2 打包
+  - 背景：`openfox.work` 被阿里云未备案拦截，Desktop 全部模型/目录请求网络层失败；老域名 `openzrob.com` 已在服务端恢复（见 infra log 同日记录）。
+  - 已完成：stable/Beta 双变体同改：`DEFAULT_ROBOCODING_PLATFORM_URL` → `https://ai.openzrob.com`；`LEGACY_DEFAULT_ROBOCODING_PLATFORM_URLS` 收编 `ai/www.openfox.work`，`restore()` 迁移时保留 refreshToken/session、仅重绑 `platformOrigin`（不再清会话）；技能目录 `catalogUrl`/`CATALOG_URL`/代理白名单改 zrob（白名单兼容 fox）；工作台上传链接改 `dash.openzrob.com`；`tests/package.spec.ts` 版本钉住值随版本号升至 `2.0.10-beta.2`。构建 `npx tsdown` 后重启开发实例（去除 `ROBO_SKILLS_URL` 本地注入，恢复云端目录）。
+  - 验证：Beta 定向测试 48/48、stable 47/47 通过（含新增"fox 配置迁移保留会话"用例）；`check:win-package` 全量门禁 257/257 通过；安装器自校验通过。服务端 `POST /api/desktop/device/code` 确认审批页返回 zrob 同源地址。
+  - 产物：`apps/desktop/dsh-plugin-desktop-beta/dist/OpenFox-Beta-2.0.10-beta.2-x64-Setup.exe`，155,210,562 bytes，SHA256 `4360D43FB3D80E55D37D12DC6A11B58CC27AE808BC0FEDCB7CAC7495B2E1E94D`（未签名）。
+  - 未完成 / 下一步：用户安装/重开 App 后"登录官方账号"做设备授权闭环验收并发消息实测 `glm-5.3-flash`（智谱渠道首次真正被走到）；stable 变体未单独打包。
+
 - 会话 Skill 菜单已改为从主输入框延伸的同宽浮层：紧凑圆角搜索、统一名称/简介/状态列表和键盘导航；两版 19 项回归、类型、构建及 219 共享源码一致性通过，原生 Beta 深色界面已验收，未发布安装包。
 
 - 本地技能添加/管理/会话选择已完成，两版校验与构建通过；Beta已重启并验收原生目录选择器，未发布安装包。
@@ -735,3 +742,11 @@
 
 - stable/Beta 同步公开文案为 OpenFox，域名切换至 `openfox.work`、`api/ai/account/dash` 子域名；用户狐狸代码商标已转换为 RGBA16 主图并重新生成 Desktop 图标资源。
 - 验证：variant 对齐通过；两版品牌/向导/技能市场/代理定向测试 48/48、49/49 通过；未制作安装包或发布。
+
+### 2026-09-20T12:48:30+08:00 | Codex | Windows 目录代理网络适配修复
+
+- 基线：Desktop 工作树；保留既有品牌修改。
+- 已完成：stable/Beta `src/index.ts` 将 `/api/desktop/robo-skills/catalog` 与 `/devices` 的远端目录请求接入 Electron 原生网络适配器；解决 Windows 上 Node 全局 fetch 未继承桌面网络会话、最终显示 502 的问题。
+- 验证：Beta/stable 目录代理测试 29/29、28/28；两版 typecheck 通过；变体对齐 222 个共享源文件；Beta Windows NSIS 包测试 257/257 与安装器校验通过。
+- 产物：Beta `dist/OpenFox-Beta-2.0.10-beta.1-x64-Setup.exe`，SHA256 `0F12EEFCA7650453054908A1EC51FFF2FB9534AB34402BB106F88F829FF67DD6`；Stable `dist/OpenFox-2.0.10-x64-Setup.exe`，SHA256 `B346E23806299F0A3211EC6F0086A780EC9515058F7FB2BBA1B4F2BC036A10D5`；均未签名。
+- 下一步：安装新包并重新打开桌面端，确认技能和设备目录；旧进程/旧安装包不会包含本修复。

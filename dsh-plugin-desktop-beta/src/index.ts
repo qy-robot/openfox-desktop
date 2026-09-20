@@ -401,7 +401,13 @@ export function apply(ctx: Context, config: Config): void {
           if (rejectDesktopRequest(ctx, req, res)) return
           return handleRoboSkillsProxyRequest(req, res, rendererOrigin, path, {
             serviceUrl: process.env.ROBO_SKILLS_URL,
-            catalogUrl: 'https://api.openfox.work/api/catalog',
+            catalogUrl: 'https://api.openzrob.com/api/catalog',
+            // Catalog requests must use Electron's native network session too.
+            // Node/Undici global fetch does not inherit the Windows desktop
+            // session's proxy/TLS behavior and turns reachable endpoints into
+            // a misleading local 502.
+            fetch: (input, init) => runtime.updates.request(
+              typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, init ?? {}),
           })
         },
       }),
