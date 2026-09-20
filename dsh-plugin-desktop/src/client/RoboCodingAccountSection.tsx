@@ -82,8 +82,7 @@ export function RoboCodingAccountSection({ api }: RoboCodingAccountSectionProps)
     </section>}
 
     {view?.state === 'authorizing' && <section className="roboAccountAuthorization">
-      <div><span>浏览器确认码</span><strong>{view.verification?.userCode}</strong></div>
-      <p>完成确认后会自动返回。</p>
+      <p>浏览器确认页面已打开，请在页面中确认登录。确认完成后会自动返回。</p>
       <button type="button" disabled={busy} onClick={() => void run(() => api.logout())}>取消登录</button>
     </section>}
 
