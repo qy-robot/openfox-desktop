@@ -45,8 +45,8 @@ describe('OpenFox branding', () => {
     expect(container.querySelector('img')).toBeNull()
     expect(container.querySelector<HTMLElement>('.roboBrandMark')?.hidden).toBe(false)
     expect(container.querySelector('.roboBrandName strong')).toBeNull()
-    expect(container.querySelector('.roboBrandName small')).toBeNull()
-    expect(ROBO_BRAND_BYLINE).toBe('')
+    expect(container.querySelector('.roboBrandName small')?.textContent).toBe(ROBO_BRAND_BYLINE)
+    expect(ROBO_BRAND_BYLINE).toBe('By擎云机器人')
   })
 
   it('chooses a preset slogan once when the hero opens', async () => {

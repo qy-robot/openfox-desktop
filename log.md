@@ -4,6 +4,12 @@
 
 ## 当前状态
 
+- 2026-09-20T15:25:00+08:00 | ZCode | GLM 系模型目录输出上限（131072）+ Beta 2.0.10-beta.3 发布至官网下载页
+  - 背景：桌面端对 glm-5.3-flash 发消息报"max_tokens 参数非法：限制数值范围[1,131072]"——官方账号模型目录条目无 maxTokens，逐请求回退到适配器默认 256000，被智谱 v4 上游拒绝（根因链见根 log 14:14 条目）。按用户决定修复放桌面端、服务端撤销。
+  - 已完成：stable/Beta 双变体 `robocoding-llm.ts` 新增 `officialModelEntry`：`glm-*` 条目配 `maxTokens: 131072`，其余模型不变；两变体 `tests/robocoding-llm.spec.ts` 新增 `resolveModelInfo().defaultMaxTokens` 断言用例（GLM=131072、deepseek-flash=256000）。Beta 版本 `2.0.10-beta.2 → 2.0.10-beta.3`（package.json + tests/package.spec.ts 两处钉住值）。
+  - 验证：两变体 robocoding-llm 5/5；`check:win-package` 退出码 0（build+typecheck+打包专项+closure）；`dist:win` 产出 `OpenFox-Beta-2.0.10-beta.3-x64-Setup.exe`（155,200,469 bytes，SHA256 `ee08190fc413023baf6a5c826a35fd1f5746632316e43c43e9b28e1c9a1dc4a1`，未签名，安装器自校验通过）。已发布至平台下载页并公网验证（见 infra log 同日 15:25 条目）。提交 `199b26e519` 已推送（并行会话 branding WIP 未提交，随包发布，即 12:18 已验收副标题）。
+  - 限制 / 下一步：<beta.3 安装包对 GLM 复现报错（服务端钳制已撤）；用户装 beta.3 后发消息验收；stable 变体未单独打包；macos/linux 下载目标 unavailable。
+
 - 2026-09-20T13:48:11+08:00 | ZCode | 平台地址新旧域名兼容（zrob/fox 双向），Beta 2.0.10-beta.2 打包
   - 背景：`openfox.work` 被阿里云未备案拦截，Desktop 全部模型/目录请求网络层失败；老域名 `openzrob.com` 已在服务端恢复（见 infra log 同日记录）。
   - 已完成：stable/Beta 双变体同改：`DEFAULT_ROBOCODING_PLATFORM_URL` → `https://ai.openzrob.com`；`LEGACY_DEFAULT_ROBOCODING_PLATFORM_URLS` 收编 `ai/www.openfox.work`，`restore()` 迁移时保留 refreshToken/session、仅重绑 `platformOrigin`（不再清会话）；技能目录 `catalogUrl`/`CATALOG_URL`/代理白名单改 zrob（白名单兼容 fox）；工作台上传链接改 `dash.openzrob.com`；`tests/package.spec.ts` 版本钉住值随版本号升至 `2.0.10-beta.2`。构建 `npx tsdown` 后重启开发实例（去除 `ROBO_SKILLS_URL` 本地注入，恢复云端目录）。

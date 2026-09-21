@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { ROBO_APP_ICON_DATA_URL } from './robo-app-icon.ts'
 
 export const ROBO_BRAND_NAME = 'OpenFox'
-export const ROBO_BRAND_BYLINE = ''
+export const ROBO_BRAND_BYLINE = 'By擎云机器人'
 export const ROBO_HERO_SLOGANS = [
   '不是学好了再干，而是在干中学。',
   '先让机器人动起来，再让想法更准确。',
