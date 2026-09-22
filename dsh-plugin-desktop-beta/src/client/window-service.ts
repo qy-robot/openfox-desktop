@@ -2,8 +2,10 @@
 
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import {
+  ADVANCED_LINUX_TITLEBAR_HEIGHT,
   ADVANCED_MACOS_DRAG_REGION_HEIGHT,
   ADVANCED_WINDOWS_TITLEBAR_HEIGHT,
+  LINUX_CAPTION_CONTROLS_WIDTH,
   MACOS_TRAFFIC_LIGHT_SAFE_WIDTH,
   WINDOWS_CAPTION_CONTROLS_WIDTH,
 } from '../window-chrome.ts'
@@ -56,6 +58,18 @@ export function desktopWindowService(environment: DesktopClientEnvironment): Des
         ADVANCED_WINDOWS_TITLEBAR_HEIGHT,
         0,
         WINDOWS_CAPTION_CONTROLS_WIDTH,
+      ),
+    })
+  }
+  if (environment.platform === 'linux') {
+    return Object.freeze({
+      ...environment,
+      availableMaterials,
+      safeAreaInsets: frozenInsets(ADVANCED_LINUX_TITLEBAR_HEIGHT),
+      dragRegion: frozenDragRegion(
+        ADVANCED_LINUX_TITLEBAR_HEIGHT,
+        0,
+        LINUX_CAPTION_CONTROLS_WIDTH,
       ),
     })
   }

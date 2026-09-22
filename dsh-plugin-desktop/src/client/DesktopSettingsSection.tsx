@@ -257,7 +257,6 @@ export function DesktopSettingsSection({
   platform,
   initialMode,
   micaSupported,
-  setMode: persistMode,
   desktopSettings,
   notificationSettings,
 }: DesktopSettingsSectionProps) {
@@ -378,13 +377,6 @@ export function DesktopSettingsSection({
         setAaStatus('failed')
         throw cause
       }
-    })
-  }
-
-  const setMode = (next: DesktopShellSettings['mode']): void => {
-    void run('mode', async () => {
-      await persistMode(next)
-      requestRestart()
     })
   }
 
@@ -562,40 +554,14 @@ export function DesktopSettingsSection({
         </div>}
       </section>
 
+      {platform !== 'linux' && (
       <section className="dshDesktopSettingsGroup" aria-labelledby="dsh-desktop-presentation-title">
         <div>
-          <h3 id="dsh-desktop-presentation-title">{t('presentationTitle')}</h3>
-          <p className="dshDesktopSettingsGroupIntro">{t('presentationIntro')}</p>
+          <h3 id="dsh-desktop-presentation-title">{t('windowMaterial')}</h3>
+          <p className="dshDesktopSettingsGroupIntro">{t('windowMaterialBody')}</p>
         </div>
         {desktop.status === 'unavailable' && <p className="dshDesktopSettingsNotice">{t('readOnly')}</p>}
-        <div className="dshDesktopSettingsList" role="radiogroup" aria-labelledby="dsh-desktop-presentation-title">
-          <Choice
-            title={t('compatibilityMode')}
-            body={t('compatibilityModeBody')}
-            selected={mode === 'compatibility'}
-            disabled={!settingsWritable || busy !== undefined || restart !== 'none'}
-            action={() => { setMode('compatibility') }}
-            status={mode === 'compatibility' ? t('selected') : undefined}
-          />
-          <Choice
-            title={t('extendedMode')}
-            body={platform === 'linux' ? t('extendedUnavailableLinux') : t('extendedModeBody')}
-            selected={mode === 'extended'}
-            disabled={platform === 'linux' || !settingsWritable || busy !== undefined || restart !== 'none'}
-            action={() => { setMode('extended') }}
-            status={mode === 'extended' ? t('selected') : undefined}
-          />
-          <Choice
-            title={t('advancedMode')}
-            body={platform === 'linux' ? t('advancedUnavailableLinux') : t('advancedModeBody')}
-            selected={mode === 'advanced'}
-            disabled={platform === 'linux' || !settingsWritable || busy !== undefined || restart !== 'none'}
-            action={() => { setMode('advanced') }}
-            status={mode === 'advanced' ? t('selected') : undefined}
-          />
-        </div>
-        {platform !== 'linux' && (
-          <label className="dshDesktopSettingsMaterialField">
+        <label className="dshDesktopSettingsMaterialField">
             <span className="dshDesktopSettingsMaterialCopy">
               <span className="dshDesktopSettingsChoiceTitle">{t('windowMaterial')}</span>
               <span className="dshDesktopSettingsChoiceBody">{t('windowMaterialBody')}</span>
@@ -621,8 +587,8 @@ export function DesktopSettingsSection({
                   )}
             </select>
           </label>
-        )}
       </section>
+      )}
 
       <section className="dshDesktopSettingsGroup" aria-labelledby="dsh-desktop-web-title">
         <div>

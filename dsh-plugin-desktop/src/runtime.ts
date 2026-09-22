@@ -210,6 +210,9 @@ export interface DesktopRuntime {
   /** Reveal and focus the current window, if mounted. */
   show(): void
 
+  /** Apply one caption action for the self-drawn enhanced Linux controls. */
+  controlWindow?(action: import('./window-controls-contract.ts').DesktopWindowControlAction): void
+
   /** Request native attention for background activity while the window is unfocused. */
   notifyAttention(notification: DesktopNotification): void
 

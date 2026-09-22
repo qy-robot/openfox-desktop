@@ -29,6 +29,8 @@ import {
   handleDesktopDirectoryPickerRequest,
   handleDesktopDirectoryValidationRequest,
 } from './directory-picker-route.ts'
+import { DESKTOP_WINDOW_CONTROLS_PATH } from './window-controls-contract.ts'
+import { handleDesktopWindowControlRequest } from './window-controls-route.ts'
 import {
   DESKTOP_DIAGNOSTICS_EXPORT_PATH,
   DESKTOP_DEVELOPER_TOOLS_TOGGLE_PATH,
@@ -162,7 +164,7 @@ export interface DesktopSettings {
 
 /** Schema registered with the standard settings service. */
 export const DesktopSettingsSchema: z<DesktopSettings> = z.object({
-  mode: z.union(['compatibility', 'extended', 'advanced'] as const).default('compatibility'),
+  mode: z.union(['compatibility', 'extended', 'advanced'] as const).default('advanced'),
   macosMaterial: z.union(['off', 'transparent'] as const).default(DEFAULT_MACOS_WINDOW_MATERIAL),
   windowsMaterial: z.union(['off', 'acrylic', 'mica'] as const).default(DEFAULT_WINDOWS_WINDOW_MATERIAL),
   port: z.number().step(1).min(0).max(65_535).default(DESKTOP_DEFAULT_WEB_PORT),
@@ -203,7 +205,7 @@ export interface Config {
 
 /** Validated native window configuration. */
 export const Config: z<Config> = z.object({
-  mode: z.union(['compatibility', 'extended', 'advanced'] as const).default('compatibility'),
+  mode: z.union(['compatibility', 'extended', 'advanced'] as const).default('advanced'),
   macosMaterial: z.union(['off', 'transparent'] as const).default(DEFAULT_MACOS_WINDOW_MATERIAL),
   windowsMaterial: z.union(['off', 'acrylic', 'mica'] as const).default(DEFAULT_WINDOWS_WINDOW_MATERIAL),
   port: z.number().step(1).min(0).max(65_535).default(DESKTOP_DEFAULT_WEB_PORT),
@@ -540,6 +542,27 @@ export function apply(ctx: Context, config: Config): void {
         },
       }),
       'dsh-plugin-desktop: workspace directory validation route',
+    )
+  }
+  if (runtime.platform === 'linux' && runtime.controlWindow !== undefined) {
+    ctx.effect(
+      () => ctx.webServer.register({
+        kind: 'exact',
+        path: DESKTOP_WINDOW_CONTROLS_PATH,
+        handler: (req, res) => {
+          if (rejectDesktopRequest(ctx, req, res)) return
+          return handleDesktopWindowControlRequest(
+            req,
+            res,
+            rendererOrigin,
+            action => { runtime.controlWindow?.(action) },
+            cause => {
+              ctx.logger.error(`dsh-plugin-desktop: window control request failed: ${cause instanceof Error ? cause.message : String(cause)}`)
+            },
+          )
+        },
+      }),
+      'dsh-plugin-desktop: linux window controls route',
     )
   }
   ctx.effect(() => {

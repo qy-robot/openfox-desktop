@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { Minus, Square, X } from 'lucide-react'
 import { ROBO_BRAND_NAME } from './branding.tsx'
 import type { PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from './contracts.ts'
 import type { DesktopClientPlatform } from './environment.ts'
+import { requestDesktopWindowControl } from './window-controls.ts'
 import {
   collapsedSidebarWidth, computeDesktopColumns, DesktopLayoutState,
   SIDEBAR_AUTO_COLLAPSE, SIDEBAR_COLLAPSED, SIDEBAR_DEFAULT, RIGHTBAR_DEFAULT_RATIO,
@@ -129,6 +131,7 @@ export function DesktopOwnedFrame({
       </aside>
       {/* Electron resolves app regions in DOM order; Desktop overlays must remain later. */}
       {mode === 'advanced' && platform === 'win32' && <div className="dshDesktopWindowsCaptionRow" aria-hidden="true" />}
+      {mode === 'advanced' && platform === 'linux' && <LinuxCaptionRow />}
       <div className="dshDesktopOverlay" data-shell-overlay>
         {renderSlot('shell.overlay', {})}
       </div>
@@ -211,4 +214,16 @@ function ResizeHandle(props: {
       onPointerUp={onPointerUp}
     />
   )
+}
+
+/** Self-drawn Linux caption controls over the frameless enhanced window. */
+function LinuxCaptionRow(): JSX.Element {
+  const control = (action: 'minimize' | 'toggle-maximize' | 'close'): void => {
+    void requestDesktopWindowControl(action).catch(() => {})
+  }
+  return <div aria-label="Window controls" className="dshDesktopLinuxCaptionRow" role="group">
+    <button aria-label="Minimize" onClick={() => { control('minimize') }} type="button"><Minus aria-hidden="true" size={16} /></button>
+    <button aria-label="Maximize" onClick={() => { control('toggle-maximize') }} type="button"><Square aria-hidden="true" size={12} /></button>
+    <button aria-label="Close" data-close="" onClick={() => { control('close') }} type="button"><X aria-hidden="true" size={16} /></button>
+  </div>
 }

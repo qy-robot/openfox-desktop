@@ -154,8 +154,12 @@ function customChromeWindowOptions(
       thickFrame: true,
     }
   }
-  if (platform === 'linux') return options
-  throw new Error('dsh-plugin-desktop: custom desktop shell modes are supported on macOS and Windows')
+  if (platform === 'linux') {
+    // Linux has no native caption overlay or system backdrop; the enhanced
+    // shell draws its own drag strip and caption controls in the renderer.
+    return { ...options, frame: false, hasShadow: true }
+  }
+  throw new Error('dsh-plugin-desktop: custom desktop shell modes are supported on macOS, Windows and Linux')
 }
 
 /**

@@ -26,15 +26,6 @@ export interface DesktopSetupWizardCopy {
   readonly accountNextStep: string
   readonly customModels: string
   readonly customModelsBody: string
-  readonly presentationTitle: string
-  readonly presentationBody: string
-  readonly compatibilityMode: string
-  readonly compatibilityModeBody: string
-  readonly extendedMode: string
-  readonly extendedModeBody: string
-  readonly advancedMode: string
-  readonly advancedModeBody: string
-  readonly unavailableOnLinux: string
   readonly windowMaterial: string
   readonly windowMaterialBody: string
   readonly materialOff: string
@@ -115,15 +106,6 @@ const COPY: Record<DesktopLocale, DesktopSetupWizardCopy> = {
     accountNextStep: 'You can finish setup now and sign in after the app opens.',
     customModels: 'Custom models',
     customModelsBody: 'You can later add another provider under Settings > Models, including its API key and service URL. OpenFox will try to detect the protocol and model list automatically, and lets you edit them manually.',
-    presentationTitle: 'Choose a window mode',
-    presentationBody: 'Choose a window layout and desktop controls.',
-    compatibilityMode: 'Compatibility mode',
-    compatibilityModeBody: 'Use the official client layout with an independent Desktop control bar above it. This mode offers the best compatibility.',
-    extendedMode: 'Extended mode',
-    extendedModeBody: 'Add an independent titlebar and sidebar around the official content area, with optional glass effects.',
-    advancedMode: 'Enhanced mode',
-    advancedModeBody: 'Use a desktop layout with adjusted sidebars, content panels, and window controls.',
-    unavailableOnLinux: 'This mode is currently available on macOS and Windows.',
     windowMaterial: 'Choose a window material',
     windowMaterialBody: 'Choose a window background effect.',
     materialOff: 'Solid background',
@@ -202,15 +184,6 @@ const COPY: Record<DesktopLocale, DesktopSetupWizardCopy> = {
     accountNextStep: '现在可以继续完成桌面设置，打开应用后再登录。',
     customModels: '自定义模型',
     customModelsBody: '之后可在“设置” > “模型”中添加其他服务，填写 API Key 和服务地址。OpenFox 会尝试自动识别协议并获取模型列表，也可手动修改。',
-    presentationTitle: '选择窗口模式',
-    presentationBody: '选择窗口布局和桌面操作方式。',
-    compatibilityMode: '兼容模式',
-    compatibilityModeBody: '使用官方客户端布局，顶部提供独立的桌面控制栏。兼容性最好。',
-    extendedMode: '扩展模式',
-    extendedModeBody: '在官方内容区域外提供独立顶栏和侧边栏，可搭配玻璃背景。',
-    advancedMode: '增强模式',
-    advancedModeBody: '使用桌面专用布局，调整侧边栏、内容面板和窗口操作方式。',
-    unavailableOnLinux: '此模式目前支持 macOS 和 Windows。',
     windowMaterial: '选择窗口材质',
     windowMaterialBody: '选择窗口背景效果。',
     materialOff: '纯色背景',

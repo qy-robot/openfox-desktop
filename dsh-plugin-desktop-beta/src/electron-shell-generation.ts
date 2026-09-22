@@ -17,6 +17,7 @@ import { showDesktopMessageBox } from './desktop-dialog-window.ts'
 import { applicationNeedsReveal, revealApplication } from './electron-reveal.ts'
 import type { ElectronPlatformStrategy } from './electron-platform.ts'
 import type { DesktopNotification, DesktopShellSpec } from './runtime.ts'
+import type { DesktopWindowControlAction } from './window-controls-contract.ts'
 import { prepareTrayIcon } from './tray-icons.ts'
 import { desktopWindowOptions } from './window-options.ts'
 import type { DesktopRestartConfirmationCopy } from './tray-locale.ts'
@@ -586,6 +587,17 @@ export class ElectronShellGeneration {
     revealApplication(window, this.options.platform.platform)
     this.prepareFullscreenReveal?.()
     if (this.rendererRecovery.exhausted) void this.offerRendererRecovery()
+  }
+
+  /** Apply one renderer-requested caption action from the enhanced Linux controls. */
+  controlWindow(action: DesktopWindowControlAction): void {
+    const window = this.window
+    if (window === undefined || window.isDestroyed()) return
+    if (action === 'minimize') window.minimize()
+    else if (action === 'toggle-maximize') {
+      if (window.isMaximized()) window.unmaximize()
+      else window.maximize()
+    } else window.close()
   }
 
   reportRendererRecovery(report: RendererBootReport): void {

@@ -19,6 +19,12 @@ export const ADVANCED_WINDOWS_TITLEBAR_HEIGHT = 32
 /** Width reserved for the three native Windows caption controls in CSS pixels. */
 export const WINDOWS_CAPTION_CONTROLS_WIDTH = 138
 
+/** Native caption height retained by the Linux enhanced layout. */
+export const ADVANCED_LINUX_TITLEBAR_HEIGHT = 32
+
+/** Width reserved for the three self-drawn Linux caption controls in CSS pixels. */
+export const LINUX_CAPTION_CONTROLS_WIDTH = 138
+
 /** Height of the independent Desktop frame used by compatibility and extended modes. */
 export const DESKTOP_FRAME_HEIGHT = 36
 

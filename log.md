@@ -4,6 +4,13 @@
 
 ## 当前状态
 
+- 2026-09-22T20:48:00+08:00 | ZCode | Linux 增强模式（无边框+自绘标题栏）+ 默认增强模式并隐藏模式选择入口（分支 `codex/linux-advanced-mode-20260922`，基线 `699f48d8ae`）
+  - 背景：Linux 只能兼容模式（原生标题栏+官方客户端，观感如浏览器网页），设备/技能侧边栏仅非兼容模式注册（client/index.ts 模式门）。用户决定：默认全平台增强、不再展示模式选择入口；Linux 增强按"无边框+自绘三按钮+拖拽区"实现，不做玻璃材质（90% 观感即可）。
+  - 已完成（stable/Beta 双变体同步）：① Linux 无边框：`window-options.ts` customChrome linux 分支 `frame:false, hasShadow:true`（advanced/extended 共用）；② 自绘标题栏：`AdvancedFrame.tsx` 新增 `LinuxCaptionRow`（最小化/最大化切换/关闭三按钮），`styles.ts` 新增 linux 帧行高 32px、拖拽带、按钮 hover（关闭红 #e81123）、模态框 no-drag 规则；③ 窗口控制链路：新增 `window-controls-contract.ts` / `window-controls-route.ts`（同源 `/_dsh/desktop/window-controls` POST，校验 origin+action）/ `client/window-controls.ts`，`runtime.ts`→`electron-runtime.ts`→`electron-shell-generation.ts`→`host-runtime-bridge.ts` 贯通 `controlWindow(action)`（linux 时注册路由）；④ 几何：`window-chrome.ts` 新增 `ADVANCED_LINUX_TITLEBAR_HEIGHT=32`/`LINUX_CAPTION_CONTROLS_WIDTH=138`，`window-service.ts` linux advanced insets/dragRegion；⑤ 默认 `advanced`：index.ts 两处 schema default；Linux 模式限制已在 PR#1 合并中移除，向导 contract 的 linux 强制 compat 与 App.tsx normalize 强制同步删除；⑥ 入口隐藏：向导删除 mode 步骤（步骤平台感知，linux 跳过 material 步），设置区模式三卡删除（保留 mac/win 材质选择，linux 整节隐藏），compatibility chrome 标题栏模式弹层及 `setMode` 传递删除；语言包清理 13+9 个废弃 key。托盘 Mode 子菜单保留为唯一切换通道（Linux 老用户仍可自救切换）。
+  - 验证：双变体 typecheck 0 错误；新增 `tests/window-controls-route.spec.ts`（7 例）+ window-options linux 断言 2 例 + client-environment linux advanced 几何断言，全部通过；`check:desktop-variants` 225 共享文件对齐；双变体全量测试失败集与基线 `699f48d8ae` 完全一致（stable 32/beta 27，均为预存：plugin.spec 19 例 ctx.inject harness 缺 mock、client-desktop-settings 2 例 DSH→OpenFox 文案漂移、nsis 5/module-resolution 2/desktop-plugins 2/installer-messages 1/boot-recovery 1 环境相关），本改动零新增失败。
+  - 未完成 / 阻塞：未在真实 Linux 桌面（X11/Wayland）运行验证——拖拽/边缘缩放/双击最大化行为未实测（Electron linux frameless 用 Motif hints，X11 通常可缩放，Wayland 存疑）；未打包 Linux 安装目标；既有 vendor tgz 本地 WIP 未动。
+  - 下一步：分支已推送 `origin/codex/linux-advanced-mode-20260922`（随本提交）；在 Linux 实机验收（重点：拖拽、边缘 resize、最大化、关闭、模态框防拖拽）；确认后合入 `robo/main`；预存失败族（ctx.inject harness、DSH 文案）另行修复。
+
 - 2026-09-21T23:50:00+08:00 | Claude | 修复「登录成功后概率退出登录」：续期瞬时失败不再永久登出
   - 背景：登录成功运行一段时间后有概率被登出（Windows/Linux 均复现）。根因两层：① 续期 `renew()` 内 `refreshDashboardAndRelay` 用 Promise.all 并发打 4 接口，任一瞬时失败（断网/合盖/VPN）→ `fail()` 置 error，而前端 30s 轮询只在 signed_in 才 refresh、error 不自愈 → 永久「未登陆」；② 服务端 refresh token 单次轮换+30s 宽限，旧 token 越窗重放被吊销（见 platform log 同日）。
   - 已完成：`src/client/RoboSidebarAccount.tsx` error 态也调 `api.refresh()` 自愈；`src/robocoding-account-controller.ts` 新增 `isHardAuthError` 分类 + `renewWithRetry` 指数退避重试（瞬态失败不 fail、保持 signed_in；硬失败 401/revoked 才 fail 不重试）；`LEGACY_DEFAULT_ROBOCODING_PLATFORM_URLS` 收编 `https://www.openzrob.com`。刷新单飞防竞态作为后续加固暂缓。

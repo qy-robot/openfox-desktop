@@ -1,8 +1,10 @@
 import {
+  ADVANCED_LINUX_TITLEBAR_HEIGHT,
   ADVANCED_MACOS_CONTENT_INSET,
   ADVANCED_MACOS_DRAG_LAYER_Z_INDEX,
   ADVANCED_MACOS_DRAG_REGION_HEIGHT,
   ADVANCED_WINDOWS_TITLEBAR_HEIGHT,
+  LINUX_CAPTION_CONTROLS_WIDTH,
   MACOS_TRAFFIC_LIGHT_SAFE_WIDTH,
   WINDOWS_CAPTION_CONTROLS_WIDTH,
 } from '../window-chrome.ts'
@@ -40,6 +42,15 @@ body:is([data-dsh-desktop-mode="extended"], [data-dsh-desktop-mode="advanced"]) 
 .dshDesktopFrame[data-desktop-mode="advanced"][data-desktop-platform="win32"] .dshDesktopRightbarSurface { grid-row: 2; }
 .dshDesktopWindowsCaptionRow { position: relative; grid-column: 2 / -1; grid-row: 1; min-width: 0; background: var(--dsw-alias-bg-base); }
 .dshDesktopWindowsCaptionRow::before { content: ""; position: absolute; inset: 0 ${WINDOWS_CAPTION_CONTROLS_WIDTH}px 0 0; user-select: none; -webkit-app-region: drag; }
+.dshDesktopFrame[data-desktop-mode="advanced"][data-desktop-platform="linux"] { grid-template-rows: ${ADVANCED_LINUX_TITLEBAR_HEIGHT}px minmax(0, 1fr); }
+.dshDesktopFrame[data-desktop-mode="advanced"][data-desktop-platform="linux"] .dshDesktopSidebarSurface { grid-row: 1 / -1; }
+.dshDesktopFrame[data-desktop-mode="advanced"][data-desktop-platform="linux"] .dshDesktopConversationSurface,
+.dshDesktopFrame[data-desktop-mode="advanced"][data-desktop-platform="linux"] .dshDesktopRightbarSurface { grid-row: 2; }
+.dshDesktopLinuxCaptionRow { position: relative; grid-column: 2 / -1; grid-row: 1; min-width: 0; display: flex; justify-content: flex-end; align-items: stretch; background: var(--dsw-alias-bg-base); user-select: none; -webkit-app-region: drag; }
+.dshDesktopLinuxCaptionRow button { -webkit-app-region: no-drag; appearance: none; border: 0; margin: 0; padding: 0; width: calc(${LINUX_CAPTION_CONTROLS_WIDTH}px / 3); height: 100%; display: inline-flex; align-items: center; justify-content: center; background: transparent; color: var(--dsw-alias-fg-muted, #9aa0a6); cursor: default; }
+.dshDesktopLinuxCaptionRow button:hover { background: rgba(127, 127, 127, 0.18); color: var(--dsw-alias-fg-base, #e8eaed); }
+.dshDesktopLinuxCaptionRow button:focus-visible { outline: 2px solid var(--dsw-alias-accent, #4c8dff); outline-offset: -2px; }
+.dshDesktopLinuxCaptionRow button[data-close]:hover { background: #e81123; color: #ffffff; }
 .dshDesktopFrame[data-dragging] { transition: none; }
 .dshDesktopOverlay { position: absolute; z-index: 1000; inset: 0; pointer-events: none; }
 .dshDesktopOverlay > * { pointer-events: auto; }
@@ -48,6 +59,7 @@ body:is([data-dsh-desktop-mode="extended"], [data-dsh-desktop-mode="advanced"]) 
 .dshDesktopNoDrag, button, input, textarea, select, label, summary, a, [contenteditable="true"], [role="button"], [role="checkbox"], [role="dialog"], [role="menuitem"], [role="option"], [role="switch"], [role="tab"] { -webkit-app-region: no-drag !important; }
 [role="dialog"], [aria-modal="true"] { -webkit-app-region: no-drag !important; }
 html:has([aria-modal="true"]) .dshDesktopWindowsCaptionRow::before { -webkit-app-region: no-drag !important; }
+html:has([aria-modal="true"]) .dshDesktopLinuxCaptionRow { -webkit-app-region: no-drag !important; }
 @media (prefers-reduced-motion: reduce) {
   .dshDesktopFrame,
   .dshDesktopResizeHandle { transition: none !important; }

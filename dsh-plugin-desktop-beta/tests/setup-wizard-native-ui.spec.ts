@@ -11,6 +11,7 @@ import {
   decodeDesktopSetupWizardInput,
   DESKTOP_SETUP_WIZARD_STEPS,
   desktopSetupWizardSkipRequiresLanAcknowledgement,
+  desktopSetupWizardSteps,
   nextDesktopSetupWizardStep,
   normalizeDesktopSetupWizardSelection,
   previousDesktopSetupWizardStep,
@@ -102,7 +103,6 @@ describe('Setup Wizard step flow', () => {
     expect(DESKTOP_SETUP_WIZARD_STEPS).toEqual([
       'welcome',
       'service',
-      'mode',
       'material',
       'aa',
       'notifications',
@@ -111,20 +111,34 @@ describe('Setup Wizard step flow', () => {
     ])
   })
 
+  it('hides the window-mode choice from first-run setup', () => {
+    expect(DESKTOP_SETUP_WIZARD_STEPS).not.toContain('mode')
+  })
+
+  it('skips the window-material page on Linux where only the opaque material exists', () => {
+    expect(desktopSetupWizardSteps('linux')).toEqual([
+      'welcome',
+      'service',
+      'aa',
+      'notifications',
+      'browser',
+      'success',
+    ])
+    expect(desktopSetupWizardSteps('darwin')).toEqual(DESKTOP_SETUP_WIZARD_STEPS)
+  })
+
   it('moves only between adjacent pages and stops at both boundaries', () => {
-    expect(DESKTOP_SETUP_WIZARD_STEPS.map(step => previousDesktopSetupWizardStep(step))).toEqual([
+    expect(DESKTOP_SETUP_WIZARD_STEPS.map(step => previousDesktopSetupWizardStep(step, 'darwin'))).toEqual([
       undefined,
       'welcome',
       'service',
-      'mode',
       'material',
       'aa',
       'notifications',
       'browser',
     ])
-    expect(DESKTOP_SETUP_WIZARD_STEPS.map(step => nextDesktopSetupWizardStep(step))).toEqual([
+    expect(DESKTOP_SETUP_WIZARD_STEPS.map(step => nextDesktopSetupWizardStep(step, 'darwin'))).toEqual([
       'service',
-      'mode',
       'material',
       'aa',
       'notifications',
@@ -132,6 +146,12 @@ describe('Setup Wizard step flow', () => {
       'success',
       undefined,
     ])
+  })
+
+  it('keeps a non-compatibility mode available on Linux without forcing compatibility', () => {
+    const linuxInput = { ...input, platform: 'linux' as const }
+    expect(normalizeDesktopSetupWizardSelection(linuxInput).mode).toBe('extended')
+    expect(normalizeDesktopSetupWizardSelection({ ...linuxInput, mode: 'advanced' }).mode).toBe('advanced')
   })
 })
 
@@ -173,6 +193,7 @@ describe('Setup Wizard welcome page', () => {
       onBack: () => {},
       onNext: () => {},
       onSkip: () => {},
+      platform: 'darwin',
       step: 'welcome',
     }))
     expect(markup).toContain(copy.startSetup)
@@ -190,7 +211,6 @@ describe('Setup Wizard welcome page', () => {
 describe('Setup Wizard setting pages', () => {
   it.each([
     ['service', 'serviceTitle', 'serviceBody'],
-    ['mode', 'presentationTitle', 'presentationBody'],
     ['material', 'windowMaterial', 'windowMaterialBody'],
     ['notifications', 'notificationsTitle', 'notificationsBody'],
     ['browser', 'browserTitle', 'browserBody'],
@@ -202,7 +222,7 @@ describe('Setup Wizard setting pages', () => {
     expect(occurrences(markup, 'data-setup-step=')).toBe(1)
   })
 
-  it.each(['service', 'mode', 'material', 'notifications', 'browser'] as const)(
+  it.each(['service', 'material', 'notifications', 'browser'] as const)(
     'lays out the %s page options vertically',
     (step) => {
       expect(renderStep(step)).toContain('data-orientation="vertical"')
@@ -220,7 +240,6 @@ describe('Setup Wizard setting pages', () => {
   })
 
   it.each([
-    ['mode', copy.presentationTitle],
     ['material', copy.windowMaterial],
     ['browser', copy.networkExposure],
   ] as const)('uses a named shadcn RadioGroup for the %s choices', (step, accessibleName) => {
@@ -233,7 +252,7 @@ describe('Setup Wizard setting pages', () => {
   it('removes plugin market setup and disables legacy market preferences', () => {
     expect(DESKTOP_SETUP_WIZARD_STEPS).not.toContain('market')
     expect(normalizeDesktopSetupWizardSelection(input)).toMatchObject({ market: 'disabled' })
-    for (const step of ['service', 'mode', 'material', 'aa', 'notifications', 'browser'] as const) {
+    for (const step of ['service', 'material', 'aa', 'notifications', 'browser'] as const) {
       const markup = renderStep(step)
       expect(markup).not.toContain(copy.marketTitle)
       expect(markup).not.toContain(copy.communityMarket)
@@ -297,6 +316,7 @@ describe('Setup Wizard navigation and completion', () => {
         onBack: () => {},
         onNext: () => {},
         onSkip: () => {},
+        platform: 'darwin',
         step,
       }))
       expect(markup).toContain(copy.skip)
@@ -314,7 +334,8 @@ describe('Setup Wizard navigation and completion', () => {
       onBack: () => {},
       onNext: () => {},
       onSkip: () => {},
-      step: 'mode',
+      platform: 'darwin',
+      step: 'service',
     }))
     expect(markup).toContain(`aria-label="${copy.back}"`)
     expect(markup).not.toMatch(new RegExp(`<button[^>]+aria-label="${copy.back}"[^>]+disabled=""`, 'u'))
@@ -326,6 +347,7 @@ describe('Setup Wizard navigation and completion', () => {
       onBack: () => {},
       onNext: () => {},
       onSkip: () => {},
+      platform: 'darwin',
       step: 'aa',
     }))
     expect(markup).toContain('data-slot="dialog-trigger"')
@@ -344,6 +366,7 @@ describe('Setup Wizard navigation and completion', () => {
       onBack: () => {},
       onNext: () => {},
       onSkip: () => {},
+      platform: 'darwin',
       step: 'success',
     }))
     expect(success).toContain('data-setup-step="success"')

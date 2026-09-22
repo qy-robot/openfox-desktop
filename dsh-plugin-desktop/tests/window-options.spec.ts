@@ -203,7 +203,7 @@ describe('compatibility BrowserWindow options', () => {
     expect(DESKTOP_FRAME_HEIGHT).toBe(36)
   })
 
-  it('keeps the ordinary native frame as the Linux enhanced fallback', () => {
+  it('draws a frameless Linux enhanced window for the self-drawn caption controls', () => {
     const options = advancedWindowOptions(
       { ...spec, mode: 'advanced' },
       {} as NativeImage,
@@ -211,8 +211,23 @@ describe('compatibility BrowserWindow options', () => {
       preload,
     )
 
+    expect(options.frame).toBe(false)
+    expect(options.hasShadow).toBe(true)
     expect(options).not.toHaveProperty('titleBarStyle')
     expect(options).not.toHaveProperty('titleBarOverlay')
-    expect(options).not.toHaveProperty('trafficLightPosition')
+    expect(options).not.toHaveProperty('transparent')
+    expect(options).not.toHaveProperty('backgroundMaterial')
+  })
+
+  it('draws the same frameless Linux window in extended mode', () => {
+    const options = extendedWindowOptions(
+      { ...spec, mode: 'extended' },
+      {} as NativeImage,
+      'linux',
+      preload,
+    )
+
+    expect(options.frame).toBe(false)
+    expect(options.hasShadow).toBe(true)
   })
 })

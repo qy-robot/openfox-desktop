@@ -20,6 +20,7 @@ import { showDesktopMessageBox } from './desktop-dialog-window.ts'
 import { packagedDependencyPath } from './packaged-runtime-path.ts'
 import { ElectronShellGeneration } from './electron-shell-generation.ts'
 import { electronPlatformStrategy, type ElectronPlatformStrategy } from './electron-platform.ts'
+import type { DesktopWindowControlAction } from './window-controls-contract.ts'
 import type {
   DesktopNotification,
   DesktopLocale,
@@ -317,6 +318,11 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
   /** @inheritdoc */
   show(): void {
     this.generation?.show()
+  }
+
+  /** @inheritdoc */
+  controlWindow(action: DesktopWindowControlAction): void {
+    this.generation?.controlWindow(action)
   }
 
   /** @inheritdoc */

@@ -11,8 +11,8 @@ import {
   isDesktopSetupWizardInput,
   type DesktopSetupWizardInput,
   type DesktopSetupWizardMacosMaterial,
-  type DesktopSetupWizardMode,
   type DesktopSetupWizardNetworkExposure,
+  type DesktopSetupWizardPlatform,
   type DesktopSetupWizardNotifications,
   type DesktopSetupWizardSelection,
   type DesktopSetupWizardWindowsMaterial,
@@ -45,7 +45,6 @@ type Locale = 'en' | 'zh'
 export type DesktopSetupWizardStep =
   | 'welcome'
   | 'service'
-  | 'mode'
   | 'material'
   | 'aa'
   | 'notifications'
@@ -55,7 +54,6 @@ export type DesktopSetupWizardStep =
 export const DESKTOP_SETUP_WIZARD_STEPS = Object.freeze([
   'welcome',
   'service',
-  'mode',
   'material',
   'aa',
   'notifications',
@@ -63,19 +61,32 @@ export const DESKTOP_SETUP_WIZARD_STEPS = Object.freeze([
   'success',
 ] as const satisfies readonly DesktopSetupWizardStep[])
 
+/** Linux has no window-material choice, so its wizard skips the material step. */
+export function desktopSetupWizardSteps(
+  platform: DesktopSetupWizardPlatform,
+): readonly DesktopSetupWizardStep[] {
+  return platform === 'linux'
+    ? DESKTOP_SETUP_WIZARD_STEPS.filter(step => step !== 'material')
+    : DESKTOP_SETUP_WIZARD_STEPS
+}
+
 export function previousDesktopSetupWizardStep(
   step: DesktopSetupWizardStep,
+  platform: DesktopSetupWizardPlatform,
 ): DesktopSetupWizardStep | undefined {
-  const index = DESKTOP_SETUP_WIZARD_STEPS.indexOf(step)
-  return index > 0 ? DESKTOP_SETUP_WIZARD_STEPS[index - 1] : undefined
+  const steps = desktopSetupWizardSteps(platform)
+  const index = steps.indexOf(step)
+  return index > 0 ? steps[index - 1] : undefined
 }
 
 export function nextDesktopSetupWizardStep(
   step: DesktopSetupWizardStep,
+  platform: DesktopSetupWizardPlatform,
 ): DesktopSetupWizardStep | undefined {
-  const index = DESKTOP_SETUP_WIZARD_STEPS.indexOf(step)
-  return index >= 0 && index < DESKTOP_SETUP_WIZARD_STEPS.length - 1
-    ? DESKTOP_SETUP_WIZARD_STEPS[index + 1]
+  const steps = desktopSetupWizardSteps(platform)
+  const index = steps.indexOf(step)
+  return index >= 0 && index < steps.length - 1
+    ? steps[index + 1]
     : undefined
 }
 
@@ -120,7 +131,7 @@ export function decodeDesktopSetupWizardInput(search: string): DesktopSetupWizar
 }
 
 export function normalizeDesktopSetupWizardSelection(input: DesktopSetupWizardInput): DesktopSetupWizardSelection {
-  const mode = input.platform === 'linux' ? 'compatibility' : input.mode
+  const mode = input.mode
   const browserAccess = mode === 'compatibility' && (input.openBrowser || input.networkExposure === 'lan')
   return {
     mode,
@@ -236,48 +247,6 @@ function Page({
   </div>
 }
 
-function ModeOptions({
-  copy,
-  input,
-  selection,
-  update,
-}: {
-  readonly copy: DesktopSetupWizardCopy
-  readonly input: DesktopSetupWizardInput
-  readonly selection: DesktopSetupWizardSelection
-  readonly update: (selection: DesktopSetupWizardSelection) => void
-}): JSX.Element {
-  const modes: readonly { readonly value: DesktopSetupWizardMode; readonly title: string; readonly body: string }[] = [
-    { value: 'compatibility', title: copy.compatibilityMode, body: copy.compatibilityModeBody },
-    { value: 'extended', title: copy.extendedMode, body: input.platform === 'linux' ? copy.unavailableOnLinux : copy.extendedModeBody },
-    { value: 'advanced', title: copy.advancedMode, body: input.platform === 'linux' ? copy.unavailableOnLinux : copy.advancedModeBody },
-  ]
-  return <RadioGroup
-    aria-label={copy.presentationTitle}
-    aria-orientation="vertical"
-    name="setup-window-mode"
-    onValueChange={value => {
-      if (value === 'compatibility' || value === 'extended' || value === 'advanced') {
-        update({
-          ...selection,
-          mode: value,
-          openBrowser: value === 'compatibility' ? selection.openBrowser : false,
-          networkExposure: value === 'compatibility' ? selection.networkExposure : 'loopback',
-        })
-      }
-    }}
-    value={selection.mode}
-  >{modes.map(option => <Choice
-    body={option.body}
-    disabled={input.platform === 'linux' && option.value !== 'compatibility'}
-    id={`setup-window-mode-${option.value}`}
-    key={option.value}
-    selected={selection.mode === option.value}
-    title={option.title}
-    value={option.value}
-  />)}</RadioGroup>
-}
-
 type MaterialOption = {
   readonly value: DesktopSetupWizardMacosMaterial | DesktopSetupWizardWindowsMaterial
   readonly title: string
@@ -301,11 +270,8 @@ function MaterialOptions({
   ] : input.platform === 'win32' ? [
     { value: 'off', title: copy.materialOff, body: copy.materialOffBody },
     ...(input.micaSupported ? [{ value: 'mica' as const, title: copy.materialMica, body: copy.materialMicaBody }] : []),
-  ] : [
-    { value: 'off', title: copy.materialOff, body: copy.unavailableOnLinux },
-  ]
-  const selected = input.platform === 'darwin' ? selection.macosMaterial
-    : input.platform === 'win32' ? selection.windowsMaterial : 'off'
+  ] : []
+  const selected = input.platform === 'darwin' ? selection.macosMaterial : selection.windowsMaterial
   const choose = (value: MaterialOption['value']): void => {
     if (input.platform === 'darwin' && (value === 'off' || value === 'transparent')) {
       update({ ...selection, macosMaterial: value })
@@ -323,7 +289,6 @@ function MaterialOptions({
     value={selected}
   >{options.map(option => <Choice
     body={option.body}
-    disabled={input.platform === 'linux'}
     id={`setup-window-material-${option.value}`}
     key={option.value}
     selected={selected === option.value}
@@ -423,7 +388,6 @@ export function SetupWizardStepPage({
       <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{copy.customModelsBody}</p>
     </section>
   </Page>
-  if (step === 'mode') return <Page step={step} subtitle={copy.presentationBody} title={copy.presentationTitle}><ModeOptions copy={copy} input={input} selection={selection} update={update} /></Page>
   if (step === 'material') return <Page step={step} subtitle={copy.windowMaterialBody} title={copy.windowMaterial}><MaterialOptions copy={copy} input={input} selection={selection} update={update} /></Page>
   if (step === 'aa') return <Page step={step} subtitle={copy.aaIntro} title={copy.aaTitle}>
     <RadioGroup aria-label={copy.aaTitle} name="setup-aa" value={String(selection.aaEnabled === true)}
@@ -511,12 +475,14 @@ export function SetupWizardWelcome({
 
 export function SetupWizardNavigation({
   copy,
+  platform,
   step,
   onBack,
   onNext,
   onSkip,
 }: {
   readonly copy: DesktopSetupWizardCopy
+  readonly platform: DesktopSetupWizardPlatform
   readonly step: DesktopSetupWizardStep
   readonly onBack: () => void
   readonly onNext: () => void
@@ -526,7 +492,7 @@ export function SetupWizardNavigation({
   return <footer className="flex shrink-0 items-center justify-between gap-3 border-t pt-4">
     <SetupWizardSkipDialog copy={copy} onSkip={onSkip} />
     <div className="flex items-center gap-2">
-      <Button aria-label={copy.back} disabled={previousDesktopSetupWizardStep(step) === undefined} onClick={onBack} size="icon" title={copy.back} type="button" variant="outline"><ArrowLeft /></Button>
+      <Button aria-label={copy.back} disabled={previousDesktopSetupWizardStep(step, platform) === undefined} onClick={onBack} size="icon" title={copy.back} type="button" variant="outline"><ArrowLeft /></Button>
       <Button aria-label={copy.next} onClick={onNext} size="icon" title={copy.next} type="button"><ArrowRight /></Button>
     </div>
   </footer>
@@ -682,7 +648,7 @@ export function SetupWizardApp(): JSX.Element {
   }
 
   const advance = (): void => {
-    const next = nextDesktopSetupWizardStep(step)
+    const next = nextDesktopSetupWizardStep(step, input.platform)
     if (next === undefined) return
     if (step === 'browser' && desktopSetupWizardRequiresLanAcknowledgement(
       selection.networkExposure,
@@ -714,7 +680,7 @@ export function SetupWizardApp(): JSX.Element {
           appVersion={input.appVersion}
           copy={copy}
           onSkip={skip}
-          onStart={() => { setStep('mode') }}
+          onStart={() => { setStep(nextDesktopSetupWizardStep('welcome', input.platform) ?? 'service') }}
           profileName={input.profileName}
         />
         : step === 'success'
@@ -723,8 +689,9 @@ export function SetupWizardApp(): JSX.Element {
     </div>
     <SetupWizardNavigation
       copy={copy}
+      platform={input.platform}
       onBack={() => {
-        const previous = previousDesktopSetupWizardStep(step)
+        const previous = previousDesktopSetupWizardStep(step, input.platform)
         if (previous !== undefined) setStep(previous)
       }}
       onNext={advance}

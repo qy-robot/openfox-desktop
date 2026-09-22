@@ -91,6 +91,7 @@ export function createHostRuntime(rpc: HostRpc, snapshot: RuntimeSnapshot): Desk
       return { refresh: publish, dispose() { trayPublishers.delete(id); releases.forEach(release => release()); void send('tray:dispose', [id]) } }
     },
     show() { void send('native:show') },
+    controlWindow: action => { void send('native:controlWindow', [action]) },
     notifyAttention(value) { void send('native:notifyAttention', [value]) },
     openTerminal() { void send('native:openTerminal') },
     reloadRenderer() { void send('native:reloadRenderer') },
@@ -129,7 +130,7 @@ export function bindNativeRuntime(rpc: HostRpc, runtime: DesktopRuntime): () => 
   const handle = (name: string, fn: (args: any[], signal: AbortSignal) => unknown) => { releases.push(rpc.handle(name, fn)) }
   const callback = (method: string, args: unknown[] = []) => rpc.call(method, args)
   const report = (promise: Promise<unknown>) => { void promise.catch(error => process.stderr.write(`${String(error)}\n`)) }
-  for (const method of ['show', 'notifyAttention', 'openTerminal', 'reloadRenderer', 'toggleDeveloperTools',
+  for (const method of ['show', 'controlWindow', 'notifyAttention', 'openTerminal', 'reloadRenderer', 'toggleDeveloperTools',
     'exportDiagnostics', 'pickDirectory', 'pickSkillDirectory', 'validateDirectory', 'reportRendererBoot', 'setLocalePreference',
     'setThemeSource', 'prepareToQuit', 'readAccountSecret', 'writeAccountSecret', 'clearAccountSecret', 'openExternalUrl'] as const) {
     handle(`native:${method}`, args => {

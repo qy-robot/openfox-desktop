@@ -21,9 +21,11 @@ import { applyRoboSkills } from '../src/client/robo-skills.tsx'
 import {
   ADVANCED_MACOS_CONTENT_INSET,
   ADVANCED_MACOS_DRAG_LAYER_Z_INDEX,
+  ADVANCED_LINUX_TITLEBAR_HEIGHT,
   ADVANCED_MACOS_DRAG_REGION_HEIGHT,
   ADVANCED_WINDOWS_TITLEBAR_HEIGHT,
   DESKTOP_FRAME_HEIGHT,
+  LINUX_CAPTION_CONTROLS_WIDTH,
   MACOS_TRAFFIC_LIGHT_SAFE_WIDTH,
   WINDOWS_CAPTION_CONTROLS_WIDTH,
 } from '../src/window-chrome.ts'
@@ -517,6 +519,22 @@ describe('advanced desktop layout', () => {
         height: ADVANCED_WINDOWS_TITLEBAR_HEIGHT,
         leftInset: 0,
         rightInset: WINDOWS_CAPTION_CONTROLS_WIDTH,
+      },
+    })
+    expect(desktopWindowService({
+      version: '2.0.3', mode: 'advanced', platform: 'linux', material: 'off', micaSupported: false,
+    })).toEqual({
+      version: '2.0.3',
+      mode: 'advanced',
+      platform: 'linux',
+      material: 'off',
+      micaSupported: false,
+      availableMaterials: ['off'],
+      safeAreaInsets: { top: ADVANCED_LINUX_TITLEBAR_HEIGHT, right: 0, bottom: 0, left: 0 },
+      dragRegion: {
+        height: ADVANCED_LINUX_TITLEBAR_HEIGHT,
+        leftInset: 0,
+        rightInset: LINUX_CAPTION_CONTROLS_WIDTH,
       },
     })
     expect(desktopWindowService({

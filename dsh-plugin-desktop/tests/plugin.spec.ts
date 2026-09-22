@@ -54,7 +54,7 @@ import {
 } from '../src/robo-local-skills.ts'
 
 const config: DesktopConfig = {
-  mode: 'compatibility',
+  mode: 'advanced',
   macosMaterial: 'transparent',
   windowsMaterial: 'off',
   port: 43_120,
@@ -241,11 +241,11 @@ function createHarness(
 }
 
 describe('desktop Host plugin', () => {
-  it('defaults to compatibility mode and validates both schemas', () => {
+  it('defaults to enhanced mode and validates both schemas', () => {
     expect(Config({} as DesktopConfig)).toEqual(config)
-    expect(Config({ mode: 'advanced' } as DesktopConfig)).toEqual({ ...config, mode: 'advanced' })
+    expect(Config({ mode: 'compatibility' } as DesktopConfig)).toEqual({ ...config, mode: 'compatibility' })
     expect(DesktopSettingsSchema({} as DesktopSettings)).toEqual({
-      mode: 'compatibility',
+      mode: 'advanced',
       macosMaterial: 'transparent',
       windowsMaterial: 'off',
       port: 43_120,
