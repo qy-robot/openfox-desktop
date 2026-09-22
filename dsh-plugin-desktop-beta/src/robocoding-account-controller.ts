@@ -39,12 +39,19 @@ export const DEFAULT_ROBOCODING_PLATFORM_URL = 'https://ai.openzrob.com'
 // First-party platform hosts stay interchangeable while DNS/ICP filing decides
 // which origin is reachable; a configured predecessor host migrates to the
 // current default without discarding a stored same-backend session.
-const LEGACY_DEFAULT_ROBOCODING_PLATFORM_URLS = ['https://www.openfox.work', 'https://ai.openfox.work'] as const
+const LEGACY_DEFAULT_ROBOCODING_PLATFORM_URLS = ['https://www.openfox.work', 'https://ai.openfox.work', 'https://www.openzrob.com'] as const
 
 const wait = (milliseconds: number, signal: AbortSignal): Promise<void> => new Promise((resolve, reject) => {
   const timer = setTimeout(resolve, milliseconds)
   signal.addEventListener('abort', () => { clearTimeout(timer); reject(signal.reason) }, { once: true })
 })
+
+// Auth failures that mean the session is gone server-side; everything else
+// (429/5xx/timeouts/network) is transient and worth retrying.
+function isHardAuthError(cause: unknown): boolean {
+  return cause instanceof Error
+    && (cause.name === 'AUTH_SESSION_REVOKED' || cause.name === 'AUTH_UNAUTHORIZED' || cause.name === 'http_401')
+}
 
 export class RoboCodingAccountController {
   private state: RoboCodingAccountView['state'] = 'signed_out'
@@ -371,12 +378,22 @@ export class RoboCodingAccountController {
     const delay = Math.max(1_000, Math.min(2_147_000_000, Date.parse(expiresAt) - Date.now() - 5 * 60_000))
     this.renewTimer = setTimeout(() => {
       this.renewTimer = undefined
-      void this.renew(generation).catch((cause) => {
-        if (!this.isCurrent(generation)) return
-        this.fail(cause)
-        this.renewTimer = setTimeout(() => { void this.renew(generation).catch(retryCause => this.fail(retryCause)) }, 30_000)
-      })
+      void this.renewWithRetry(generation, 0)
     }, delay)
+  }
+
+  private async renewWithRetry(generation: number, attempt: number): Promise<void> {
+    try {
+      await this.renew(generation)
+    } catch (cause) {
+      if (!this.isCurrent(generation)) return
+      if (isHardAuthError(cause)) { this.fail(cause); return }
+      // Transient failure: keep the signed-in session and retry with backoff.
+      // The relay credential stays valid for its TTL, so the account keeps
+      // working while the renewal retries.
+      const backoff = Math.min(30_000 * 2 ** attempt, 10 * 60_000)
+      this.renewTimer = setTimeout(() => { this.renewTimer = undefined; void this.renewWithRetry(generation, attempt + 1) }, backoff)
+    }
   }
 
   private async renew(generation: number): Promise<void> {

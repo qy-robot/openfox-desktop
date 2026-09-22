@@ -203,12 +203,16 @@ describe('compatibility BrowserWindow options', () => {
     expect(DESKTOP_FRAME_HEIGHT).toBe(36)
   })
 
-  it('rejects enhanced mode on Linux', () => {
-    expect(() => advancedWindowOptions(
+  it('keeps the ordinary native frame as the Linux enhanced fallback', () => {
+    const options = advancedWindowOptions(
       { ...spec, mode: 'advanced' },
       {} as NativeImage,
       'linux',
       preload,
-    )).toThrow('supported on macOS and Windows')
+    )
+
+    expect(options).not.toHaveProperty('titleBarStyle')
+    expect(options).not.toHaveProperty('titleBarOverlay')
+    expect(options).not.toHaveProperty('trafficLightPosition')
   })
 })
