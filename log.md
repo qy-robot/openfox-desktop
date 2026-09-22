@@ -4,6 +4,13 @@
 
 ## 当前状态
 
+- 2026-09-22T21:15:00+08:00 | ZCode | 主分支更名：`robo/main` → `main`（应用户要求统一分支命名）
+  - 已完成：`main` 新建于 `11787d6d84`（原 `robo/main` tip）并推送；GitHub 默认分支由 `master`（上游镜像）改为 `main`；远端与本地 `robo/main` 删除；已合并的功能分支本地清理。上游镜像分支 `master` 与 upstream remote 不动。
+  - 验证：`origin/main` = `11787d6d84` 与根 gitlink 一致；origin/HEAD 指向 main。
+  - 未完成 / 阻塞：Linux 实机验收仍待做（见上条）；vendor tgz 本地 WIP 保持未提交。
+  - 下一步：此后组件主分支一律称 `main`；文档与记忆已同步更新。
+
+
 - 2026-09-22T20:59:00+08:00 | ZCode | Linux 增强模式分支合入 `robo/main` 并推送
   - 已完成：`codex/linux-advanced-mode-20260922`（`f0eb2610b2`）快进合入 `robo/main` 并推送 `origin/robo/main`（自 `32ca81c4d8` 起 9 个提交：PR#1 三提交 + 本次 Linux 增强/默认增强/入口隐藏）。Linux 实机验收仍待做，验证前默认增强已对新装用户生效。
   - 验证：本地与远端 `robo/main` 提交一致（推送后比对 SHA）。
