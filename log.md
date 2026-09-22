@@ -4,6 +4,13 @@
 
 ## 当前状态
 
+- 2026-09-22T17:05:00+08:00 | ZCode | Beta 2.0.10-beta.4 发布至官网下载页：默认平台地址切回 openfox.work
+  - 背景：备案通过、生产切回 fox 后，下载页仍提供 zrob 默认的 beta.3；用户指示打包更新上去，并要求旧域名继续兼用。
+  - 已完成：Beta 版本 `2.0.10-beta.3 → 2.0.10-beta.4`（`package.json` + `tests/package.spec.ts` 两处钉住值），源码即 `9569536de5` 的 fox 默认（zrob 入 LEGACY 迁移保留会话）。修复打包阻塞：两插件变体 `node_modules/dsh-community-market` 符号链接仍指旧仓库路径 `F:\RoboCoding`（09-17 建立、仓库改名后失效），删除后 `corepack yarn install --immutable` 重建为 `F:\OpenFox`。
+  - 产物与发布：`OpenFox-Beta-2.0.10-beta.4-x64-Setup.exe`（155,196,601 bytes，SHA256 `ffc3985650afd86258d60d757e52805bd7dd39598314b495eba14651fceec7f2`，未签名，安装器自校验通过）；scp 后经平台内部 API 草稿 + publish（actor ops-zcode）上线。
+  - 验证：`check:win-package` 门禁退出码 0（beta.4 钉住值下）；公网 `ai.openfox.work/downloads.json` 与 `ai.openzrob.com/downloads.json` 版本/SHA 一致；`/release-artifacts/2.0.10-beta.4/windows-x64` GET 206（总长 155,196,601 一致、PE 头核对通过）；服务器 /tmp 临时包已删。
+  - 未完成 / 下一步：用户安装 beta.4 验收 fox 默认地址与登录链（旧域配置自动迁移）；stable 变体未单独打包；macos/linux 下载目标仍 unavailable。
+
 - 2026-09-22T12:24:19+08:00 | ZCode | 平台默认入口整组切回 openfox.work（ICP 备案已通过）
   - 背景：`openfox.work` ICP 备案通过（苏ICP备2026028082号，2026-09-22 用户确认），产品域名从临时 `openzrob.com` 切回；生产侧身份链由工作区整组执行（见根 log 同日条目）。
   - 已完成：stable/Beta 双变体同改——`DEFAULT_ROBOCODING_PLATFORM_URL` → `https://ai.openfox.work`；`LEGACY_DEFAULT_ROBOCODING_PLATFORM_URLS` 收编 `ai.openzrob.com`（保留更早的 `www.openfox.work`），`restore()` 迁移保留 refreshToken/session、仅重绑 origin；技能目录 `catalogUrl`/`CATALOG_URL` → `api.openfox.work`（代理白名单 fox 优先、zrob 兼容保留）；工作台上传链接 → `dash.openfox.work`；controller spec 的 rebind 用例方向反转为 zrob→fox，market spec 工作台链接断言同步。
