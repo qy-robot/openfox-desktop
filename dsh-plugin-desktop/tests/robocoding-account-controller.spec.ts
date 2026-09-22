@@ -304,4 +304,61 @@ describe('OpenFox account controller', () => {
     } finally { mounted.controller.dispose(); vi.useRealTimers() }
   })
 
+  it('keeps the signed-in session and retries after a transient renewal failure', async () => {
+    vi.useFakeTimers()
+    let transient = false
+    let relayCalls = 0
+    const fetcher = vi.fn(async (input: string | URL | Request) => {
+      const path = new URL(input instanceof Request ? input.url : input).pathname
+      if (path === '/api/desktop/refresh') return json(token())
+      if (path === '/api/user/self') return json({ success: true, data: { id: 7, username: 'lin', quota: 100 } })
+      if (path === '/api/teams/self') return json({ success: true, data: [] })
+      if (path === '/api/status') return json({ success: true, data: { quota_per_point: 10, points_per_cny: 10, billing_currency: 'CNY' } })
+      if (path === '/api/user/models') return json({ success: true, data: ['model-a'] })
+      if (path === '/api/desktop/relay-token') {
+        relayCalls += 1
+        if (transient) { const cause = new Error('fetch failed'); cause.name = 'TypeError'; throw cause }
+        return json({ success: true, data: { key: 'relay', base_url: 'https://api.example.com/v1',
+          expires_at: Date.now() + 60_000, funding_mode: 'personal_only', team_id: 0 } })
+      }
+      throw new Error(`unexpected request ${path}`)
+    }) as typeof fetch
+    const mounted = harness(fetcher)
+    try {
+      await mounted.controller.restore()
+      expect(mounted.controller.read().state).toBe('signed_in')
+      transient = true
+      await vi.advanceTimersByTimeAsync(1_000)
+      expect(mounted.controller.read().state).toBe('signed_in')
+      expect(relayCalls).toBe(2)
+    } finally { mounted.controller.dispose(); vi.useRealTimers() }
+  })
+
+  it('drops to error after a hard auth failure during renewal', async () => {
+    vi.useFakeTimers()
+    let revoked = false
+    const fetcher = vi.fn(async (input: string | URL | Request) => {
+      const path = new URL(input instanceof Request ? input.url : input).pathname
+      if (path === '/api/desktop/refresh') return json(token())
+      if (path === '/api/user/self') return json({ success: true, data: { id: 7, username: 'lin', quota: 100 } })
+      if (path === '/api/teams/self') return json({ success: true, data: [] })
+      if (path === '/api/status') return json({ success: true, data: { quota_per_point: 10, points_per_cny: 10, billing_currency: 'CNY' } })
+      if (path === '/api/user/models') return json({ success: true, data: ['model-a'] })
+      if (path === '/api/desktop/relay-token') {
+        if (revoked) return json({ success: false, error: 'AUTH_SESSION_REVOKED', message: 'session revoked' }, 401)
+        return json({ success: true, data: { key: 'relay', base_url: 'https://api.example.com/v1',
+          expires_at: Date.now() + 60_000, funding_mode: 'personal_only', team_id: 0 } })
+      }
+      throw new Error(`unexpected request ${path}`)
+    }) as typeof fetch
+    const mounted = harness(fetcher)
+    try {
+      await mounted.controller.restore()
+      expect(mounted.controller.read().state).toBe('signed_in')
+      revoked = true
+      await vi.advanceTimersByTimeAsync(1_000)
+      expect(mounted.controller.read().state).toBe('error')
+    } finally { mounted.controller.dispose(); vi.useRealTimers() }
+  })
+
 })
