@@ -4,6 +4,11 @@
 
 ## 当前状态
 
+- 2026-09-22T20:59:00+08:00 | ZCode | Linux 增强模式分支合入 `robo/main` 并推送
+  - 已完成：`codex/linux-advanced-mode-20260922`（`f0eb2610b2`）快进合入 `robo/main` 并推送 `origin/robo/main`（自 `32ca81c4d8` 起 9 个提交：PR#1 三提交 + 本次 Linux 增强/默认增强/入口隐藏）。Linux 实机验收仍待做，验证前默认增强已对新装用户生效。
+  - 验证：本地与远端 `robo/main` 提交一致（推送后比对 SHA）。
+  - 下一步：Linux 实机验收拖拽/缩放/最大化；根仓库推进 desktop gitlink 至 `f0eb2610b2`。
+
 - 2026-09-22T20:48:00+08:00 | ZCode | Linux 增强模式（无边框+自绘标题栏）+ 默认增强模式并隐藏模式选择入口（分支 `codex/linux-advanced-mode-20260922`，基线 `699f48d8ae`）
   - 背景：Linux 只能兼容模式（原生标题栏+官方客户端，观感如浏览器网页），设备/技能侧边栏仅非兼容模式注册（client/index.ts 模式门）。用户决定：默认全平台增强、不再展示模式选择入口；Linux 增强按"无边框+自绘三按钮+拖拽区"实现，不做玻璃材质（90% 观感即可）。
   - 已完成（stable/Beta 双变体同步）：① Linux 无边框：`window-options.ts` customChrome linux 分支 `frame:false, hasShadow:true`（advanced/extended 共用）；② 自绘标题栏：`AdvancedFrame.tsx` 新增 `LinuxCaptionRow`（最小化/最大化切换/关闭三按钮），`styles.ts` 新增 linux 帧行高 32px、拖拽带、按钮 hover（关闭红 #e81123）、模态框 no-drag 规则；③ 窗口控制链路：新增 `window-controls-contract.ts` / `window-controls-route.ts`（同源 `/_dsh/desktop/window-controls` POST，校验 origin+action）/ `client/window-controls.ts`，`runtime.ts`→`electron-runtime.ts`→`electron-shell-generation.ts`→`host-runtime-bridge.ts` 贯通 `controlWindow(action)`（linux 时注册路由）；④ 几何：`window-chrome.ts` 新增 `ADVANCED_LINUX_TITLEBAR_HEIGHT=32`/`LINUX_CAPTION_CONTROLS_WIDTH=138`，`window-service.ts` linux advanced insets/dragRegion；⑤ 默认 `advanced`：index.ts 两处 schema default；Linux 模式限制已在 PR#1 合并中移除，向导 contract 的 linux 强制 compat 与 App.tsx normalize 强制同步删除；⑥ 入口隐藏：向导删除 mode 步骤（步骤平台感知，linux 跳过 material 步），设置区模式三卡删除（保留 mac/win 材质选择，linux 整节隐藏），compatibility chrome 标题栏模式弹层及 `setMode` 传递删除；语言包清理 13+9 个废弃 key。托盘 Mode 子菜单保留为唯一切换通道（Linux 老用户仍可自救切换）。
