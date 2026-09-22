@@ -1,4 +1,4 @@
-/** Independent Desktop frame shared by compatibility and extended modes. */
+/** Independent Desktop frame used by the single OpenFox presentation. */
 
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
@@ -12,7 +12,7 @@ import { installDesktopLayout } from './layout-service.ts'
 import { installDesktopOwnedStyles } from './styles.ts'
 import { DesktopThemePresenter } from './theme-presenter.ts'
 
-/** Own the extended root/sidebar surface without reusing enhanced-mode chrome. */
+/** Own the extended root/sidebar surface. */
 function applyExtendedOwnedShell(ctx: ClientContext, environment: DesktopClientEnvironment): void {
   const desktopLayout = new DesktopLayoutState(id => ctx.slots.entries('main').some(entry => entry.options.key === id))
   installDesktopLayout(ctx, desktopLayout)
@@ -50,9 +50,6 @@ export function applyFramedShell(
   environment: DesktopClientEnvironment,
   _settingsControl?: DesktopSettingsClientControl,
 ): void {
-  if (environment.mode !== 'compatibility' && environment.mode !== 'extended') {
-    throw new Error(`dsh-plugin-desktop: framed shell received mode ${JSON.stringify(environment.mode)}`)
-  }
   ctx.effect(() => {
     const contentViewport = document.getElementById('root')
     if (contentViewport === null) {
@@ -79,9 +76,6 @@ export function applyExtendedShell(
   environment: DesktopClientEnvironment,
   settingsControl?: DesktopSettingsClientControl,
 ): void {
-  if (environment.mode !== 'extended') {
-    throw new Error(`dsh-plugin-desktop: extended shell received mode ${JSON.stringify(environment.mode)}`)
-  }
   applyExtendedOwnedShell(ctx, environment)
   applyFramedShell(ctx, environment, settingsControl)
 }

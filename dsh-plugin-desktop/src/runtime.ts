@@ -13,7 +13,7 @@ import type {
 /** Electron platforms supported by the DSH Desktop native adapter. */
 export type DesktopPlatform = 'darwin' | 'win32' | 'linux'
 
-/** Native presentation modes selected by the desktop-shell Cordis row. */
+/** Persisted presentation values. Startup migrates every value to `extended`. */
 export type DesktopShellMode = 'compatibility' | 'extended' | 'advanced'
 
 /** Electron appearance source used by native frame and material rendering. */
@@ -160,8 +160,6 @@ export interface DesktopShellSpec extends DesktopWindowConfig {
   readThemeSource(): DesktopThemeSource
   /** Request Cordis teardown followed by native application exit. */
   requestQuit(code: number): void
-  /** Persist another mode through the registered desktop settings scope. */
-  requestModeChange(mode: DesktopShellMode): Promise<void>
   readRemoteControl?(): Promise<boolean>
   enableRemoteControl?(): Promise<void>
 }

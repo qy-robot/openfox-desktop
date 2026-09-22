@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { installDesktopLayout } from '../src/client/layout-service.ts'
-import { applyAdvancedShell } from '../src/client/advanced-shell.ts'
 import { applyExtendedShell } from '../src/client/extended-shell.ts'
 import { DesktopLayoutState } from '../src/client/layout-state.ts'
 import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
@@ -113,7 +112,7 @@ describe('installDesktopLayout', () => {
     ctx.reflect.get.mockReturnValue({ owner: 'third-party-layout' })
 
     expect(() => installDesktopLayout(ctx as never, {} as never))
-      .toThrow('advanced and extended modes require exclusive layout ownership')
+      .toThrow('extended mode requires exclusive layout ownership')
     expect(ctx.effect).not.toHaveBeenCalled()
     expect(ctx.reflect.provide).not.toHaveBeenCalled()
   })
@@ -127,37 +126,9 @@ describe('installDesktopLayout', () => {
   })
 })
 
-function environmentFor(mode: 'advanced' | 'extended') {
-  return { mode, platform: 'win32', material: 'off', micaSupported: false, version: '2.0.2' }
+function environmentFor() {
+  return { mode: 'extended', platform: 'win32', material: 'off', micaSupported: false, version: '2.0.2' }
 }
-
-describe('applyAdvancedShell presentation ownership', () => {
-  it('owns presentation when the selected layout is available', () => {
-    stubDocument()
-    const ctx = makeCtx()
-    ctx.reflect.provide.mockReturnValue(vi.fn())
-
-    applyAdvancedShell(ctx as never, environmentFor('advanced') as never)
-
-    // layout service + owned styles/markers + theme presenter + root slot
-    expect(ctx.effect).toHaveBeenCalledTimes(4)
-    expect(ctx.slots.register).toHaveBeenCalledTimes(1)
-  })
-
-  it('rejects a conflicting layout before installing partial Desktop state', () => {
-    const { dataset } = stubDocument()
-    const ctx = makeCtx()
-    ctx.reflect.get.mockReturnValue({ owner: 'third-party-layout' })
-
-    expect(() => applyAdvancedShell(ctx as never, environmentFor('advanced') as never))
-      .toThrow('advanced and extended modes require exclusive layout ownership')
-
-    expect(ctx.effect).not.toHaveBeenCalled()
-    expect(ctx.slots.register).not.toHaveBeenCalled()
-    expect(dataset.dshDesktopMode).toBeUndefined()
-    expect(dataset.dshDesktopPlatform).toBeUndefined()
-  })
-})
 
 describe('applyExtendedShell presentation ownership', () => {
   it('owns the extended presentation and frames the selected layout', () => {
@@ -165,7 +136,7 @@ describe('applyExtendedShell presentation ownership', () => {
     const ctx = makeCtx()
     ctx.reflect.provide.mockReturnValue(vi.fn())
 
-    applyExtendedShell(ctx as never, environmentFor('extended') as never)
+    applyExtendedShell(ctx as never, environmentFor() as never)
 
     // layout + owned styles + presenter + root slot + framed chrome styles
     expect(ctx.effect).toHaveBeenCalledTimes(5)
@@ -177,8 +148,8 @@ describe('applyExtendedShell presentation ownership', () => {
     const ctx = makeCtx()
     ctx.reflect.get.mockReturnValue({ owner: 'third-party-layout' })
 
-    expect(() => applyExtendedShell(ctx as never, environmentFor('extended') as never))
-      .toThrow('advanced and extended modes require exclusive layout ownership')
+    expect(() => applyExtendedShell(ctx as never, environmentFor() as never))
+      .toThrow('extended mode requires exclusive layout ownership')
 
     expect(ctx.effect).not.toHaveBeenCalled()
     expect(ctx.slots.register).not.toHaveBeenCalled()

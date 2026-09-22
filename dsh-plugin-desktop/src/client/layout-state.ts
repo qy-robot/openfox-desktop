@@ -27,8 +27,6 @@ export interface DesktopColumns {
 
 /** Default compact rail used by the upstream sidebar. */
 export const SIDEBAR_COLLAPSED = 56
-/** Wider compact rail reserved only for the enhanced macOS presentation. */
-export const MACOS_SIDEBAR_COLLAPSED = 90
 export const SIDEBAR_DEFAULT = 280
 export const SIDEBAR_MIN = 264
 export const SIDEBAR_MAX = 420
@@ -38,14 +36,9 @@ export const RIGHTBAR_MIN = 300
 export const RIGHTBAR_MAX_RATIO = 0.7
 export const CENTER_MIN = 400
 
-/** Keep the wider macOS rail private to enhanced mode; extended uses upstream geometry. */
-export function collapsedSidebarWidth(
-  mode: 'extended' | 'advanced',
-  platform: 'darwin' | 'win32' | 'linux',
-): number {
-  return mode === 'advanced' && platform === 'darwin'
-    ? MACOS_SIDEBAR_COLLAPSED
-    : SIDEBAR_COLLAPSED
+/** Return the compact rail used by OpenFox's single extended presentation. */
+export function collapsedSidebarWidth(): number {
+  return SIDEBAR_COLLAPSED
 }
 
 /**
@@ -73,7 +66,7 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.round(value)))
 }
 
-/** Small observable panel controller used by the advanced root registration. */
+/** Small observable panel controller used by the extended root registration. */
 export class DesktopLayoutState implements ILayout {
   private panelInfo: PanelInfo = Object.freeze({ activePanelId: null })
   private navigation = new AbortController()

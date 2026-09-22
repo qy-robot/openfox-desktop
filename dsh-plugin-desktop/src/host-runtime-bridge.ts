@@ -53,11 +53,11 @@ export function createHostRuntime(rpc: HostRpc, snapshot: RuntimeSnapshot): Desk
       notify: notification => { void send('update:notify', [notification]) },
     },
     schedule(spec) {
-      const callback = callbacks({ quit: spec.requestQuit, mode: spec.requestModeChange,
+      const callback = callbacks({ quit: spec.requestQuit,
         ...(spec.readRemoteControl ? { remoteRead: spec.readRemoteControl } : {}),
         ...(spec.enableRemoteControl ? { remoteEnable: spec.enableRemoteControl } : {}),
       })
-      const { readLocalePreference, readThemeSource, requestQuit: _quit, requestModeChange: _mode, readRemoteControl: _remoteRead, enableRemoteControl: _remoteEnable, ...data } = spec
+      const { readLocalePreference, readThemeSource, requestQuit: _quit, readRemoteControl: _remoteRead, enableRemoteControl: _remoteEnable, ...data } = spec
       shellSpecs.set(callback.id, spec)
       trackSetup(send('shell:schedule', [callback.id, data, readLocalePreference(), readThemeSource(), Boolean(spec.readRemoteControl && spec.enableRemoteControl)]))
       return async () => { try { await send('shell:dispose', [callback.id]) } finally { shellSpecs.delete(callback.id); callback.release() } }
@@ -152,7 +152,6 @@ export function bindNativeRuntime(rpc: HostRpc, runtime: DesktopRuntime): () => 
     shells.set(id, runtime.schedule({ ...data,
       readLocalePreference: () => state.locale, readThemeSource: () => state.theme,
       requestQuit: code => report(callback(`${id}:quit`, [code])),
-      requestModeChange: mode => callback(`${id}:mode`, [mode]),
       ...(remoteControl ? {
         readRemoteControl: () => callback(`${id}:remoteRead`),
         enableRemoteControl: () => callback(`${id}:remoteEnable`),

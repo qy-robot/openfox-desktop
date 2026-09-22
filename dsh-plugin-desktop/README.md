@@ -8,9 +8,9 @@ English | [中文](README.zh.md)
 
 The Electron executable is minimal bootstrap code. It acquires the single-instance lock, resolves the selected DSH profile, provides the native runtime capability, and boots the Host Cordis root in the Electron main process. The `desktop-shell` Host plugin owns the `BrowserWindow`, navigation policy, settings namespace, and close-versus-quit lifecycle through Cordis effects. The native runtime owns the physical tray, while `desktop-shell`, `desktop-profiles`, `desktop-terminal`, and `desktop-updates` contribute effect-scoped commands through its ordered item registry.
 
-All three presentation modes reuse the existing Web carrier. The profile mounts the ordinary `dsh-base` and `dsh-web-app` bundles. By default, the Host binds its HTTP and WebSocket surface to `127.0.0.1` on an ephemeral port; an explicitly confirmed LAN setting binds all interfaces, while Electron continues to load the loopback same-origin page in a sandboxed renderer. There is no Electron-owned plugin roster, preload bridge, or raw Electron API in the renderer.
+The unified extended presentation reuses the existing Web carrier. The profile mounts the ordinary `dsh-base` and `dsh-web-app` bundles, while the Host binds its HTTP and WebSocket surface to `127.0.0.1` on an ephemeral port. There is no Electron-owned plugin roster, preload bridge, or raw Electron API in the renderer.
 
-The desktop package has normal Host and Web Client faces. Its Client face validates the Host-supplied mode, platform, and capability-gated material markers in every mode. Compatibility places the unchanged official presentation below an independent Desktop frame. Extended mode replaces the official root layout with its own Desktop-owned layout and sidebar surface while continuing to host the official sidebar, conversation, and details occupants. Enhanced mode retains a separate root registration and the compact internal-caption geometry established by the original enhanced implementation. Third-party Web clients continue to use the ordinary DSH module graph in every mode.
+The desktop package has normal Host and Web Client faces. Its Client face validates the Host-supplied platform and capability-gated material markers. Extended mode replaces the official root layout with its own Desktop-owned layout and sidebar surface while continuing to host the official sidebar, conversation, and details occupants. Third-party Web clients continue to use the ordinary DSH module graph.
 
 The tray profile selector lists existing profiles and the lazily available `desktop` and `web` defaults. A selectable profile directly composes `dsh-base` before `dsh-web-app`; headless, malformed, or already desktop-embedded profiles remain visible but disabled. `desktop` is the only launcher-managed profile: its installation-owned prefix is repaired while third-party bundle order is preserved. Every other selected profile keeps its manifest, user patch, and dependencies unchanged. The launcher inserts its own desktop layer after `dsh-web-app` for the active generation and never persists that layer in the selected bundle list.
 
@@ -32,28 +32,18 @@ The `desktop-pnpm` Host row provides one package-manager capability against the 
 
 Plugin authors should use the supported contract imports, lifecycle rules, and adaptation patterns in the [Desktop plugin service architecture](docs/plugin-services.md).
 
-## Mode setting and restart boundary
+## Extended presentation and restart boundary
 
-The `dsh-desktop.mode` field in the DSH home `settings.yaml` document is the single source of truth:
+OpenFox now has one presentation mode. The canonical DSH home setting is:
 
 ```yaml
 dsh-desktop:
-  mode: compatibility # compatibility, extended, or advanced
+  mode: extended
   macosMaterial: transparent # off or transparent
-  windowsMaterial: acrylic # off, acrylic, or mica when supported
+  windowsMaterial: mica # off or mica when supported
 ```
 
-The launcher reads the same file resolved by the active `@deepseek-ai/dsh-settings-file` row before composing a generation. The Host registers the `dsh-desktop` namespace with the standard settings service. There is no parallel mode value in the profile manifest.
-
-Users can select the other mode from the tray or edit the DSH home `settings.yaml` document by hand. The tray updates the registered `dsh-desktop` settings namespace, while a manual edit changes the same file observed by the settings provider. A committed change requests one orderly restart: the current Cordis tree disposes first, then Electron relaunches only after a successful zero-code shutdown. The application never hot-swaps root slots, native window materials, or Loader rows inside a live renderer generation.
-
-Linux supports compatibility mode only. Its tray mode command is disabled, and custom-window values are rejected rather than silently falling back.
-
-## Compatibility mode
-
-`dsh-desktop.mode` defaults to `compatibility`. On macOS and Windows it creates an independent 36 CSS-pixel Desktop frame, with native traffic lights or caption controls, above the official Web surface from the active DSH profile. The centered identity, mode pill, drag region, and icon actions belong only to that frame. The complete official page begins below it and does not participate in its layout or safe-area calculation. Linux keeps the ordinary native-frame fallback.
-
-The desktop Client module validates the mode and platform markers, registers only the independent frame overlay and its fixed launcher actions, and performs no official presentation replacement in compatibility mode. It does not provide or replace the `layout` service, register a `root` or `sidebar` occupant, or change the conversation surface. Desktop-owned boot-health reporting is a capability effect; compatibility mode still preserves the selected profile's own layout, sidebar, and conversation composition, so the ordinary `desktop` and `web` profiles keep the official rows unchanged. Upstream dialogs remain content overlays and are bounded below the Desktop frame.
+The launcher reads the same file resolved by the active `@deepseek-ai/dsh-settings-file` row before composing a generation. Legacy `compatibility` and `advanced` values are migrated to `extended`; browser/LAN access associated with the retired compatibility mode is withdrawn. There is no mode selector in Settings or the tray. Material changes still request one orderly restart; the application never hot-swaps root slots or native materials inside a live renderer generation. The extended presentation is supported on macOS and Windows; Linux is rejected explicitly.
 
 The Cordis row registers native window values during profile activation. The launcher creates the window only after `app-boot` settles and audits the complete profile, so the first renderer manifest includes the active official, desktop, and third-party client plugins without a Loader-wide wait inside the plugin itself.
 
@@ -67,27 +57,13 @@ Windows PowerShell keeps the upstream `pwsh-sandbox` behavior and Windows ACL co
 
 Extended mode disables the official upstream `ui-layout` root and installs the Desktop-owned root layout. That layout owns the sidebar, conversation, details, overlay, and resize geometry while continuing to render the official sidebar, conversation, and details slot occupants. A fixed 36 CSS-pixel command bar sits above that Desktop root. The command bar and Desktop-owned sidebar surface reveal one non-stacking material layer, forming a continuous inverted-L glass surface; the conversation surface sits inside the L with a 10-pixel rounded inner corner whose separator follows the curve.
 
-The centered product title and mode pill remain independent from the action group. First-party actions use compact icons: macOS places them on the right, opposite the traffic lights, while Windows places them on the left, opposite the native caption controls. They open the DSH Terminal, a restart menu for ordinary or recovery-mode restart, or a developer menu for reloading the renderer and toggling detached Developer Tools. These exact actions cross the private same-origin launcher boundary; no raw Electron or arbitrary command interface is exposed to the page.
+The centered product title remains independent from the action group. First-party actions use compact icons: macOS places them on the right, opposite the traffic lights, while Windows places them on the left, opposite the native caption controls. They open the DSH Terminal, a restart menu for ordinary or recovery-mode restart, or a developer menu for reloading the renderer and toggling detached Developer Tools. These exact actions cross the private same-origin launcher boundary; no raw Electron or arbitrary command interface is exposed to the page.
 
-The command bar remains visible and draggable while upstream overlays are open. macOS traffic lights and Windows caption controls keep their native hit regions; only Desktop-owned first-party icons render in this private surface, explicitly opt out of dragging, and remain clickable. Web Client plugins cannot contribute command-bar actions in compatibility or extended mode.
+The command bar remains visible and draggable while upstream overlays are open. macOS traffic lights and Windows caption controls keep their native hit regions; only Desktop-owned first-party icons render in this private surface, explicitly opt out of dragging, and remain clickable. Web Client plugins cannot contribute command-bar actions.
 
 The DOM declares the command bar as the Desktop frame and the shifted upstream root as its content viewport. The `shell.overlay` layer becomes the containing block for fixed plugin surfaces, while dialogs portalled directly to `body` receive the same content offset. Both paths are therefore bounded below the 36-pixel frame instead of darkening or intercepting it.
 
-Custom-window material is independent from mode. macOS offers **Off** and **Transparent**. Windows offers **Off** and native **Acrylic**; **Mica** appears only on Windows 11 build 22621 or newer. Windows 10 therefore uses native Acrylic rather than a CSS imitation. An unsupported persisted Mica preference is capability-gated to Acrylic. Changing mode or material performs an orderly restart.
-
-## Enhanced mode
-
-Enhanced mode is an explicitly composed desktop presentation for macOS and Windows. After all user patches have been read, the launcher disables the official `ui-layout` Loader row, keeps the official `ui-sidebar` and `ui-conversation` rows enabled, and applies the selected mode to `desktop-shell`.
-
-The desktop Client provides the immutable `desktopWindow` native-geometry service in all presentation modes. Enhanced mode has its own Cordis effects, `layout` service, and `root` slot registration; it does not install the independent compatibility/extended frame. Its root declares seats for the unchanged upstream sidebar, conversation, details, and overlay contributions. The official sidebar remains the `sidebar` occupant and continues to declare the workspace browser, settings shell, and additive footer-action seats. This preserves its component behavior, collapse animation, and third-party extension points while the desktop package owns only its compact internal-caption geometry and native material.
-
-The enhanced theme presenter projects the active upstream theme snapshot onto the document, including color scheme, resolved token values, dark-mode marker, and theme-color metadata. It subscribes to ordinary theme changes and removes only its own projected state when the generation disposes.
-
-For an enhanced generation, the Electron adapter also reads the registered `ui-theme.preference` after Host boot and mirrors its built-in `light`, `dark`, or `system` value into Electron's native appearance before constructing the window. Committed preference changes update the native material while the window is active, and disposal restores the preceding Electron appearance. Client-only third-party theme ids do not change this Host preference.
-
-The desktop sidebar surface scopes the upstream sidebar-fill token to transparent, so the official sidebar and session-list fade reveal the native material without changing their component styles.
-
-On macOS the enhanced window uses its original hidden-inset geometry: traffic lights at `x=16, y=16`, a compact 20 CSS-pixel content inset, and a 32 CSS-pixel native drag region. Its 90 CSS-pixel collapsed column centers the official 56-pixel rail below that compact inset, while optional native `sidebar` vibrancy remains available. Buttons, links, inputs, editable fields, menus, tabs, switches, dialogs, and explicit `.dshDesktopNoDrag` contributions remain interactive through precise `app-region: no-drag` exclusions. On Windows the official sidebar keeps compatibility geometry: 56 pixels collapsed, 280 pixels by default when expanded, and the same upstream transition behavior, while its transparent surface reveals the selected supported material. The enhanced window keeps its original 32 CSS-pixel internal caption row and native overlay controls; this geometry is independent from the 36-pixel compatibility/extended frame. Linux rejects enhanced mode rather than silently falling back to a presentation different from the persisted setting.
+Custom-window material is part of the extended presentation. macOS offers **Off** and **Transparent**. Windows offers **Off** and **Mica** when supported on Windows 11 build 22621 or newer. Unsupported legacy Acrylic or Mica preferences are safely migrated to an available value. Changing material performs an orderly restart.
 
 ## Development
 
@@ -256,8 +232,8 @@ None. The same DSH Host and client feature plugins assemble model requests.
 ## Known Limitations and Deferred Work
 
 - Adding or removing a profile bundle requires restarting DSH Desktop; the launcher does not watch profile manifests. Selecting another profile from the tray performs that restart automatically.
-- Switching compatibility/extended/enhanced mode or changing material always restarts the application by design; a live generation never hot-swaps Loader rows, slot ownership, or native materials.
-- Extended and enhanced modes are unavailable on Linux. Linux continues to use the compatibility presentation.
+- Changing material restarts the application by design; a live generation never hot-swaps Loader rows, slot ownership, or native materials.
+- The unified extended presentation is unavailable on Linux.
 - The macOS and Windows tray terminal exposes private `dsh`, `pnpm`, and `node` shims. Separately, the Host runtime exposes the bundled `pnpm` command on the current Electron process `PATH` for ambient compatibility and provides the managed `desktopPnpm` service; none of these commands are added to the system `PATH`, and Linux currently has no desktop terminal command.
 - On Windows, the ambient `pnpm` command and lifecycle Node helper are `.cmd` shims. `desktopPnpm.run()` avoids shell lookup for the manager process by launching the exact packaged pnpm entry, while upstream `dsh plugin`, PowerShell, and Command Prompt can resolve ambient shims through a command interpreter. A third-party plugin that calls Node `spawn('pnpm', { shell: false })`, or a lifecycle script that directly executes its `.cmd` `npm_node_execpath` with `shell: false`, remains non-portable and should use the service or a shell-aware launch path.
 - `dshmarket@1.2.3` remains an optional user-installed third-party package, not a bundled marketplace. Preinstallation is deferred until an audited release consumes the optional Desktop services while preserving ordinary DSH fallback and includes the complete license notice required for redistribution.

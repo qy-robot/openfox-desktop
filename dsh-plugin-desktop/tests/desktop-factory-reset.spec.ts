@@ -39,7 +39,7 @@ describe('Desktop factory reset', () => {
     const unrelated = join(root, 'other-home', 'profiles', 'desktop')
     const versions = { desktopVersion: '2.0.6-beta.1', dshVersion: '0.1.3-alpha.2', setupRevision: 1 }
     const oldPreferences = {
-      mode: 'advanced' as const,
+      mode: 'extended' as const,
       openBrowser: false,
       networkExposure: 'loopback' as const,
       market: 'community-market' as const,
@@ -83,7 +83,7 @@ describe('Desktop factory reset', () => {
       expect(readDesktopSetupWizardState(locations.other.userDataDir, profile)).toBeUndefined()
       const settings = join(profile, 'settings.yaml')
       const defaults = readDesktopSetupWizardSettings(settings)
-      expect(defaults.mode).toBe('compatibility')
+      expect(defaults.mode).toBe('extended')
       expect(defaults.notifications.enabled).toBe(true)
       await completeOrSkipDesktopSetupWizard(userDataDir, profile, 'skipped', versions)
       expect(readDesktopSetupWizardSettings(settings)).toEqual(defaults)

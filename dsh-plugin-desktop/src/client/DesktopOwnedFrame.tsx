@@ -10,33 +10,25 @@ import {
 } from './layout-state.ts'
 
 /** Private values assembled by one Desktop-owned shell registration. */
-export interface AdvancedFrameInjected {
+export interface DesktopOwnedFrameInjected {
   /** Desktop-owned panel state exposed through the standard layout service. */
   layout: DesktopLayoutState
   /** Host platform controlling native title-bar spacing. */
   platform: DesktopClientPlatform
 }
 
-/** Full enhanced-mode root slot props. */
-export type AdvancedFrameProps = PropsRuntime<'root'>
+/** Full extended-mode root slot props. */
+export type DesktopOwnedFrameProps = PropsRuntime<'root'>
   & PropsRenderSlots<'sidebar' | 'main' | 'rightbar' | 'shell.overlay'>
-  & AdvancedFrameInjected
-
-/** Enhanced-mode owner preserving the original Desktop layout contract. */
-export function AdvancedFrame(props: AdvancedFrameProps) {
-  return <DesktopOwnedFrame {...props} mode="advanced" />
-}
+  & DesktopOwnedFrameInjected
 
 /** Shared panel mechanics below the two mode-specific root boundaries. */
 export function DesktopOwnedFrame({
   layout,
-  mode,
   platform,
   renderSlot,
   usePanelInfo,
-}: AdvancedFrameProps & {
-  readonly mode: 'extended' | 'advanced'
-}) {
+}: DesktopOwnedFrameProps) {
   const subscribeLayout = useCallback((listener: () => void) => layout.subscribe(listener), [layout])
   const readLayout = useCallback(() => layout.getSnapshot(), [layout])
   const panels = useSyncExternalStore(subscribeLayout, readLayout, readLayout)
@@ -70,7 +62,7 @@ export function DesktopOwnedFrame({
   const rightbarPreference = panels.rightbar ?? viewport * RIGHTBAR_DEFAULT_RATIO
   const normal = computeDesktopColumns(
     viewport, !panels.rightbarShown && narrow ? 0 : sidebarPreference,
-    rightbarPreference, collapsedSidebarWidth(mode, platform),
+    rightbarPreference, collapsedSidebarWidth(),
   )
   const normalRef = useRef(normal)
   normalRef.current = normal
@@ -78,10 +70,9 @@ export function DesktopOwnedFrame({
     viewport,
     sidebarPreference,
     panels.rightbarTrack ? rightbarPreference : 0,
-    collapsedSidebarWidth(mode, platform),
+    collapsedSidebarWidth(),
   )
-  // Enhanced macOS keeps a wider native rail around the centered upstream
-  // sidebar. Extended mode and other platforms retain the upstream 56px rail.
+  // The extended presentation retains the upstream 56px compact rail.
   const sidebarOwnerWidth = collapsed ? SIDEBAR_COLLAPSED : columns.sidebar
   const columnsRef = useRef(columns)
   columnsRef.current = columns
@@ -109,7 +100,7 @@ export function DesktopOwnedFrame({
     <div
       ref={frameRef}
       className="dshDesktopFrame"
-      data-desktop-mode={mode}
+      data-desktop-mode="extended"
       data-desktop-platform={platform}
       data-sidebar-collapsed={collapsed || undefined}
       data-rightbar-collapsed={columns.rightbar === 0 || undefined}
@@ -117,7 +108,6 @@ export function DesktopOwnedFrame({
       data-dragging={dragging || undefined}
       style={{ gridTemplateColumns: `${columns.sidebar}px minmax(0, 1fr) ${columns.rightbar}px` }}
     >
-      {mode === 'advanced' && platform === 'darwin' && <div className="dshDesktopMacCaptionRow" aria-hidden="true" />}
       <aside className="dshDesktopSidebarSurface">
         <div className="dshDesktopUpstreamSidebar">
           {renderSlot('sidebar', { collapsed, width: sidebarOwnerWidth })}
@@ -128,7 +118,6 @@ export function DesktopOwnedFrame({
         {renderSlot('rightbar', { width: normal.rightbar, viewportWidth: viewport, canShow: normal.rightbar > 0 })}
       </aside>
       {/* Electron resolves app regions in DOM order; Desktop overlays must remain later. */}
-      {mode === 'advanced' && platform === 'win32' && <div className="dshDesktopWindowsCaptionRow" aria-hidden="true" />}
       <div className="dshDesktopOverlay" data-shell-overlay>
         {renderSlot('shell.overlay', {})}
       </div>

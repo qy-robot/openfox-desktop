@@ -107,7 +107,7 @@ const AGENT_PRESETS_ROW_ID = 'agent-presets'
 const AGENT_DEFAULT_MODEL_ROW_ID = 'agent-default-model'
 /** Harness-home directory holding locally authored presets (`agent-presets/discovery`). */
 const USER_PRESET_DIRNAME = '.agent-presets'
-const DEFAULT_DESKTOP_SHELL_MODE: DesktopShellMode = 'compatibility'
+const DEFAULT_DESKTOP_SHELL_MODE: DesktopShellMode = 'extended'
 const DEFAULT_DESKTOP_PORT = DESKTOP_DEFAULT_WEB_PORT
 const DESKTOP_WEB_SERVER_ROW_ID = 'desktop-webserver'
 const DESKTOP_WEB_SERVER_PACKAGE = `${DESKTOP_PACKAGE_NAME}/webserver`
@@ -140,8 +140,11 @@ const MARKET_PACKAGE_NAMES: ReadonlySet<string> = new Set([
  */
 export function parseDesktopShellMode(value: unknown): DesktopShellMode {
   if (value === undefined) return DEFAULT_DESKTOP_SHELL_MODE
-  if (value === 'compatibility' || value === 'extended' || value === 'advanced') return value
-  throw new Error(`${BIN_NAME}: ${DESKTOP_SETTINGS_NAMESPACE}.mode must be "compatibility", "extended", or "advanced"`)
+  // Before OpenFox standardized on one presentation, existing Profiles could
+  // persist either compatibility or advanced. Treat both as a migration input
+  // instead of preventing those users from starting the new release.
+  if (value === 'compatibility' || value === 'extended' || value === 'advanced') return 'extended'
+  throw new Error(`${BIN_NAME}: ${DESKTOP_SETTINGS_NAMESPACE}.mode must be "extended"`)
 }
 
 /** Parse the requested loopback Web port and reject values Node cannot listen on. */
@@ -952,7 +955,7 @@ export function prepareDesktopProfile(
       trustedHosts: webRuntimeTrustedHosts(webRuntimeConfig.trustedHosts, lanAddresses),
     },
   })
-  if (mode === 'advanced' || mode === 'extended') {
+  if (mode === 'extended') {
     for (const [id, packageName] of [
       ['ui-layout', UI_LAYOUT_PACKAGE],
       ['ui-sidebar', UI_SIDEBAR_PACKAGE],

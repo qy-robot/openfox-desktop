@@ -70,7 +70,8 @@ export function parseDesktopClientEnvironment(search: string): DesktopClientEnvi
   }
   return {
     version,
-    mode: mode as DesktopClientMode,
+    // Old deep links cannot resurrect a removed presentation.
+    mode: 'extended',
     platform: platform as DesktopClientPlatform,
     material,
     micaSupported,

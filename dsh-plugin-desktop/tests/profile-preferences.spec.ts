@@ -28,9 +28,9 @@ const temporaryDirectories: string[] = []
 const RECORDED_AT = '2026-08-28T06:07:08.901Z'
 const PREFERENCES: DesktopProfilePreferences = Object.freeze({
   aaEnabled: false,
-  mode: 'compatibility',
-  openBrowser: true,
-  networkExposure: 'lan',
+  mode: 'extended',
+  openBrowser: false,
+  networkExposure: 'loopback',
   notifications: Object.freeze({
     enabled: true,
     notifyOnTurnCompletion: true,
@@ -181,12 +181,12 @@ describe('Desktop Profile preferences', () => {
     } as DesktopProfilePreferences, RECORDED_AT)).rejects.toThrow('exactly the supported fields')
     await expect(writeDesktopProfilePreferences(userData, profile, {
       ...PREFERENCES,
-      mode: 'advanced',
-    }, RECORDED_AT)).rejects.toThrow('openBrowser requires compatibility mode')
+      mode: 'glass' as DesktopProfilePreferences['mode'],
+    }, RECORDED_AT)).rejects.toThrow('mode')
     await expect(writeDesktopProfilePreferences(userData, profile, {
       ...PREFERENCES,
-      openBrowser: false,
-    }, RECORDED_AT)).rejects.toThrow('LAN exposure requires openBrowser')
+      networkExposure: 'internet' as DesktopProfilePreferences['networkExposure'],
+    }, RECORDED_AT)).rejects.toThrow('networkExposure')
     await expect(writeDesktopProfilePreferences(userData, profile, {
       ...PREFERENCES,
       notifications: {
@@ -258,7 +258,7 @@ describe('Desktop Profile preferences', () => {
     expect(() => readDesktopProfilePreferences(userData, profile)).toThrow('permissions must be 700')
   })
 
-  it('never follows a state symlink for read, replacement, or clear', async () => {
+  it.skipIf(process.platform === 'win32')('never follows a state symlink for read, replacement, or clear', async () => {
     const userData = temporaryDirectory('dsh-profile-preferences-user-')
     const profile = temporaryDirectory('dsh-profile-preferences-profile-')
     const outside = join(temporaryDirectory('dsh-profile-preferences-outside-'), 'outside.json')

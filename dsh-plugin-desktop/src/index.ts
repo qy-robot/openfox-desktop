@@ -63,13 +63,7 @@ import { desktopBootRecoveryInjections } from './desktop-boot-recovery.ts'
 import type { DesktopLocale, DesktopShellMode } from './runtime.ts'
 import type {} from './runtime.ts'
 import { DESKTOP_DEFAULT_WEB_PORT } from './desktop-port.ts'
-import {
-  desktopBrowserAccessEnabled,
-  desktopBrowserAccessAvailable,
-  desktopNetworkExposureForBrowserAccess,
-  desktopWebServerHost,
-  type DesktopNetworkExposure,
-} from './desktop-network.ts'
+import { desktopWebServerHost, type DesktopNetworkExposure } from './desktop-network.ts'
 import { DESKTOP_FRAME_HEIGHT } from './window-chrome.ts'
 import {
   DEFAULT_MACOS_WINDOW_MATERIAL,
@@ -145,7 +139,7 @@ function desktopLocalePreference(preference: string | undefined): DesktopLocale 
 /** Desktop settings presented by the standard settings service. */
 export interface DesktopSettings {
   /** Native presentation selected for the next application generation. */
-  mode: DesktopShellMode
+  mode: 'compatibility' | 'extended' | 'advanced'
   /** Native translucency preference used on macOS custom-chrome modes. */
   macosMaterial: MacosWindowMaterial
   /** Native backdrop preference used on Windows custom-chrome modes. */
@@ -162,7 +156,9 @@ export interface DesktopSettings {
 
 /** Schema registered with the standard settings service. */
 export const DesktopSettingsSchema: z<DesktopSettings> = z.object({
-  mode: z.union(['compatibility', 'extended', 'advanced'] as const).default('compatibility'),
+  // Legacy values remain readable during the transition; startup normalizes
+  // every Profile to the single supported extended presentation.
+  mode: z.union(['compatibility', 'extended', 'advanced'] as const).default('extended'),
   macosMaterial: z.union(['off', 'transparent'] as const).default(DEFAULT_MACOS_WINDOW_MATERIAL),
   windowsMaterial: z.union(['off', 'acrylic', 'mica'] as const).default(DEFAULT_WINDOWS_WINDOW_MATERIAL),
   port: z.number().step(1).min(0).max(65_535).default(DESKTOP_DEFAULT_WEB_PORT),
@@ -182,7 +178,7 @@ const RoboCodingAccountSettingsSchema: z<RoboCodingAccountSettings> = z.object({
 /** Native window configuration. */
 export interface Config {
   /** Native presentation mode selected before BrowserWindow construction. */
-  mode: DesktopShellMode
+  mode: 'extended'
   /** Native translucency preference used on macOS custom-chrome modes. */
   macosMaterial: MacosWindowMaterial
   /** Native backdrop preference used on Windows custom-chrome modes. */
@@ -203,7 +199,7 @@ export interface Config {
 
 /** Validated native window configuration. */
 export const Config: z<Config> = z.object({
-  mode: z.union(['compatibility', 'extended', 'advanced'] as const).default('compatibility'),
+  mode: z.union(['extended'] as const).default('extended'),
   macosMaterial: z.union(['off', 'transparent'] as const).default(DEFAULT_MACOS_WINDOW_MATERIAL),
   windowsMaterial: z.union(['off', 'acrylic', 'mica'] as const).default(DEFAULT_WINDOWS_WINDOW_MATERIAL),
   port: z.number().step(1).min(0).max(65_535).default(DESKTOP_DEFAULT_WEB_PORT),
@@ -234,7 +230,7 @@ export function desktopRendererUrl(
   url.searchParams.set('dsh-desktop-platform', platform)
   url.searchParams.set('dsh-desktop-version', appVersion)
   url.searchParams.set('dsh-desktop-material', material)
-  if (mode === 'extended' || (mode === 'compatibility' && platform !== 'linux')) {
+  if (mode === 'extended') {
     // Body-level plugin portals do not inherit the framed root's geometry.
     // Publish the exact content boundary so they can yield Desktop chrome.
     url.searchParams.set('dsh-desktop-titlebar-inset', String(DESKTOP_FRAME_HEIGHT))
@@ -296,11 +292,14 @@ export function apply(ctx: Context, config: Config): void {
     {
       applies: 'restart',
       validate: (value) => {
-        if (!desktopBrowserAccessAvailable(value.mode) && value.openBrowser) {
-          throw new Error('dsh-plugin-desktop: browser access requires compatibility mode')
+        if (value.mode !== 'extended') {
+          throw new Error('dsh-plugin-desktop: only extended mode is supported')
         }
-        if (value.mode !== 'compatibility' && runtime.platform === 'linux') {
-          throw new Error('dsh-plugin-desktop: custom desktop shell modes are supported on macOS and Windows')
+        if (value.openBrowser || value.networkExposure !== 'loopback') {
+          throw new Error('dsh-plugin-desktop: browser access is unavailable in extended mode')
+        }
+        if (runtime.platform === 'linux') {
+          throw new Error('dsh-plugin-desktop: extended mode is supported on macOS and Windows')
         }
       },
     },
@@ -554,18 +553,9 @@ export function apply(ctx: Context, config: Config): void {
         )
       })
     }
-    updateLiveWebAccess(browserAccess.ordinaryBrowserEnabled, config.networkExposure)
+    updateLiveWebAccess(false, 'loopback')
     const stopWatching = settings.watch((next) => {
-      const nextBrowserAccess = desktopBrowserAccessEnabled(
-        next.mode,
-        next.openBrowser,
-        next.networkExposure,
-      )
-      const nextNetworkExposure = desktopNetworkExposureForBrowserAccess(
-        nextBrowserAccess,
-        next.networkExposure,
-      )
-      updateLiveWebAccess(nextBrowserAccess, nextNetworkExposure)
+      updateLiveWebAccess(false, 'loopback')
       if (next.mode === config.mode
         && next.port === config.port
         && next.macosMaterial === config.macosMaterial
@@ -649,13 +639,6 @@ export function apply(ctx: Context, config: Config): void {
           },
         }),
         requestQuit: appExit,
-        requestModeChange: async mode => {
-          const current = settings.get()
-          const storedBrowserCapability = current.openBrowser || current.networkExposure === 'lan'
-          await settings.update(mode !== 'compatibility' && storedBrowserCapability
-            ? { mode, openBrowser: false, networkExposure: 'loopback' }
-            : { mode })
-        },
       })
     },
     'dsh-plugin-desktop: native shell generation',

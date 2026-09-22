@@ -14,7 +14,6 @@ import { applyRoboSkills } from './robo-skills.tsx'
 import { applyRoboCodingAccount } from './robocoding-account.ts'
 import { applyRoboModels } from './robo-models.ts'
 import { applyRoboServiceOnboarding } from './robo-service-onboarding.ts'
-import { applyAdvancedShell } from './advanced-shell.ts'
 import { startRendererBootReporter } from './boot-health.ts'
 import { applyDesktopSettings } from './desktop-settings.ts'
 import { installDesktopDirectoryPickerBridge } from './directory-picker.ts'
@@ -22,7 +21,6 @@ import { parseDesktopClientEnvironment } from './environment.ts'
 import { applyExtendedShell } from './extended-shell.ts'
 import { desktopWindowService, provideDesktopWindow } from './window-service.ts'
 
-export { applyAdvancedShell } from './advanced-shell.ts'
 export { applyDesktopSettings } from './desktop-settings.ts'
 export { applyExtendedShell, applyFramedShell } from './extended-shell.ts'
 export {
@@ -100,10 +98,8 @@ export function apply(ctx: ClientContext): void {
   applyRoboBranding(ctx)
   ctx.slots.inject('conversation.hero.brand.mark', () =>
     ctx.slots.register({ name: 'conversation.hero.brand.mark', priority: -100 }, RoboHeroBrand))
-  if (environment.mode !== 'compatibility') {
-    // Conversation needs the layout provided below; do not make it a root dependency.
-    ctx.inject(['conversation'], skillContext => { applyRoboSkills(skillContext) })
-  }
+  // Conversation needs the layout provided below; do not make it a root dependency.
+  ctx.inject(['conversation'], skillContext => { applyRoboSkills(skillContext) })
   ctx.effect(
     () => startRendererBootReporter(ctx.loader),
     'dsh-plugin-desktop: renderer boot health report',
@@ -114,6 +110,5 @@ export function apply(ctx: ClientContext): void {
       'dsh-plugin-desktop: native directory picker bridge',
     )
   }
-  if (environment.mode === 'advanced') applyAdvancedShell(ctx, environment)
-  if (environment.mode === 'extended') applyExtendedShell(ctx, environment, desktopSettings)
+  applyExtendedShell(ctx, environment, desktopSettings)
 }

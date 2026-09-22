@@ -1,6 +1,6 @@
-import { DesktopOwnedFrame, type AdvancedFrameProps } from './AdvancedFrame.tsx'
+import { DesktopOwnedFrame, type DesktopOwnedFrameProps } from './DesktopOwnedFrame.tsx'
 
 /** Extended root owner beneath the independent inverted-L Desktop frame. */
-export function ExtendedFrame(props: AdvancedFrameProps) {
-  return <DesktopOwnedFrame {...props} mode="extended" />
+export function ExtendedFrame(props: DesktopOwnedFrameProps) {
+  return <DesktopOwnedFrame {...props} />
 }

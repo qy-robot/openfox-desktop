@@ -54,7 +54,7 @@ import {
 } from '../src/robo-local-skills.ts'
 
 const config: DesktopConfig = {
-  mode: 'compatibility',
+  mode: 'extended',
   macosMaterial: 'transparent',
   windowsMaterial: 'off',
   port: 43_120,
@@ -205,6 +205,7 @@ function createHarness(
       return () => {}
     }),
     effect: vi.fn((register: () => unknown) => register()),
+    inject: vi.fn(),
     on: vi.fn((event: string, listener: (namespace: unknown, next: unknown) => void) => {
       if (event === 'settings/updated') settingsUpdated.add(listener)
       return () => { settingsUpdated.delete(listener) }
@@ -241,11 +242,11 @@ function createHarness(
 }
 
 describe('desktop Host plugin', () => {
-  it('defaults to compatibility mode and validates both schemas', () => {
+  it('defaults to extended mode and rejects removed runtime modes', () => {
     expect(Config({} as DesktopConfig)).toEqual(config)
-    expect(Config({ mode: 'advanced' } as DesktopConfig)).toEqual({ ...config, mode: 'advanced' })
+    expect(() => Config({ mode: 'advanced' } as unknown as DesktopConfig)).toThrow()
     expect(DesktopSettingsSchema({} as DesktopSettings)).toEqual({
-      mode: 'compatibility',
+      mode: 'extended',
       macosMaterial: 'transparent',
       windowsMaterial: 'off',
       port: 43_120,
@@ -358,8 +359,8 @@ describe('desktop Host plugin', () => {
     expect(register.mock.calls[0]?.[2]).not.toHaveProperty('base')
     expect(loaderAwait).not.toHaveBeenCalled()
     expect(harness.shell()).toEqual(expect.objectContaining({
-      mode: 'compatibility',
-      url: 'http://127.0.0.1:43120/?dsh-desktop-mode=compatibility&dsh-desktop-platform=darwin&dsh-desktop-version=2.0.0&dsh-desktop-material=transparent&dsh-desktop-titlebar-inset=36',
+      mode: 'extended',
+      url: 'http://127.0.0.1:43120/?dsh-desktop-mode=extended&dsh-desktop-platform=darwin&dsh-desktop-version=2.0.0&dsh-desktop-material=transparent&dsh-desktop-titlebar-inset=36',
       authenticationUrl: 'http://127.0.0.1:43120/?token=test-token',
       productName: 'OpenFox',
       windowTitle: 'OpenFox',
@@ -376,21 +377,6 @@ describe('desktop Host plugin', () => {
     harness.notifyTheme('dark')
     expect(harness.setThemeSource).toHaveBeenCalledWith('dark')
 
-    await harness.shell()?.requestModeChange('advanced')
-    expect(harness.update).toHaveBeenCalledWith({ mode: 'advanced' })
-  })
-
-  it('atomically withdraws browser access when the native tray selects a custom mode', async () => {
-    const harness = createHarness('darwin', true)
-    apply(harness.ctx, config)
-
-    await harness.shell()?.requestModeChange('advanced')
-
-    expect(harness.update).toHaveBeenCalledWith({
-      mode: 'advanced',
-      openBrowser: false,
-      networkExposure: 'loopback',
-    })
   })
 
   it('forwards same-origin renderer boot reports through the Host route', async () => {
@@ -558,31 +544,20 @@ describe('desktop Host plugin', () => {
     expect(harness.restart).toHaveBeenCalledOnce()
   })
 
-  it('hot-applies browser and LAN access but restarts when a custom mode withdraws them', async () => {
+  it('keeps removed browser and LAN access disabled without restarting', async () => {
     vi.useFakeTimers()
     const harness = createHarness()
     apply(harness.ctx, config)
     harness.restart.mockImplementation(() => new Promise<void>(() => {}))
 
     await harness.notify(
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'off', port: 43_120, openBrowser: true, networkExposure: 'lan', logLevel: 'info' },
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'off', port: 43_120, openBrowser: false, networkExposure: 'loopback', logLevel: 'info' },
+      { mode: 'extended', macosMaterial: 'transparent', windowsMaterial: 'off', port: 43_120, openBrowser: true, networkExposure: 'lan', logLevel: 'info' },
+      { mode: 'extended', macosMaterial: 'transparent', windowsMaterial: 'off', port: 43_120, openBrowser: false, networkExposure: 'loopback', logLevel: 'info' },
     )
     await vi.runAllTimersAsync()
     expect(harness.restart).not.toHaveBeenCalled()
-    expect(harness.browserAccess.ordinaryBrowserEnabled).toBe(true)
-    expect(harness.setLanHttpsEnabled).toHaveBeenLastCalledWith(true)
-
-    const enabledHarness = createHarness('darwin', true)
-    apply(enabledHarness.ctx, config)
-    await enabledHarness.notify(
-      { mode: 'advanced', macosMaterial: 'transparent', windowsMaterial: 'acrylic', port: 43_120, openBrowser: true, networkExposure: 'loopback', logLevel: 'info' },
-      { mode: 'compatibility', macosMaterial: 'transparent', windowsMaterial: 'acrylic', port: 43_120, openBrowser: true, networkExposure: 'loopback', logLevel: 'info' },
-    )
-    await vi.runAllTimersAsync()
-    expect(enabledHarness.restart).toHaveBeenCalledOnce()
-    expect(enabledHarness.browserAccess.ordinaryBrowserEnabled).toBe(false)
-    expect(enabledHarness.setLanHttpsEnabled).toHaveBeenLastCalledWith(false)
+    expect(harness.browserAccess.ordinaryBrowserEnabled).toBe(false)
+    expect(harness.setLanHttpsEnabled).toHaveBeenLastCalledWith(false)
   })
 
   it('requests one orderly restart after the configured Web port changes', async () => {
@@ -620,9 +595,9 @@ describe('desktop Host plugin', () => {
     expect(harness.restart).toHaveBeenCalledOnce()
   })
 
-  it('projects live built-in theme changes into an advanced native material', () => {
+  it('projects live built-in theme changes into the extended native material', () => {
     const harness = createHarness()
-    apply(harness.ctx, { ...config, mode: 'advanced' })
+    apply(harness.ctx, config)
 
     expect(harness.shell()?.readThemeSource()).toBe('system')
     harness.notifyTheme('dark')
@@ -671,38 +646,36 @@ describe('desktop Host plugin', () => {
       networkExposure: 'loopback',
       logLevel: 'info',
     }
-    expect(() => options?.validate?.({ ...settings, mode: 'advanced' })).toThrow(
-      'supported on macOS and Windows',
-    )
+    expect(() => options?.validate?.({ ...settings, mode: 'advanced' })).toThrow('only extended mode')
     expect(() => options?.validate?.({ ...settings, mode: 'extended' })).toThrow(
       'supported on macOS and Windows',
     )
-    expect(() => options?.validate?.({ ...settings, mode: 'compatibility' })).not.toThrow()
+    expect(() => options?.validate?.({ ...settings, mode: 'compatibility' })).toThrow('only extended mode')
     expect(() => options?.validate?.({
       ...settings,
       mode: 'advanced',
       openBrowser: true,
-    })).toThrow('browser access requires compatibility mode')
+    })).toThrow('only extended mode')
     expect(() => options?.validate?.({
       ...settings,
       mode: 'advanced',
       networkExposure: 'lan',
-    })).toThrow('supported on macOS and Windows')
+    })).toThrow('only extended mode')
   })
 
-  it('accepts a deferred LAN preference independently of browser mode on supported platforms', () => {
+  it('rejects removed LAN access on supported platforms', () => {
     const harness = createHarness('darwin')
     apply(harness.ctx, config)
     const options = vi.mocked(harness.ctx.settings.register).mock.calls[0]?.[2]
 
     expect(() => options?.validate?.({
-      mode: 'advanced',
+      mode: 'extended',
       macosMaterial: 'transparent',
       windowsMaterial: 'off',
       port: 43_120,
       openBrowser: false,
       networkExposure: 'lan',
       logLevel: 'info',
-    })).not.toThrow()
+    })).toThrow('browser access is unavailable')
   })
 })

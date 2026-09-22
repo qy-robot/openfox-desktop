@@ -26,13 +26,12 @@ it('preserves the Web URL and authentication while projecting shell and tray cal
   try {
     const runtime = createHostRuntime(child, runtimeSnapshot(native))
     let language: 'zh' | undefined
-    const mode = vi.fn(async () => {})
     const invoke = vi.fn(async () => {})
-    const spec = { url: 'http://127.0.0.1:1234/?dsh-desktop-mode=advanced',
+    const spec = { url: 'http://127.0.0.1:1234/?dsh-desktop-mode=extended',
       authenticationUrl: 'http://127.0.0.1:1234/?token=fixture',
       rendererAccessHeader: { name: 'x-dsh-desktop-renderer', value: 'fixture' },
       readLocalePreference: () => language, readThemeSource: () => 'dark',
-      requestQuit() {}, requestModeChange: mode,
+      requestQuit() {},
     } as unknown as DesktopShellSpec
     spec.readRemoteControl = vi.fn(async () => false)
     spec.enableRemoteControl = vi.fn(async () => {})
@@ -48,8 +47,6 @@ it('preserves the Web URL and authentication while projecting shell and tray cal
     expect(shell.authenticationUrl).toBe(spec.authenticationUrl)
     expect(shell.rendererAccessHeader).toEqual(spec.rendererAccessHeader)
     expect(shell.readLocalePreference()).toBe('zh')
-    await shell.requestModeChange('extended')
-    expect(mode).toHaveBeenCalledWith('extended')
     expect(tray.label()).toBe('Plugin action')
     await tray.submenu?.()[0]?.invoke()
     expect(invoke).toHaveBeenCalledOnce()

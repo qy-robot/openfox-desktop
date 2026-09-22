@@ -1,5 +1,5 @@
 export const ROBO_SIDEBAR_ACCOUNT_CSS = `
-body:is([data-dsh-desktop-mode="extended"],[data-dsh-desktop-mode="advanced"]) [data-slot="sidebar.footer.action"]:has(.roboSidebarAccount){scrollbar-gutter:auto}
+body[data-dsh-desktop-mode="extended"] [data-slot="sidebar.footer.action"]:has(.roboSidebarAccount){scrollbar-gutter:auto}
 /* Keep the original panel owners mounted; only their launcher rows are folded away. */
 body:has(.roboSidebarAccount) [data-slot="sidebar.settings"] > div:has(> button[aria-haspopup="dialog"]){display:none}
 body:has(.roboSidebarAccount) [data-slot="sidebar.footer.action"] span:has(> button[aria-label="手机连接"]){display:none}

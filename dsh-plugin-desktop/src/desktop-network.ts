@@ -23,7 +23,8 @@ export function parseDesktopOpenBrowser(value: unknown): boolean {
 
 /** Browser access can only be granted by an explicitly selected compatibility shell. */
 export function desktopBrowserAccessAvailable(mode: DesktopShellMode): boolean {
-  return mode === 'compatibility'
+  void mode
+  return false
 }
 
 /**

@@ -1383,9 +1383,7 @@ async function start(): Promise<void> {
     const lanHttps = new DesktopLanHttpsRuntime({
       addresses: prepared.lanAddresses, prepareCertificate: prepareHostCertificate, requestedPort: 0,
     })
-    const browserAccess = createDesktopBrowserAccess(
-      prepared.mode === 'compatibility' && prepared.openBrowser,
-    )
+    const browserAccess = createDesktopBrowserAccess(false)
     const desktopPnpmBootstrap: DesktopPnpmBootstrap = {
       activeProfileName,
       activeProfileDir: prepared.profile.dir,

@@ -10,9 +10,7 @@ import {
   DesktopSettingsMoreMenuItems,
 } from '../src/client/DesktopNativeActions.tsx'
 import {
-  DesktopModeControl,
   DesktopVersionControl,
-  selectDesktopFrameMode,
 } from '../src/client/ExtendedTitlebar.tsx'
 import {
   desktopBrowserUrlsShouldRender,
@@ -36,7 +34,6 @@ import {
   DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE,
   DESKTOP_SETTINGS_LOCALE_NAMESPACE,
   DESKTOP_SHELL_SETTINGS_NAMESPACE,
-  persistDesktopModeSelection,
 } from '../src/client/desktop-settings.ts'
 import { en, zh, type DesktopSettingsLocaleKey } from '../src/client/desktop-settings-locales.ts'
 import { installDesktopSettingsStyles } from '../src/client/desktop-settings-styles.ts'
@@ -179,38 +176,19 @@ describe('Desktop settings API', () => {
     })).toThrow('inconsistent LAN HTTPS state')
   })
 
-  it('names the section Desktop settings and describes browser opening as permission', () => {
+  it('names the section Desktop settings and omits retired mode and browser copy', () => {
     expect(zh.nav).toBe('桌面设置')
     expect(en.nav).toBe('Desktop settings')
     expect(Object.values(zh)).not.toContain('将在启动时创建')
     expect(Object.values(en)).not.toContain('Created when first started')
-    expect(zh.openBrowser).toBe('允许在浏览器中打开')
-    expect(zh.openBrowser).not.toMatch(/启动后|自动/u)
-    expect(zh.webIntro).not.toMatch(/启动后|自动/u)
-    expect(zh.browserCompatibilityNotice).toContain('兼容模式')
-    expect(zh.browserCompatibilityNotice).toContain('仅在')
-    expect(zh.browserCompatibilityNotice).toContain('先选择')
-    expect(zh.browserCompatibilityNotice).not.toContain('切换到兼容模式')
-    expect(en.openBrowser).toMatch(/allow.+(?:open|opening).+browser/iu)
-    expect(en.openBrowser).not.toMatch(/after startup|automatically/iu)
-    expect(en.webIntro).not.toMatch(/after startup|automatically/iu)
-    expect(en.browserCompatibilityNotice).toMatch(/only.+compatibility mode/iu)
-    expect(en.browserCompatibilityNotice).toMatch(/select compatibility mode first/iu)
-    expect(en.browserCompatibilityNotice).not.toMatch(/switch(?:es|ing)?.+profile/iu)
-    expect(zh.lanTrustNotice).toContain('安装并信任')
-    expect(zh.lanTrustNotice).toContain('不能保证')
-    expect(en.lanTrustNotice).toContain('Install and trust')
-    expect(en.lanTrustNotice).toContain('does not guarantee')
     expect(zh.beta).toBe('Beta')
     expect(en.beta).toBe('Beta')
-    expect(zh.lanWarningBody).toContain('持有访问链接')
-    expect(zh.lanWarningBody).toContain('HTTPS')
-    expect(zh.lanWarningBody).toContain('证书')
-    expect(en.lanWarningBody).toContain('access link')
-    expect(en.lanWarningBody).toContain('HTTPS')
-    expect(en.lanWarningBody).toContain('certificate')
-    expect(Object.keys(zh)).not.toContain('lanHttpsUnavailable')
-    expect(Object.keys(zh)).not.toContain('lanUrlsAfterRestart')
+    expect(Object.keys(zh)).not.toContain('compatibilityMode')
+    expect(Object.keys(zh)).not.toContain('advancedMode')
+    expect(Object.keys(zh)).not.toContain('openBrowser')
+    expect(Object.keys(en)).not.toContain('compatibilityMode')
+    expect(Object.keys(en)).not.toContain('advancedMode')
+    expect(Object.keys(en)).not.toContain('openBrowser')
   })
 
   it('briefly polls a starting LAN edge and stops at its first terminal state', async () => {
@@ -300,61 +278,6 @@ describe('Desktop settings API', () => {
     resolveDesktopLanConfirmation(true, dismiss, enableLan)
     expect(dismiss).toHaveBeenCalledOnce()
     expect(enableLan).toHaveBeenCalledOnce()
-  })
-
-  it('withdraws browser and LAN access before selecting a custom Desktop mode', async () => {
-    const set = vi.fn(async () => {})
-    const scope = {
-      getSnapshot: () => ({
-        status: 'ready' as const,
-        value: {
-          mode: 'compatibility' as const,
-          macosMaterial: 'transparent' as const,
-          windowsMaterial: 'off' as const,
-          port: 43_120,
-          openBrowser: true,
-          networkExposure: 'lan' as const,
-          logLevel: 'info' as const,
-        },
-        base: undefined,
-        user: undefined,
-        revision: 1,
-        writable: true,
-        mode: 'host' as const,
-      }),
-      set,
-    }
-
-    await persistDesktopModeSelection(scope, 'advanced')
-    expect(set.mock.calls).toEqual([
-      ['networkExposure', 'loopback'],
-      ['openBrowser', false],
-      ['mode', 'advanced'],
-    ])
-  })
-
-  it('withdraws browser and LAN access while the settings mirror is still loading', async () => {
-    const set = vi.fn(async () => {})
-    const scope = {
-      getSnapshot: () => ({
-        status: 'loading' as const,
-        value: undefined,
-        base: undefined,
-        user: undefined,
-        revision: undefined,
-        writable: false,
-        mode: 'host' as const,
-      }),
-      set,
-    }
-
-    await persistDesktopModeSelection(scope, 'extended')
-
-    expect(set.mock.calls).toEqual([
-      ['networkExposure', 'loopback'],
-      ['openBrowser', false],
-      ['mode', 'extended'],
-    ])
   })
 
   it('uses the strict same-origin routes and request bodies', async () => {
@@ -484,29 +407,6 @@ describe('Desktop native action presentation', () => {
     expect(markup).toContain('data-slot="hover-card-trigger"')
   })
 
-  it('renders the active presentation pill through a shadcn hover-card trigger', () => {
-    const markup = renderToStaticMarkup(createElement(DesktopModeControl, {
-      mode: 'extended',
-      setMode: vi.fn(async () => {}),
-      restart: vi.fn(async () => {}),
-      t,
-    }))
-
-    expect(markup).toContain('Extended mode')
-    expect(markup).toContain('aria-label="Window mode: Extended mode"')
-    expect(markup).toContain('data-slot="hover-card-trigger"')
-  })
-
-  it('persists a presentation change before requesting the confirmed restart', async () => {
-    const order: string[] = []
-    const setMode = vi.fn(async (mode: string) => { order.push(`mode:${mode}`) })
-    const restart = vi.fn(async () => { order.push('restart') })
-
-    await selectDesktopFrameMode('advanced', setMode, restart)
-
-    expect(order).toEqual(['mode:advanced', 'restart'])
-  })
-
   it('keeps infrequent Desktop actions behind one settings menu', () => {
     const markup = renderToStaticMarkup(createElement(DesktopNativeActions, {
       api,
@@ -625,7 +525,7 @@ describe('Desktop settings Slot registration', () => {
 
     const control = applyDesktopSettings(ctx, {
       version: '2.0.3',
-      mode: 'compatibility',
+      mode: 'extended',
       platform: 'darwin',
       material: 'off',
       micaSupported: false,
@@ -648,9 +548,7 @@ describe('Desktop settings Slot registration', () => {
     expect(options.label()).toBe(`${DESKTOP_SETTINGS_LOCALE_NAMESPACE}:nav`)
     expect(options.inject()).toMatchObject({
       platform: 'darwin',
-      initialMode: 'compatibility',
       micaSupported: false,
-      setMode: expect.any(Function),
     })
     expect(component).toBe(DesktopSettingsSection)
 
@@ -666,7 +564,6 @@ describe('Desktop settings Slot registration', () => {
     })
     expect(actionOptions.inject()).toHaveProperty('api')
     expect(actionComponent).toBe(DesktopTerminalSettingsAction)
-    await control.setMode('extended')
-    expect(scope.set).toHaveBeenCalledWith('mode', 'extended')
+    expect(control).toHaveProperty('api')
   })
 })

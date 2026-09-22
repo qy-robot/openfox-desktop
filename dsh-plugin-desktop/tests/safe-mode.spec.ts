@@ -62,7 +62,7 @@ describe('Desktop Safe Mode environment', () => {
       aaEnabled: false,
       market: 'disabled',
       settings: {
-        mode: 'compatibility',
+        mode: 'extended',
         macosMaterial: 'off',
         windowsMaterial: 'off',
         openBrowser: false,

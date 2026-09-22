@@ -78,15 +78,15 @@ export interface DesktopProfilePreferencesStateV1 extends DesktopProfilePreferen
 
 /** Project exactly the first-stage Profile fields from an effective settings view. */
 export function desktopProfilePreferencesFromSettings(
-  desktop: Pick<DesktopProfilePreferences, 'mode' | 'openBrowser' | 'networkExposure'>,
+  desktop: { readonly mode: unknown; readonly openBrowser: boolean; readonly networkExposure: DesktopNetworkExposure },
   notifications: Readonly<DesktopNotificationSettings>,
   market: DesktopMarketProvider,
   aaEnabled = false,
 ): DesktopProfilePreferences {
   return Object.freeze({
-    mode: desktop.mode,
-    openBrowser: desktop.openBrowser,
-    networkExposure: desktop.networkExposure,
+    mode: assertMode(desktop.mode, invalidUpdate),
+    openBrowser: false,
+    networkExposure: 'loopback',
     notifications: Object.freeze({ ...notifications }),
     market,
     aaEnabled,
@@ -120,8 +120,8 @@ function assertAbsolutePath(label: string, value: string): string {
 }
 
 function assertMode(value: unknown, error: ErrorFactory): DesktopShellMode {
-  if (value === 'compatibility' || value === 'extended' || value === 'advanced') return value
-  throw error('mode must be compatibility, extended, or advanced')
+  if (value === 'compatibility' || value === 'extended' || value === 'advanced') return 'extended'
+  throw error('mode must be extended')
 }
 
 function assertExposure(value: unknown, error: ErrorFactory): DesktopNetworkExposure {
@@ -172,17 +172,11 @@ function normalizedPreferences(
   if (value.aaEnabled !== undefined && typeof value.aaEnabled !== 'boolean') throw error('aaEnabled must be a boolean')
   const mode = assertMode(value.mode, error)
   if (typeof value.openBrowser !== 'boolean') throw error('openBrowser must be a boolean')
-  const networkExposure = assertExposure(value.networkExposure, error)
-  if (value.openBrowser && mode !== 'compatibility') {
-    throw error('openBrowser requires compatibility mode')
-  }
-  if (networkExposure === 'lan' && !value.openBrowser) {
-    throw error('LAN exposure requires openBrowser')
-  }
+  assertExposure(value.networkExposure, error)
   return Object.freeze({
     mode,
-    openBrowser: value.openBrowser,
-    networkExposure,
+    openBrowser: false,
+    networkExposure: 'loopback',
     notifications: normalizedNotifications(value.notifications, error),
     aaEnabled: value.aaEnabled === true,
     market: assertMarket(value.market, error),

@@ -167,10 +167,10 @@ function optionalBoolean(values: Record<string, unknown>, key: string, fallback:
   return value
 }
 
-function parseMode(value: unknown): DesktopSetupWizardMode {
-  if (value === undefined) return 'compatibility'
-  if (value === 'compatibility' || value === 'extended' || value === 'advanced') return value
-  throw invalid('dsh-desktop.mode must be compatibility, extended, or advanced')
+function parseMode(value: unknown): 'extended' {
+  if (value === undefined) return 'extended'
+  if (value === 'compatibility' || value === 'extended' || value === 'advanced') return 'extended'
+  throw invalid('dsh-desktop.mode must be extended')
 }
 
 function parseExposure(value: unknown): DesktopSetupWizardNetworkExposure {
@@ -374,6 +374,7 @@ export async function migrateDesktopBrowserAccessSettings(
     // Validate every known Wizard-owned value before migrating any leaf.
     projectSettings(loaded.root)
     const desktop = section(loaded.root, DESKTOP_NAMESPACE)
+    const storedModeValue = desktop.mode
     const storedMode = parseMode(desktop.mode)
     const storedOpenBrowser = optionalBoolean(desktop, 'openBrowser', false)
     const storedExposure = parseExposure(desktop.networkExposure)
@@ -381,7 +382,9 @@ export async function migrateDesktopBrowserAccessSettings(
     const networkExposure = desktopNetworkExposureForBrowserAccess(browserAccess, storedExposure)
     return {
       browserAccess,
-      needed: storedOpenBrowser !== browserAccess || storedExposure !== networkExposure,
+      needed: storedModeValue !== 'extended'
+        || storedOpenBrowser !== browserAccess
+        || storedExposure !== networkExposure,
       networkExposure,
     }
   }
@@ -398,12 +401,14 @@ export async function migrateDesktopBrowserAccessSettings(
 
   let output: string
   if (loaded.format === 'yaml') {
+    loaded.yaml!.setIn([DESKTOP_NAMESPACE, 'mode'], 'extended')
     loaded.yaml!.setIn([DESKTOP_NAMESPACE, 'openBrowser'], migration.browserAccess)
     loaded.yaml!.setIn([DESKTOP_NAMESPACE, 'networkExposure'], migration.networkExposure)
     output = loaded.yaml!.toString()
   } else {
     const root = structuredClone(loaded.root)
     const nextDesktop = { ...section(root, DESKTOP_NAMESPACE) }
+    nextDesktop.mode = 'extended'
     nextDesktop.openBrowser = migration.browserAccess
     nextDesktop.networkExposure = migration.networkExposure
     root[DESKTOP_NAMESPACE] = nextDesktop
@@ -459,7 +464,7 @@ export async function migrateDesktopWindowMaterialSettings(
 export function defaultDesktopSetupWizardSettings(
 ): DesktopSetupWizardSettings {
   return Object.freeze({
-    mode: 'compatibility',
+    mode: 'extended',
     macosMaterial: DEFAULT_MACOS_WINDOW_MATERIAL,
     windowsMaterial: DEFAULT_WINDOWS_WINDOW_MATERIAL,
     openBrowser: false,

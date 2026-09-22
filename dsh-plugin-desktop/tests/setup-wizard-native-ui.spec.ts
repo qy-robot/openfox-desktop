@@ -1,29 +1,21 @@
-import { Children, createElement, isValidElement, type ReactElement, type ReactNode } from 'react'
+import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type {
   DesktopSetupWizardInput,
-  DesktopSetupWizardNetworkExposure,
   DesktopSetupWizardSelection,
 } from '../src/setup-wizard-contract.ts'
 import {
-  confirmDesktopSetupWizardBrowserCompatibility,
   decodeDesktopSetupWizardInput,
   DESKTOP_SETUP_WIZARD_STEPS,
-  desktopSetupWizardSkipRequiresLanAcknowledgement,
   nextDesktopSetupWizardStep,
   normalizeDesktopSetupWizardSelection,
   previousDesktopSetupWizardStep,
-  resolveDesktopSetupWizardBrowserAccessRequest,
-  SetupWizardBrowserCompatibilityConfirmation,
-  SetupWizardLanConfirmation,
   SetupWizardNavigation,
   SetupWizardStepPage,
   SetupWizardSuccess,
   SetupWizardWelcome,
 } from '../src/native-ui/setup-wizard/App.tsx'
-import { Button } from '../src/native-ui/components/ui/button.tsx'
-import { DialogClose } from '../src/native-ui/components/ui/dialog.tsx'
 import { desktopSetupWizardCopy } from '../src/setup-wizard-copy.ts'
 
 const input: DesktopSetupWizardInput = {
@@ -67,8 +59,6 @@ function renderStep(
   return renderToStaticMarkup(createElement(SetupWizardStepPage, {
     copy,
     input,
-    requestBrowserAccess: (_enabled: boolean) => {},
-    requestExposure: (_exposure: DesktopSetupWizardNetworkExposure) => {},
     selection: current,
     step,
     update: (_next: DesktopSetupWizardSelection) => {},
@@ -79,34 +69,16 @@ function occurrences(markup: string, fragment: string): number {
   return markup.split(fragment).length - 1
 }
 
-function elementText(node: ReactNode): string {
-  if (typeof node === 'string' || typeof node === 'number') return String(node)
-  if (!isValidElement(node)) return Children.toArray(node).map(elementText).join(' ')
-  return elementText((node.props as { readonly children?: ReactNode }).children)
-}
-
-function elementTree(node: ReactNode): readonly ReactElement[] {
-  const elements: ReactElement[] = []
-  Children.forEach(node, child => {
-    if (!isValidElement(child)) return
-    elements.push(child)
-    elements.push(...elementTree((child.props as { readonly children?: ReactNode }).children))
-  })
-  return elements
-}
-
 afterEach(() => { vi.unstubAllGlobals() })
 
 describe('Setup Wizard step flow', () => {
-  it('starts with an introduction and keeps browser access as the final setting page', () => {
+  it('keeps only settings that apply to the unified extended shell', () => {
     expect(DESKTOP_SETUP_WIZARD_STEPS).toEqual([
       'welcome',
       'service',
-      'mode',
       'material',
       'aa',
       'notifications',
-      'browser',
       'success',
     ])
   })
@@ -116,19 +88,15 @@ describe('Setup Wizard step flow', () => {
       undefined,
       'welcome',
       'service',
-      'mode',
       'material',
       'aa',
       'notifications',
-      'browser',
     ])
     expect(DESKTOP_SETUP_WIZARD_STEPS.map(step => nextDesktopSetupWizardStep(step))).toEqual([
       'service',
-      'mode',
       'material',
       'aa',
       'notifications',
-      'browser',
       'success',
       undefined,
     ])
@@ -190,10 +158,8 @@ describe('Setup Wizard welcome page', () => {
 describe('Setup Wizard setting pages', () => {
   it.each([
     ['service', 'serviceTitle', 'serviceBody'],
-    ['mode', 'presentationTitle', 'presentationBody'],
     ['material', 'windowMaterial', 'windowMaterialBody'],
     ['notifications', 'notificationsTitle', 'notificationsBody'],
-    ['browser', 'browserTitle', 'browserBody'],
   ] as const)('renders the %s page with its own title and subtitle', (step, title, body) => {
     const markup = renderStep(step)
     expect(markup).toContain(`data-setup-step="${step}"`)
@@ -202,7 +168,7 @@ describe('Setup Wizard setting pages', () => {
     expect(occurrences(markup, 'data-setup-step=')).toBe(1)
   })
 
-  it.each(['service', 'mode', 'material', 'notifications', 'browser'] as const)(
+  it.each(['service', 'material', 'notifications'] as const)(
     'lays out the %s page options vertically',
     (step) => {
       expect(renderStep(step)).toContain('data-orientation="vertical"')
@@ -220,9 +186,7 @@ describe('Setup Wizard setting pages', () => {
   })
 
   it.each([
-    ['mode', copy.presentationTitle],
     ['material', copy.windowMaterial],
-    ['browser', copy.networkExposure],
   ] as const)('uses a named shadcn RadioGroup for the %s choices', (step, accessibleName) => {
     const markup = renderStep(step)
     expect(markup).toContain('data-slot="radio-group"')
@@ -233,7 +197,7 @@ describe('Setup Wizard setting pages', () => {
   it('removes plugin market setup and disables legacy market preferences', () => {
     expect(DESKTOP_SETUP_WIZARD_STEPS).not.toContain('market')
     expect(normalizeDesktopSetupWizardSelection(input)).toMatchObject({ market: 'disabled' })
-    for (const step of ['service', 'mode', 'material', 'aa', 'notifications', 'browser'] as const) {
+    for (const step of ['service', 'material', 'aa', 'notifications'] as const) {
       const markup = renderStep(step)
       expect(markup).not.toContain(copy.marketTitle)
       expect(markup).not.toContain(copy.communityMarket)
@@ -242,50 +206,10 @@ describe('Setup Wizard setting pages', () => {
     }
   })
 
-  it('marks LAN access as a Beta feature', () => {
-    const browser = renderStep('browser')
-    const enabledBrowser = renderStep('browser', {
-      ...selection,
-      mode: 'compatibility',
-      openBrowser: true,
-      networkExposure: 'lan',
-    })
-    const lanOption = browser.indexOf('for="setup-network-exposure-lan"')
-    const lanBadge = browser.indexOf('data-slot="badge"')
-    const enabledLanOption = enabledBrowser.indexOf('for="setup-network-exposure-lan"')
-    const enabledLanChoice = enabledBrowser.slice(
-      enabledLanOption,
-      enabledBrowser.indexOf('</label>', enabledLanOption),
-    )
-
-    expect(occurrences(browser, 'data-slot="badge"')).toBe(1)
-    expect(browser).toContain(copy.beta)
-    expect(lanBadge).toBeGreaterThan(lanOption)
-    expect(browser.slice(lanOption)).toContain('disabled=""')
-    expect(enabledLanChoice).not.toContain('disabled=""')
-    expect(enabledLanChoice).toContain('aria-checked="true"')
-    expect(browser).toContain('HTTPS')
-  })
-
-  it('describes browser access as an opt-in capability limited to compatibility mode', () => {
-    const browser = renderStep('browser')
-    expect(browser).toContain(copy.openBrowser)
-    expect(browser).toContain(copy.browserCompatibilityNotice)
-    expect(copy.openBrowser).toBe('允许在浏览器中打开')
-    expect(copy.openBrowser).not.toContain('启动后')
-    expect(copy.openBrowser).not.toContain('自动')
-    expect(copy.browserCompatibilityNotice).toContain('兼容模式')
-    expect(copy.browserCompatibilityNotice).toContain('仅在')
-    expect(browser).not.toMatch(/<button[^>]*disabled=""[^>]*aria-label="允许在浏览器中打开"/u)
-  })
-
   it('uses the shadcn Switch component for every wizard toggle', () => {
     const notifications = renderStep('notifications')
-    const browser = renderStep('browser')
     expect(occurrences(notifications, 'data-slot="switch"')).toBe(5)
     expect(occurrences(notifications, 'role="switch"')).toBe(5)
-    expect(occurrences(browser, 'data-slot="switch"')).toBe(1)
-    expect(occurrences(browser, 'role="switch"')).toBe(1)
   })
 })
 
@@ -314,7 +238,7 @@ describe('Setup Wizard navigation and completion', () => {
       onBack: () => {},
       onNext: () => {},
       onSkip: () => {},
-      step: 'mode',
+      step: 'service',
     }))
     expect(markup).toContain(`aria-label="${copy.back}"`)
     expect(markup).not.toMatch(new RegExp(`<button[^>]+aria-label="${copy.back}"[^>]+disabled=""`, 'u'))
@@ -359,95 +283,6 @@ describe('Setup Wizard navigation and completion', () => {
 })
 
 describe('Setup Wizard native UI boundaries', () => {
-  it('does not let Skip bypass the LAN danger acknowledgement', () => {
-    const exposed = {
-      ...selection,
-      mode: 'compatibility' as const,
-      openBrowser: true,
-      networkExposure: 'lan' as const,
-    }
-    expect(desktopSetupWizardSkipRequiresLanAcknowledgement(exposed, false)).toBe(true)
-    expect(desktopSetupWizardSkipRequiresLanAcknowledgement(exposed, true)).toBe(false)
-    expect(desktopSetupWizardSkipRequiresLanAcknowledgement({
-      ...exposed,
-      networkExposure: 'loopback',
-    }, false)).toBe(false)
-  })
-
-  it('asks before switching a custom mode to compatibility for browser access', () => {
-    expect(resolveDesktopSetupWizardBrowserAccessRequest(selection, true)).toEqual({
-      action: 'confirm-compatibility',
-    })
-    expect(resolveDesktopSetupWizardBrowserAccessRequest(selection, false)).toEqual({
-      action: 'update',
-      selection: { ...selection, openBrowser: false, networkExposure: 'loopback' },
-    })
-    expect(confirmDesktopSetupWizardBrowserCompatibility({
-      ...selection,
-      networkExposure: 'lan',
-    })).toEqual({
-      ...selection,
-      mode: 'compatibility',
-      openBrowser: true,
-      networkExposure: 'loopback',
-    })
-
-    const dialog = SetupWizardBrowserCompatibilityConfirmation({
-      copy,
-      confirm: () => {},
-      cancel: () => {},
-    })
-    const dialogProps = dialog.props as { readonly children?: ReactNode; readonly open?: boolean }
-    const content = Children.toArray(dialogProps.children).find(isValidElement) as ReactElement | undefined
-    expect(dialogProps.open).toBe(true)
-    expect(content?.props).toMatchObject({
-      'aria-describedby': 'browser-compatibility-body',
-      'aria-labelledby': 'browser-compatibility-title',
-      'aria-modal': 'true',
-      role: 'alertdialog',
-      showCloseButton: false,
-    })
-    const text = elementText(content)
-    expect(text).toContain('在浏览器中打开只能使用兼容模式')
-    expect(text).toContain(copy.confirmBrowserCompatibility)
-    expect(text).toContain(copy.cancelBrowserCompatibility)
-  })
-
-  it('renders the LAN warning as an in-window alert dialog with explicit choices', () => {
-    const dialog = SetupWizardLanConfirmation({
-      copy,
-      confirm: () => {},
-      cancel: () => {},
-    })
-    const dialogProps = dialog.props as { readonly children?: ReactNode; readonly open?: boolean }
-    const content = Children.toArray(dialogProps.children).find(isValidElement) as ReactElement | undefined
-    expect(dialogProps.open).toBe(true)
-    expect(content).toBeDefined()
-    expect(content?.props).toMatchObject({
-      'aria-describedby': 'lan-warning-body',
-      'aria-labelledby': 'lan-warning-title',
-      'aria-modal': 'true',
-      role: 'alertdialog',
-      showCloseButton: false,
-    })
-    const text = elementText(content)
-    expect(text).toContain('持有访问链接')
-    expect(text).toContain('操作这台电脑')
-    expect(text).toContain('HTTPS')
-    expect(text).toContain('安装并信任')
-    expect(text).toContain('开启局域网访问')
-    expect(text).toContain('保持仅本机访问')
-    const descendants = elementTree(content)
-    const close = descendants.find(element => element.type === DialogClose)
-    const confirm = descendants.find(element => element.type === Button
-      && elementText(element).includes(copy.confirmLan)
-      && (element.props as { readonly variant?: string }).variant === 'destructive')
-    expect(close).toBeDefined()
-    expect((close?.props as { readonly render?: ReactElement }).render?.props).toMatchObject({ autoFocus: true })
-    expect(confirm).toBeDefined()
-    expect((confirm?.props as { readonly autoFocus?: boolean }).autoFocus).not.toBe(true)
-  })
-
   it('decodes only the exact bounded state tuple emitted by the owner window', () => {
     vi.stubGlobal('window', { atob: globalThis.atob })
     const state = Buffer.from(JSON.stringify(input), 'utf8').toString('base64url')

@@ -19,8 +19,8 @@ describe('compatibility HTML chrome', () => {
     const view = read('client/DesktopFrameTitlebarView.tsx')
     expect(view).toContain('delay={150}')
     expect(view).toContain('closeDelay={200}')
-    expect(view).toContain('MODE_OPTIONS.filter(option => option.mode !== mode)')
-    expect(view).toContain("t(option.body)")
+    expect(view).not.toContain('MODE_OPTIONS')
+    expect(view).not.toContain('selectDesktopFrameMode')
   })
 
   it('expands only for popup DOM and collapses again after removal or disposal', async () => {

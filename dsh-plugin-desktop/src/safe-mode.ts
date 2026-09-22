@@ -35,7 +35,7 @@ export const DESKTOP_SAFE_MODE_DEFAULTS: Readonly<{
   aaEnabled: false,
   market: 'disabled',
   settings: Object.freeze({
-    mode: 'compatibility',
+    mode: 'extended',
     macosMaterial: 'off',
     windowsMaterial: 'off',
     openBrowser: false,

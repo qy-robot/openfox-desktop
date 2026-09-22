@@ -1,7 +1,7 @@
 # OpenFox 本地技能联调 / Local skills development
 
-Desktop extended / advanced 模式保留原输入框，在工具栏增加“技能”。兼容模式保留上游客户端。
-The extended and advanced modes add a skills picker to the existing composer. Compatibility mode retains the upstream client.
+Desktop 扩展模式保留原输入框，并在工具栏增加“技能”。
+The extended presentation keeps the existing composer and adds a skills picker to its toolbar.
 
 1. 独立启动本地技能服务，接口为 `GET /v1/catalog`、`POST /v1/demo-runs`。默认地址 `http://127.0.0.1:8765`。
    Start the local skills service separately with those two endpoints.

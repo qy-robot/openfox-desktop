@@ -1,4 +1,4 @@
-/** Independent frame shared by compatibility and inverted-L extended modes. */
+/** Independent frame for the inverted-L extended presentation. */
 
 import {
   EXTENDED_INNER_CORNER_RADIUS,
@@ -10,18 +10,18 @@ import {
 const STYLE_ID = 'dsh-desktop-framed-styles'
 
 const CSS = `
-html:has(body:is([data-dsh-desktop-mode="compatibility"], [data-dsh-desktop-mode="extended"])),
-body:is([data-dsh-desktop-mode="compatibility"], [data-dsh-desktop-mode="extended"]) {
+html:has(body[data-dsh-desktop-mode="extended"]),
+body[data-dsh-desktop-mode="extended"] {
   width: 100%;
   height: 100%;
 }
-body:is([data-dsh-desktop-mode="compatibility"], [data-dsh-desktop-mode="extended"]) {
+body[data-dsh-desktop-mode="extended"] {
   --dsh-desktop-frame-height: 0px;
   margin: 0;
   overflow: hidden;
   background: transparent !important;
 }
-body:is([data-dsh-desktop-mode="compatibility"], [data-dsh-desktop-mode="extended"]) #root {
+body[data-dsh-desktop-mode="extended"] #root {
   box-sizing: border-box;
   position: fixed;
   top: 0;
@@ -36,20 +36,20 @@ body:is([data-dsh-desktop-mode="compatibility"], [data-dsh-desktop-mode="extende
 }
 /* The custom frame owns the top band. A shell overlay is the containing block
    for fixed plugin surfaces, so they cannot escape into Desktop chrome. */
-body:is([data-dsh-desktop-mode="compatibility"], [data-dsh-desktop-mode="extended"])
+body[data-dsh-desktop-mode="extended"]
   [data-shell-overlay] {
   overflow: hidden;
   transform: translateZ(0);
 }
 /* Full-viewport dialogs portalled directly to body still belong to content. */
-body:is([data-dsh-desktop-mode="compatibility"], [data-dsh-desktop-mode="extended"])
+body[data-dsh-desktop-mode="extended"]
   > [role="presentation"]:has(> [aria-modal="true"]),
-body:is([data-dsh-desktop-mode="compatibility"], [data-dsh-desktop-mode="extended"])
+body[data-dsh-desktop-mode="extended"]
   > [aria-modal="true"] {
   top: var(--dsh-desktop-frame-height) !important;
   transform: translateZ(0);
 }
-body:is([data-dsh-desktop-mode="compatibility"], [data-dsh-desktop-mode="extended"])
+body[data-dsh-desktop-mode="extended"]
   [data-slot="sidebar.footer.action"] {
   display: flex !important;
   flex-direction: column;
@@ -62,7 +62,7 @@ body:is([data-dsh-desktop-mode="compatibility"], [data-dsh-desktop-mode="extende
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
 }
-body:is([data-dsh-desktop-mode="compatibility"], [data-dsh-desktop-mode="extended"])
+body[data-dsh-desktop-mode="extended"]
   [data-slot="sidebar.footer.action"] > * {
   flex: none;
   min-width: 0;
@@ -88,17 +88,14 @@ body[data-dsh-desktop-mode="extended"] .dshDesktopDetailsSurface {
   box-sizing: border-box;
   border-top: 1px solid var(--dsw-alias-border-l1);
 }
-body:is([data-dsh-desktop-mode="compatibility"], [data-dsh-desktop-mode="extended"])
+body[data-dsh-desktop-mode="extended"]
   [data-dsh-desktop-content-viewport],
-body:is([data-dsh-desktop-mode="compatibility"], [data-dsh-desktop-mode="extended"])
+body[data-dsh-desktop-mode="extended"]
   [data-dsh-desktop-frame="titlebar"] {
   isolation: isolate;
 }
-body:is([data-dsh-desktop-mode="compatibility"], [data-dsh-desktop-mode="extended"])[data-dsh-desktop-material="off"] {
+body[data-dsh-desktop-mode="extended"][data-dsh-desktop-material="off"] {
   --dsh-desktop-frame-fill: var(--dsw-alias-bg-layer-1);
-}
-body[data-dsh-desktop-mode="compatibility"]:not([data-dsh-desktop-material="off"]) {
-  --dsh-desktop-frame-fill: color-mix(in srgb, var(--dsw-alias-bg-base) 54%, transparent);
 }
 body[data-dsh-desktop-mode="extended"]:not([data-dsh-desktop-material="off"]) {
   --dsh-desktop-frame-fill: color-mix(in srgb, var(--dsw-alias-bg-base) 18%, transparent);
@@ -252,70 +249,6 @@ body[data-dsh-desktop-mode="extended"]:not([data-dsh-desktop-material="off"]) {
 .dshDesktopFrameMode:focus-visible {
   outline: 2px solid var(--dsw-alias-brand-primary);
   outline-offset: 1px;
-}
-.dshDesktopModePopover {
-  width: 292px;
-  gap: 7px;
-}
-.dshDesktopModePopoverHeader {
-  color: var(--dsw-alias-label-secondary);
-  font-size: 13px;
-  font-weight: 600;
-}
-.dshDesktopModeOptions {
-  display: grid;
-  gap: 3px;
-}
-.dshDesktopVersionPopover .dshDesktopModeOption {
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr);
-  align-items: start;
-  box-sizing: border-box;
-  width: 100%;
-  height: auto;
-  min-height: 50px;
-  padding: 7px 8px;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--dsw-alias-label-primary);
-  cursor: pointer;
-  text-align: left;
-  white-space: normal;
-  -webkit-app-region: no-drag;
-}
-.dshDesktopVersionPopover .dshDesktopModeOption:hover:not(:disabled) {
-  background: var(--dsw-alias-interactive-bg-hover);
-}
-.dshDesktopVersionPopover .dshDesktopModeOption:focus-visible {
-  outline: 2px solid var(--dsw-alias-brand-primary);
-  outline-offset: -1px;
-}
-.dshDesktopVersionPopover .dshDesktopModeOption:disabled {
-  cursor: default;
-  opacity: .55;
-}
-.dshDesktopModeOption > svg {
-  width: 16px;
-  height: 16px;
-  margin-top: 1px;
-  stroke-width: 1.8;
-}
-.dshDesktopModeOptionCopy {
-  display: grid;
-  min-width: 0;
-  gap: 2px;
-}
-.dshDesktopModeOptionCopy strong {
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.3;
-}
-.dshDesktopModeOptionCopy small {
-  color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.35;
 }
 .dshDesktopFrameActions {
   position: relative;

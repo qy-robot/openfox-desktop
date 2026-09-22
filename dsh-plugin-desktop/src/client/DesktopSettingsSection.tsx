@@ -8,12 +8,7 @@ import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-cli
 import type {
   DesktopProfileView, DesktopSettingsApi, DesktopSettingsView,
 } from './desktop-settings-api.ts'
-import type { DesktopSettingsLocaleKey } from './desktop-settings-locales.ts'
 import type { DesktopClientPlatform } from './environment.ts'
-import {
-  desktopBrowserAccessAvailable,
-  desktopBrowserAccessEnabled,
-} from '../desktop-network.ts'
 
 /** Browser view of the Host `dsh-desktop` settings namespace. */
 export interface DesktopShellSettings {
@@ -39,9 +34,7 @@ export interface DesktopNotificationSettings {
 export interface DesktopSettingsSectionInjected {
   readonly api: DesktopSettingsApi
   readonly platform: DesktopClientPlatform
-  readonly initialMode: DesktopShellSettings['mode']
   readonly micaSupported: boolean
-  readonly setMode: (mode: DesktopShellSettings['mode']) => Promise<void>
   readonly desktopSettings: SettingsScope<DesktopShellSettings>
   readonly notificationSettings: SettingsScope<DesktopNotificationSettings>
 }
@@ -53,19 +46,12 @@ export type DesktopSettingsSectionProps =
   & InjectFace<DesktopSettingsSectionInjected>
 
 type Translate = DesktopSettingsSectionProps['t']
-type BusyOperation = 'load' | 'create-profile' | 'select-profile' | 'delete-profile' | 'select-aa' | 'mode' | 'material' | 'web' | 'notification'
+type BusyOperation = 'load' | 'create-profile' | 'select-profile' | 'delete-profile' | 'select-aa' | 'material' | 'notification'
 type RestartState = 'none' | 'restarting' | 'required'
 type LanPollWait = (signal: AbortSignal) => Promise<void>
 
 const LAN_POLL_INTERVAL_MS = 250
 const LAN_POLL_MAX_READS = 21
-
-const LAN_STATE_LOCALE_KEYS = {
-  inactive: 'lanStatusInactive',
-  starting: 'lanStatusStarting',
-  ready: 'lanStatusReady',
-  failed: 'lanStatusFailed',
-} as const satisfies Record<DesktopSettingsView['web']['lanState'], DesktopSettingsLocaleKey>
 
 function waitForLanPoll(signal: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -255,9 +241,7 @@ export function DesktopSettingsSection({
   t,
   api,
   platform,
-  initialMode,
   micaSupported,
-  setMode: persistMode,
   desktopSettings,
   notificationSettings,
 }: DesktopSettingsSectionProps) {
@@ -271,7 +255,6 @@ export function DesktopSettingsSection({
   const [aaStatus, setAaStatus] = useState<'idle' | 'saving' | 'failed' | 'saved'>('idle')
   const [restart, setRestart] = useState<RestartState>('none')
   const [pendingProfileDelete, setPendingProfileDelete] = useState<string>()
-  const [confirmLan, setConfirmLan] = useState(false)
   const lanPoll = useRef<AbortController>()
 
   const refreshView = useCallback(async () => {
@@ -322,15 +305,6 @@ export function DesktopSettingsSection({
   const requestRestart = (): void => { setRestart('restarting') }
   const settingsWritable = desktop.status === 'ready' && desktop.writable
   const notificationsWritable = notifications.status === 'ready' && notifications.writable
-  const storedMode = desktop.value?.mode ?? initialMode
-  const configuredNetworkExposure = desktop.value?.networkExposure ?? 'loopback'
-  const browserAccess = desktopBrowserAccessEnabled(
-    storedMode,
-    desktop.value?.openBrowser ?? false,
-    configuredNetworkExposure,
-  )
-  const mode = storedMode
-  const networkExposure = browserAccess ? configuredNetworkExposure : 'loopback'
   const notificationValue = notifications.value ?? {
     enabled: true,
     notifyOnTurnCompletion: true,
@@ -381,13 +355,6 @@ export function DesktopSettingsSection({
     })
   }
 
-  const setMode = (next: DesktopShellSettings['mode']): void => {
-    void run('mode', async () => {
-      await persistMode(next)
-      requestRestart()
-    })
-  }
-
   const setMaterial = (next: string): void => {
     void run('material', async () => {
       if (platform === 'darwin') {
@@ -407,24 +374,6 @@ export function DesktopSettingsSection({
 
   const setNotification = (field: keyof DesktopNotificationSettings, checked: boolean): void => {
     void run('notification', async () => { await notificationSettings.set(field, checked) })
-  }
-
-  const setBrowserAccess = (checked: boolean): void => {
-    void run('web', async () => {
-      if (checked) {
-        if (!desktopBrowserAccessAvailable(mode)) return
-        await persistDesktopBrowserAccessHot(desktopSettings, true, configuredNetworkExposure, refreshView)
-        return
-      }
-      await persistDesktopBrowserAccessHot(desktopSettings, false, configuredNetworkExposure, refreshView)
-    })
-  }
-
-  const setNetworkExposure = (exposure: DesktopShellSettings['networkExposure']): void => {
-    void run('web', async () => {
-      if (exposure === 'lan' && (!desktopBrowserAccessAvailable(mode) || !browserAccess)) return
-      await persistDesktopNetworkExposureHot(desktopSettings, exposure, refreshView)
-    })
   }
 
   return (
@@ -568,32 +517,6 @@ export function DesktopSettingsSection({
           <p className="dshDesktopSettingsGroupIntro">{t('presentationIntro')}</p>
         </div>
         {desktop.status === 'unavailable' && <p className="dshDesktopSettingsNotice">{t('readOnly')}</p>}
-        <div className="dshDesktopSettingsList" role="radiogroup" aria-labelledby="dsh-desktop-presentation-title">
-          <Choice
-            title={t('compatibilityMode')}
-            body={t('compatibilityModeBody')}
-            selected={mode === 'compatibility'}
-            disabled={!settingsWritable || busy !== undefined || restart !== 'none'}
-            action={() => { setMode('compatibility') }}
-            status={mode === 'compatibility' ? t('selected') : undefined}
-          />
-          <Choice
-            title={t('extendedMode')}
-            body={platform === 'linux' ? t('extendedUnavailableLinux') : t('extendedModeBody')}
-            selected={mode === 'extended'}
-            disabled={platform === 'linux' || !settingsWritable || busy !== undefined || restart !== 'none'}
-            action={() => { setMode('extended') }}
-            status={mode === 'extended' ? t('selected') : undefined}
-          />
-          <Choice
-            title={t('advancedMode')}
-            body={platform === 'linux' ? t('advancedUnavailableLinux') : t('advancedModeBody')}
-            selected={mode === 'advanced'}
-            disabled={platform === 'linux' || !settingsWritable || busy !== undefined || restart !== 'none'}
-            action={() => { setMode('advanced') }}
-            status={mode === 'advanced' ? t('selected') : undefined}
-          />
-        </div>
         {platform !== 'linux' && (
           <label className="dshDesktopSettingsMaterialField">
             <span className="dshDesktopSettingsMaterialCopy">
@@ -621,68 +544,6 @@ export function DesktopSettingsSection({
                   )}
             </select>
           </label>
-        )}
-      </section>
-
-      <section className="dshDesktopSettingsGroup" aria-labelledby="dsh-desktop-web-title">
-        <div>
-          <h3 id="dsh-desktop-web-title">{t('webTitle')}</h3>
-          <p className="dshDesktopSettingsGroupIntro">{t('webIntro')}</p>
-        </div>
-        <ToggleRow
-          label={t('openBrowser')}
-          checked={browserAccess}
-          disabled={!desktopBrowserAccessAvailable(mode) || !settingsWritable || busy !== undefined}
-          onChange={setBrowserAccess}
-        />
-        <p className="dshDesktopSettingsNotice">{t('browserCompatibilityNotice')}</p>
-        <ToggleRow
-          label={t('lanAccess')}
-          badge={t('beta')}
-          checked={networkExposure === 'lan'}
-          disabled={!browserAccess || !settingsWritable || busy !== undefined}
-          onChange={(checked) => {
-            if (checked) setConfirmLan(true)
-            else setNetworkExposure('loopback')
-          }}
-        />
-        {view !== undefined && (
-          <div className="dshDesktopSettingsLanStatus" data-state={view.web.lanState} role="status">
-            <span className="dshDesktopSettingsChoiceTitle">
-              {t('lanStatus')}
-              <span className="dshDesktopSettingsBadge">{t(LAN_STATE_LOCALE_KEYS[view.web.lanState])}</span>
-            </span>
-            {view.web.lanError !== null && (
-              <span className="dshDesktopSettingsChoiceBody">
-                {t('lanError')}: <code>{view.web.lanError}</code>
-              </span>
-            )}
-          </div>
-        )}
-        {desktopBrowserUrlsShouldRender(browserAccess, networkExposure) && view !== undefined && (
-          <div className="dshDesktopSettingsUrls">
-            <span className="dshDesktopSettingsChoiceTitle">{t('browserUrls')}</span>
-            <a href={view.web.localUrl} target="_blank" rel="noopener noreferrer">{view.web.localUrl}</a>
-            {view.web.lanUrls.length > 0 && <span className="dshDesktopSettingsChoiceTitle">{t('lanHttpsUrls')}</span>}
-            {view.web.lanUrls.map(url => <a href={url} key={url} target="_blank" rel="noopener noreferrer">{url}</a>)}
-          </div>
-        )}
-        {networkExposure === 'lan' && view !== undefined && (
-          <>
-            <p className="dshDesktopSettingsNotice">{t('lanTrustNotice')}</p>
-            {(view.web.lanCaFingerprint !== null || view.web.lanCaUrls.length > 0) && (
-              <div className="dshDesktopSettingsUrls">
-                <span className="dshDesktopSettingsChoiceTitle">{t('lanCaTitle')}</span>
-                {view.web.lanCaFingerprint !== null && (
-                  <span className="dshDesktopSettingsLanFingerprint">
-                    {t('lanCaFingerprint')}: <code>{view.web.lanCaFingerprint}</code>
-                  </span>
-                )}
-                {view.web.lanCaUrls.length > 0 && <span className="dshDesktopSettingsChoiceBody">{t('lanCaDownloads')}</span>}
-                {view.web.lanCaUrls.map(url => <a href={url} key={url} target="_blank" rel="noopener noreferrer">{url}</a>)}
-              </div>
-            )}
-          </>
         )}
       </section>
 
@@ -725,34 +586,6 @@ export function DesktopSettingsSection({
           />
         </div>
       </section>
-      {confirmLan && (
-        <div className="dshDesktopSettingsDialogBackdrop" role="presentation">
-          <div className="dshDesktopSettingsDialog" role="alertdialog" aria-modal="true" aria-labelledby="dsh-desktop-lan-warning-title" aria-describedby="dsh-desktop-lan-warning-body">
-            <h3 id="dsh-desktop-lan-warning-title">{t('lanWarningTitle')}</h3>
-            <p id="dsh-desktop-lan-warning-body">{t('lanWarningBody')}</p>
-            <div className="dshDesktopSettingsDialogActions">
-              <button
-                type="button"
-                className="dshDesktopSettingsButton dshDesktopSettingsButtonSecondary"
-                onClick={() => {
-                  resolveDesktopLanConfirmation(false, () => { setConfirmLan(false) }, () => { setNetworkExposure('lan') })
-                }}
-              >
-                {t('lanCancel')}
-              </button>
-              <button
-                type="button"
-                className="dshDesktopSettingsButton dshDesktopSettingsButtonDanger"
-                onClick={() => {
-                  resolveDesktopLanConfirmation(true, () => { setConfirmLan(false) }, () => { setNetworkExposure('lan') })
-                }}
-              >
-                {t('lanConfirm')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

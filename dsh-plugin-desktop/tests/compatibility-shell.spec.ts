@@ -27,7 +27,7 @@ vi.mock('electron', () => ({
   },
 }))
 
-function fixture(platform: 'darwin' | 'win32' = 'darwin', mode: 'compatibility' | 'extended' = 'compatibility', material: DesktopShellSpec['material'] = 'off') {
+function fixture(platform: 'darwin' | 'win32' = 'darwin', mode: 'extended' = 'extended', material: DesktopShellSpec['material'] = 'off') {
   const ipc = { handle: vi.fn(), removeHandler: vi.fn() }
   const webContents = Object.assign(new EventEmitter(), {
     ipc,
@@ -53,7 +53,7 @@ function fixture(platform: 'darwin' | 'win32' = 'darwin', mode: 'compatibility' 
     reload: vi.fn(), developerTools: vi.fn(),
     checkForUpdates: vi.fn(async () => {}),
   }
-  const spec = { mode, material, requestModeChange: vi.fn(async () => {}) } as unknown as DesktopShellSpec
+  const spec = { mode, material } as unknown as DesktopShellSpec
   const shell = new CompatibilityShell(window as unknown as BrowserWindow, spec, platform, '/desktop/preload.cjs', actions)
   const handler = ipc.handle.mock.calls[0]?.[1] as (event: unknown, command: unknown) => unknown
   const event = () => ({ sender: webContents, senderFrame: webContents.mainFrame })
@@ -69,7 +69,6 @@ describe('isolated compatibility shell', () => {
     ['darwin', 'extended', 'transparent', true],
     ['win32', 'extended', 'mica', true],
     ['darwin', 'extended', 'off', false],
-    ['darwin', 'compatibility', 'transparent', false],
   ] as const)('preserves the content material boundary for %s %s %s', (platform, mode, material, transparent) => {
     const { shell } = fixture(platform, mode, material)
     if (transparent) expect(shell.content.setBackgroundColor).toHaveBeenCalledExactlyOnceWith('#00000000')
@@ -77,11 +76,11 @@ describe('isolated compatibility shell', () => {
     shell.dispose()
   })
 
-  it.each(['compatibility', 'extended'] as const)('isolates %s chrome with native bounds outside the content document', async mode => {
-    const { shell, window, webContents, handler, event } = fixture('darwin', mode)
+  it('isolates extended chrome with native bounds outside the content document', async () => {
+    const { shell, window, webContents, handler, event } = fixture('darwin', 'extended')
     await shell.load()
-    expect(handler(event(), 'state')).toMatchObject({ mode })
-    expect(webContents.loadFile).toHaveBeenCalledWith(expect.stringMatching(/native-ui\/compatibility-chrome\.html$/))
+    expect(handler(event(), 'state')).toMatchObject({ mode: 'extended' })
+    expect(webContents.loadFile).toHaveBeenCalledWith(expect.stringMatching(/native-ui[\\/]compatibility-chrome\.html$/))
     expect(window.contentView.addChildView).toHaveBeenCalledWith(shell.content)
     expect(shell.content).toMatchObject({ options: { webPreferences: {
       partition: 'persist:dsh-desktop-renderer', preload: '/desktop/preload.cjs',
@@ -100,7 +99,7 @@ describe('isolated compatibility shell', () => {
   it('rejects other renderers, child frames, navigated chrome, and arbitrary commands', async () => {
     const { shell, handler, event, webContents, actions } = fixture()
     await shell.load()
-    expect(handler(event(), 'state')).toEqual({ mode: 'compatibility', locale: 'en', platform: 'darwin', version: '2.0.3', material: 'off' })
+    expect(handler(event(), 'state')).toEqual({ mode: 'extended', locale: 'en', platform: 'darwin', version: '2.0.3', material: 'off' })
     expect(() => handler({ ...event(), sender: electron.content }, 'terminal')).toThrow('untrusted')
     expect(() => handler({ ...event(), senderFrame: { url: webContents.mainFrame.url } }, 'terminal')).toThrow('untrusted')
     expect(() => handler(event(), { command: 'terminal' })).toThrow('unsupported')
@@ -149,14 +148,10 @@ describe('isolated compatibility shell', () => {
   })
 
   it('routes fixed actions without replacing the HTML menus with native menus', async () => {
-    const { shell, handler, event, actions, spec } = fixture()
+    const { shell, handler, event, actions } = fixture()
     await shell.load()
     await handler(event(), 'terminal')
     await handler(event(), 'check-for-updates')
-    await handler(event(), 'mode-compatibility')
-    expect(spec.requestModeChange).toHaveBeenCalledWith('compatibility')
-    await handler(event(), 'mode-extended')
-    expect(spec.requestModeChange).toHaveBeenCalledWith('extended')
     expect(actions.restart).not.toHaveBeenCalled()
     await handler(event(), 'restart')
     await handler(event(), 'restart-recovery')
@@ -170,12 +165,9 @@ describe('isolated compatibility shell', () => {
     shell.dispose()
   })
 
-  it('returns persistence and update failures to the original inline error UI', async () => {
-    const { shell, handler, event, spec, actions } = fixture()
+  it('returns update failures to the original inline error UI', async () => {
+    const { shell, handler, event, actions } = fixture()
     await shell.load()
-    vi.mocked(spec.requestModeChange).mockRejectedValueOnce(new Error('write failed'))
-    await expect(handler(event(), 'mode-advanced')).rejects.toThrow('write failed')
-    expect(actions.restart).not.toHaveBeenCalled()
     vi.mocked(actions.checkForUpdates).mockRejectedValueOnce(new Error('update failed'))
     await expect(handler(event(), 'check-for-updates')).rejects.toThrow('update failed')
     shell.dispose()

@@ -56,10 +56,10 @@ function input(overrides: Partial<DesktopSetupWizardInput> = {}): DesktopSetupWi
     profileName: 'work',
     platform: 'win32',
     micaSupported: true,
-    mode: 'compatibility',
+    mode: 'extended',
     macosMaterial: 'transparent',
     windowsMaterial: 'mica',
-    openBrowser: true,
+    openBrowser: false,
     networkExposure: 'loopback',
     aaEnabled: false,
   market: 'community-market',
@@ -97,10 +97,10 @@ describe('Desktop Setup Wizard action parser', () => {
     expect(parseDesktopSetupWizardAction(completeUrl())).toEqual({
       action: 'complete',
       selection: {
-        mode: 'compatibility',
+        mode: 'extended',
         macosMaterial: 'transparent',
         windowsMaterial: 'mica',
-        openBrowser: true,
+        openBrowser: false,
         networkExposure: 'loopback',
         aaEnabled: false,
   market: 'community-market',
@@ -222,7 +222,7 @@ describe('DesktopSetupWizardWindow', () => {
   })
 
   it('ignores selections unavailable for the supplied platform capabilities', async () => {
-    const linuxInput = input({ platform: 'linux', micaSupported: false, mode: 'compatibility' })
+    const linuxInput = input({ platform: 'linux', micaSupported: false, mode: 'extended' })
     const result = new DesktopSetupWizardWindow({ locale: 'en', input: linuxInput }).run()
     await vi.waitFor(() => { expect(electron.windows).toHaveLength(1) })
     navigate(electron.windows[0]!, completeUrl({ ...linuxInput, mode: 'advanced' }))

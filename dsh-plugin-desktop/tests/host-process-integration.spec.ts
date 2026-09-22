@@ -21,7 +21,7 @@ it.each([false, true])('boots a separate Web Host with client plugins (AA enable
   let pnpm: ReturnType<typeof installDesktopPnpmRuntime> | undefined
   let stderr = ''
   try {
-    writeFileSync(join(home, 'settings.yaml'), 'dsh-desktop:\n  mode: advanced\nagent-presets:\n  default: minimal\n')
+    writeFileSync(join(home, 'settings.yaml'), 'dsh-desktop:\n  mode: extended\nagent-presets:\n  default: minimal\n')
     const prepared = prepareDesktopProfile('1', home, 'win32', undefined, undefined, undefined, { aaEnabled })
     if (aaEnabled) prepared.patches.push({ id: 'agents-anywhere-bridge-next', config: { dshHome: home, stateRoot: join(home, 'aa-state') } })
     prepared.port = 0
@@ -60,7 +60,7 @@ it.each([false, true])('boots a separate Web Host with client plugins (AA enable
     rpc.handle('certificate', () => ({ failureCode: 'test-disabled' }))
     rpc.handle('quit', () => {})
     const result = await rpc.call<{ pid: number; services: { aaRuntime: boolean; aaOnboarding: boolean } }>('boot', [{
-      prepared, profilePreferences: { mode: 'advanced', openBrowser: false, networkExposure: 'loopback',
+      prepared, profilePreferences: { mode: 'extended', openBrowser: false, networkExposure: 'loopback',
         macosMaterial: 'auto', windowsMaterial: 'auto', market: 'disabled', notifications: { enabled: false }, aaEnabled },
       homeDir: home, activeProfileName: prepared.profile.name, pluginManagementStatePath: join(home, 'plugins.json'),
       selectionStatePath: join(home, 'selection.json'), marketUserDataDir: join(home, 'userdata'),

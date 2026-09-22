@@ -13,7 +13,7 @@ const input: DesktopSetupWizardInput = {
   profileName: 'work',
   platform: 'win32',
   micaSupported: true,
-  mode: 'compatibility',
+  mode: 'extended',
   macosMaterial: 'transparent',
   windowsMaterial: 'mica',
   openBrowser: false,
@@ -37,25 +37,6 @@ describe('Desktop Setup Wizard copy and contract', () => {
     expect(Object.values(chinese).every(value => value.length > 0)).toBe(true)
     expect(Object.values(english).join(' ')).not.toMatch(/DeepSeek|\bDSH\b/u)
     expect(Object.values(chinese).join(' ')).not.toMatch(/DeepSeek|\bDSH\b/u)
-  })
-
-  it('explains LAN access-link permissions, HTTPS, and certificate trust in both locales', () => {
-    const chinese = desktopSetupWizardCopy('zh')
-    const english = desktopSetupWizardCopy('en')
-    expect(chinese.beta).toBe('Beta')
-    expect(english.beta).toBe('Beta')
-    expect(chinese.lanWarningBody).toContain('持有访问链接')
-    expect(chinese.lanWarningBody).toContain('操作这台电脑')
-    expect(chinese.lanWarningBody).toContain('HTTPS')
-    expect(chinese.lanWarningBody).toContain('安装并信任')
-    expect(english.lanWarningBody).toContain('who has the access link')
-    expect(english.lanWarningBody).toContain('operate this computer')
-    expect(english.lanWarningBody).toContain('HTTPS')
-    expect(english.lanWarningBody).toContain('install and trust')
-    expect(chinese.networkExposureBody).toContain('HTTPS')
-    expect(chinese.lanBody).toContain('访问设备')
-    expect(english.networkExposureBody).toContain('HTTPS')
-    expect(english.lanBody).toContain('each device')
   })
 
   it('describes the sequential navigation, skip confirmation, and final success action', () => {
@@ -105,24 +86,6 @@ describe('Desktop Setup Wizard copy and contract', () => {
     expect(english.serviceBody).toContain('No API key is required')
   })
 
-  it('treats browser opening as permission, not an automatic startup action', () => {
-    const english = desktopSetupWizardCopy('en')
-    const chinese = desktopSetupWizardCopy('zh')
-    expect(chinese.openBrowser).toBe('允许在浏览器中打开')
-    expect(chinese.openBrowser).not.toMatch(/启动后|自动/u)
-    expect(chinese.browserCompatibilityNotice).toContain('兼容模式')
-    expect(chinese.browserCompatibilityNotice).toContain('仅在')
-    expect(chinese.browserCompatibilityDialogBody).toContain('只能使用兼容模式')
-    expect(chinese.browserCompatibilityDialogBody).toContain('切换为兼容模式')
-    expect(chinese.confirmBrowserCompatibility).toBe('切换并开启')
-    expect(chinese.cancelBrowserCompatibility).toBe('取消')
-    expect(english.openBrowser).toMatch(/allow.+(?:open|opening).+browser/iu)
-    expect(english.openBrowser).not.toMatch(/after startup|automatically/iu)
-    expect(english.browserCompatibilityNotice).toMatch(/only.+compatibility mode/iu)
-    expect(english.browserCompatibilityDialogBody).toMatch(/requires compatibility mode/iu)
-    expect(english.browserCompatibilityDialogBody).toMatch(/switch.+window mode/iu)
-  })
-
   it('requires confirmation only when loopback access is changed to LAN', () => {
     expect(desktopSetupWizardRequiresLanConfirmation('loopback', 'lan')).toBe(true)
     expect(desktopSetupWizardRequiresLanConfirmation('lan', 'loopback')).toBe(false)
@@ -162,7 +125,7 @@ describe('Desktop Setup Wizard copy and contract', () => {
     expect(desktopSetupWizardSelectionIsAvailable(
       { ...input, openBrowser: true, networkExposure: 'lan' },
       { platform: 'win32', micaSupported: true },
-    )).toBe(true)
+    )).toBe(false)
     expect(desktopSetupWizardSelectionIsAvailable(
       { ...input, mode: 'advanced', openBrowser: true, networkExposure: 'lan' },
       { platform: 'win32', micaSupported: true },
