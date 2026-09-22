@@ -4,6 +4,12 @@
 
 ## 当前状态
 
+- 2026-09-22T12:24:19+08:00 | ZCode | 平台默认入口整组切回 openfox.work（ICP 备案已通过）
+  - 背景：`openfox.work` ICP 备案通过（苏ICP备2026028082号，2026-09-22 用户确认），产品域名从临时 `openzrob.com` 切回；生产侧身份链由工作区整组执行（见根 log 同日条目）。
+  - 已完成：stable/Beta 双变体同改——`DEFAULT_ROBOCODING_PLATFORM_URL` → `https://ai.openfox.work`；`LEGACY_DEFAULT_ROBOCODING_PLATFORM_URLS` 收编 `ai.openzrob.com`（保留更早的 `www.openfox.work`），`restore()` 迁移保留 refreshToken/session、仅重绑 origin；技能目录 `catalogUrl`/`CATALOG_URL` → `api.openfox.work`（代理白名单 fox 优先、zrob 兼容保留）；工作台上传链接 → `dash.openfox.work`；controller spec 的 rebind 用例方向反转为 zrob→fox，market spec 工作台链接断言同步。
+  - 验证：两变体 `robocoding-account-controller.spec.ts` 14/14、`robo-skill-market.spec.ts` 5/5；`corepack yarn check:desktop-variants` 222 共享文件对齐。
+  - 未完成 / 下一步：未重新打包安装器——已发布的 beta.3 安装包仍默认 `ai.openzrob.com`（zrob 入口保持兼容不受影响），fox 默认随下一次打包发布；届时存量 zrob 配置自动迁移并保留登录态。
+
 - 2026-09-20T15:25:00+08:00 | ZCode | GLM 系模型目录输出上限（131072）+ Beta 2.0.10-beta.3 发布至官网下载页
   - 背景：桌面端对 glm-5.3-flash 发消息报"max_tokens 参数非法：限制数值范围[1,131072]"——官方账号模型目录条目无 maxTokens，逐请求回退到适配器默认 256000，被智谱 v4 上游拒绝（根因链见根 log 14:14 条目）。按用户决定修复放桌面端、服务端撤销。
   - 已完成：stable/Beta 双变体 `robocoding-llm.ts` 新增 `officialModelEntry`：`glm-*` 条目配 `maxTokens: 131072`，其余模型不变；两变体 `tests/robocoding-llm.spec.ts` 新增 `resolveModelInfo().defaultMaxTokens` 断言用例（GLM=131072、deepseek-flash=256000）。Beta 版本 `2.0.10-beta.2 → 2.0.10-beta.3`（package.json + tests/package.spec.ts 两处钉住值）。

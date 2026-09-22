@@ -547,8 +547,8 @@ export async function handleRoboSkillsProxyRequest(
     base = localServiceOrigin(options.serviceUrl)
     if (base === undefined && method === 'GET' && options.catalogUrl) {
       // Only fixed first-party public endpoints are accepted; renderer input cannot change them.
-      if (options.catalogUrl !== 'https://api.openzrob.com/api/catalog' &&
-        options.catalogUrl !== 'https://api.openfox.work/api/catalog') throw new InvalidServiceUrlError()
+      if (options.catalogUrl !== 'https://api.openfox.work/api/catalog' &&
+        options.catalogUrl !== 'https://api.openzrob.com/api/catalog') throw new InvalidServiceUrlError()
       base = new URL(routePath === ROBO_DEVICES_CATALOG_PATH
         ? `${options.catalogUrl}/devices`
         : options.catalogUrl)

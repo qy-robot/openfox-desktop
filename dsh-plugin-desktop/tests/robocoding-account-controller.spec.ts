@@ -63,14 +63,14 @@ describe('OpenFox account controller', () => {
     expect(mounted.controller.read()).toMatchObject({ state: 'signed_out', platformUrl: DEFAULT_ROBOCODING_PLATFORM_URL })
   })
 
-  it('rebinds a stored ai.openfox.work session to the current default origin', async () => {
+  it('rebinds a stored ai.openzrob.com session to the current default origin', async () => {
     const mounted = harness(vi.fn() as unknown as typeof fetch, {
-      refreshToken: 'refresh-1', sessionId: 'session-1', platformOrigin: 'https://ai.openfox.work',
-    }, { platformUrl: 'https://ai.openfox.work' })
+      refreshToken: 'refresh-1', sessionId: 'session-1', platformOrigin: 'https://ai.openzrob.com',
+    }, { platformUrl: 'https://ai.openzrob.com' })
     await mounted.controller.restore()
     expect(mounted.runtime.clearAccountSecret).not.toHaveBeenCalled()
     expect(mounted.runtime.writeAccountSecret).toHaveBeenCalledWith({
-      refreshToken: 'refresh-1', sessionId: 'session-1', platformOrigin: 'https://ai.openzrob.com',
+      refreshToken: 'refresh-1', sessionId: 'session-1', platformOrigin: 'https://ai.openfox.work',
     })
     expect(mounted.settings.update).toHaveBeenCalledWith({ platformUrl: DEFAULT_ROBOCODING_PLATFORM_URL, fundingMode: 'personal_only', teamId: 0, confirmedTeamId: 0, confirmedUserId: 0 })
   })

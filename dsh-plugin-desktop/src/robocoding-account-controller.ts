@@ -35,11 +35,11 @@ export interface RoboCodingAccountControllerOptions {
   readonly defaultPlatformUrl?: string
 }
 
-export const DEFAULT_ROBOCODING_PLATFORM_URL = 'https://ai.openzrob.com'
+export const DEFAULT_ROBOCODING_PLATFORM_URL = 'https://ai.openfox.work'
 // First-party platform hosts stay interchangeable while DNS/ICP filing decides
 // which origin is reachable; a configured predecessor host migrates to the
 // current default without discarding a stored same-backend session.
-const LEGACY_DEFAULT_ROBOCODING_PLATFORM_URLS = ['https://www.openfox.work', 'https://ai.openfox.work'] as const
+const LEGACY_DEFAULT_ROBOCODING_PLATFORM_URLS = ['https://ai.openzrob.com', 'https://www.openfox.work'] as const
 
 const wait = (milliseconds: number, signal: AbortSignal): Promise<void> => new Promise((resolve, reject) => {
   const timer = setTimeout(resolve, milliseconds)
