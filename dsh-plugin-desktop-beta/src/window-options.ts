@@ -154,6 +154,7 @@ function customChromeWindowOptions(
       thickFrame: true,
     }
   }
+  if (platform === 'linux') return options
   throw new Error('dsh-plugin-desktop: custom desktop shell modes are supported on macOS and Windows')
 }
 

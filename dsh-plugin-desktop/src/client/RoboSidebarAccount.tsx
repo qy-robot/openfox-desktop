@@ -65,7 +65,7 @@ export function RoboSidebarAccount({ wide, api }: RoboSidebarAccountProps) {
       if (sync) refreshing = true
       const request = ++revision.current
       try {
-        const next = await (sync && view?.state === 'signed_in' ? api.refresh() : api.read())
+        const next = await (sync && (view?.state === 'signed_in' || view?.state === 'error') ? api.refresh() : api.read())
         if (active && request === revision.current) { setView(next); setError('') }
       } catch {
         if (active && request === revision.current) { setView(undefined); setError('账户暂不可用') }

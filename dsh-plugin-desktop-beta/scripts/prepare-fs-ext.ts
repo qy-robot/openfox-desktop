@@ -19,7 +19,7 @@ import { randomUUID } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 
 const FS_EXT_VERSION = '2.1.1'
-const ELECTRON_HEADERS_URL = 'https://electronjs.org/headers'
+const ELECTRON_HEADERS_URL = process.env.ELECTRON_HEADERS_URL ?? 'https://electronjs.org/headers'
 const SUPPORTED_PLATFORMS = new Set<NodeJS.Platform>(['darwin', 'linux', 'win32'])
 const SUPPORTED_ARCHITECTURES = new Set(['arm64', 'x64'])
 

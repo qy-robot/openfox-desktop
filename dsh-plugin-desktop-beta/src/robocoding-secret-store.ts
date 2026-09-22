@@ -19,10 +19,15 @@ function parseSecret(value: unknown): RoboCodingAccountSecret {
 }
 
 export class RoboCodingSecretStore {
+  /** Session-only grant retained in memory when no OS-backed protector exists. */
+  private sessionSecret: RoboCodingAccountSecret | undefined
+
   constructor(private readonly path: string, private readonly protector: RoboCodingSecretProtector) {}
 
   async read(): Promise<RoboCodingAccountSecret | undefined> {
-    if (!this.protector.available()) throw new Error('系统安全存储不可用，无法保存登录状态')
+    // Without an OS-backed protector there is no persisted secret; serve the
+    // in-memory grant so a session-only login keeps working across refreshes.
+    if (!this.protector.available()) return this.sessionSecret
     let sealed: Buffer
     try { sealed = await readFile(this.path) } catch (cause) {
       if ((cause as NodeJS.ErrnoException).code === 'ENOENT') return undefined
@@ -32,7 +37,11 @@ export class RoboCodingSecretStore {
   }
 
   async write(secret: RoboCodingAccountSecret): Promise<void> {
-    if (!this.protector.available()) throw new Error('系统安全存储不可用，无法保存登录状态')
+    if (!this.protector.available()) {
+      // Session-only: keep the grant in memory, never persist without a protector.
+      this.sessionSecret = parseSecret(secret)
+      return
+    }
     const validated = parseSecret(secret)
     const sealed = this.protector.seal(JSON.stringify(validated))
     await mkdir(dirname(this.path), { recursive: true, mode: 0o700 })
@@ -42,6 +51,7 @@ export class RoboCodingSecretStore {
   }
 
   async clear(): Promise<void> {
+    this.sessionSecret = undefined
     try { await unlink(this.path) } catch (cause) {
       if ((cause as NodeJS.ErrnoException).code !== 'ENOENT') throw cause
     }

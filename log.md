@@ -4,6 +4,12 @@
 
 ## 当前状态
 
+- 2026-09-21T23:50:00+08:00 | Claude | 修复「登录成功后概率退出登录」：续期瞬时失败不再永久登出
+  - 背景：登录成功运行一段时间后有概率被登出（Windows/Linux 均复现）。根因两层：① 续期 `renew()` 内 `refreshDashboardAndRelay` 用 Promise.all 并发打 4 接口，任一瞬时失败（断网/合盖/VPN）→ `fail()` 置 error，而前端 30s 轮询只在 signed_in 才 refresh、error 不自愈 → 永久「未登陆」；② 服务端 refresh token 单次轮换+30s 宽限，旧 token 越窗重放被吊销（见 platform log 同日）。
+  - 已完成：`src/client/RoboSidebarAccount.tsx` error 态也调 `api.refresh()` 自愈；`src/robocoding-account-controller.ts` 新增 `isHardAuthError` 分类 + `renewWithRetry` 指数退避重试（瞬态失败不 fail、保持 signed_in；硬失败 401/revoked 才 fail 不重试）；`LEGACY_DEFAULT_ROBOCODING_PLATFORM_URLS` 收编 `https://www.openzrob.com`。刷新单飞防竞态作为后续加固暂缓。
+  - 验证：controller 测试 16/16 通过（新增「瞬态续期失败保持 signed_in」「硬 auth 失败转 error」两例）；改动文件 typecheck 零报错（全仓仍被既有 dsh-attachment 缺依赖阻塞）。
+  - 未完成：未重新打包/未同步 stable 变体；刷新单飞、restore origin 交叉迁移未做。
+
 - 2026-09-20T15:25:00+08:00 | ZCode | GLM 系模型目录输出上限（131072）+ Beta 2.0.10-beta.3 发布至官网下载页
   - 背景：桌面端对 glm-5.3-flash 发消息报"max_tokens 参数非法：限制数值范围[1,131072]"——官方账号模型目录条目无 maxTokens，逐请求回退到适配器默认 256000，被智谱 v4 上游拒绝（根因链见根 log 14:14 条目）。按用户决定修复放桌面端、服务端撤销。
   - 已完成：stable/Beta 双变体 `robocoding-llm.ts` 新增 `officialModelEntry`：`glm-*` 条目配 `maxTokens: 131072`，其余模型不变；两变体 `tests/robocoding-llm.spec.ts` 新增 `resolveModelInfo().defaultMaxTokens` 断言用例（GLM=131072、deepseek-flash=256000）。Beta 版本 `2.0.10-beta.2 → 2.0.10-beta.3`（package.json + tests/package.spec.ts 两处钉住值）。

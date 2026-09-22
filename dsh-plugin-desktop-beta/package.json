@@ -417,6 +417,7 @@
     },
     "linux": {
       "target": [
+        "AppImage",
         "dir"
       ],
       "icon": "build/app-icon.png",

@@ -24,11 +24,15 @@ describe('OpenFox secret store', () => {
     await expect(store.read()).resolves.toBeUndefined()
   })
 
-  it('refuses persistence when OS-backed protection is unavailable', async () => {
+  it('keeps the grant in memory (session-only) when OS-backed protection is unavailable', async () => {
     const root = await mkdtemp(join(tmpdir(), 'robocoding-secret-')); roots.push(root)
     const store = new RoboCodingSecretStore(join(root, 'session.bin'), {
       available: () => false, seal: () => new Uint8Array(), open: () => '',
     })
-    await expect(store.write({ refreshToken: 'refresh-secret', sessionId: 'session-1', platformOrigin: 'https://api.example.com' })).rejects.toThrow('安全存储')
+    const secret = { refreshToken: 'refresh-secret', sessionId: 'session-1', platformOrigin: 'https://api.example.com' }
+    await expect(store.write(secret)).resolves.toBeUndefined()
+    await expect(store.read()).resolves.toEqual(secret)
+    await store.clear()
+    await expect(store.read()).resolves.toBeUndefined()
   })
 })

@@ -86,7 +86,7 @@ describe('electronPlatformStrategy', () => {
     expect(strategy.platform).toBe('linux')
     expect(strategy.updateDownloadPlatform).toBeUndefined()
     expect(strategy.canPickDirectory).toBe(false)
-    expect(strategy.canToggleShellMode).toBe(false)
+    expect(strategy.canToggleShellMode).toBe(true)
 
     strategy.configureApplication({} as never, 'DSH Desktop')
     strategy.configureWindow(window as never)
