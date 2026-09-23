@@ -16,6 +16,27 @@
   - 验证：本地与远端 `robo/main` 提交一致（推送后比对 SHA）。
   - 下一步：Linux 实机验收拖拽/缩放/最大化；根仓库推进 desktop gitlink 至 `f0eb2610b2`。
 
+### 2026-09-22T15:37:00+08:00 | Claude Code | 修复桌面端登录「登录页面必须与平台地址同源」（本地修复包 2.0.10-beta.3.fix1）
+
+- 基线：本快照工作树（目录无 `.git`，未提交未推送）；仅改 `dsh-plugin-desktop-beta/` 两个文件。
+- 问题：平台 `/api/desktop/device/code` 已改为返回 `https://ai.openfox.work/desktop/authorize`，而桌面端默认平台地址仍是 `https://ai.openzrob.com`，被 `src/robocoding-platform.ts` 的同源校验拦下（“登录页面必须与平台地址同源”）；用户手改地址为 .work 也会在下次启动被 `restore()` 的 legacy 迁移改回 .zrob。因此 beta.3 的新旧两版（平台模块同哈希 `robocoding-platform-D7oEZqR0.js`）都登不上。两域解析到同一 IP（116.62.231.159，同一后端），属域名声明错位；昨日至今日 13:14 前可用，是服务端当时仍返回 .zrob 登录页（本机浏览器历史留有 13:12/13:14 的 `.zrob/desktop/authorize?user_code=` 记录）。
+- 已完成：`src/robocoding-account-controller.ts` 的 `DEFAULT_ROBOCODING_PLATFORM_URL` 改为 `https://ai.openfox.work`（与 2026-09-19「域名迁移至 openfox.work」方向一致）；`LEGACY_DEFAULT_ROBOCODING_PLATFORM_URLS` 并入 `'https://ai.openzrob.com'`，使已存配置连同会话一起迁移到新默认；`package.json` version → `2.0.10-beta.3.fix1`（区分本地修复包）。
+- 验证：解包官方 AppImage 打补丁后以隔离 `XDG_CONFIG_HOME` 启动 → 客户端成功取得设备码并导航至 `https://ai.openfox.work/desktop/authorize?user_code=…`（同源报错消失），隔离配置内 `settings.yaml` 写入 `platformUrl: https://ai.openfox.work`；随后用原运行时 + 自建 gzip squashfs 重打包，并核验包内版本号与补丁内容。
+- 产物（本地，未发布、未签名）：`~/下载/OpenFox Beta-2.0.10-beta.3.fix1.AppImage`，199,180,264 字节，X-AppImage-Version=2.0.10-beta.3.fix1，SHA256 `c58fdcd770981867e677ceb3fb572624b6af8c098d41602a6b4e9c1a3ee7255e`。
+- 未完成 / 限制：修复包由官方 beta.3 产物打补丁得到（快照为混合状态，未执行 `corepack yarn build`）；stable 变体 `dsh-plugin-desktop` 存在同一默认值（第 38、42 行），按本仓库约定待 beta 验证后同步并跑 `check:desktop-variants`；根治点在服务端——`/api/desktop/device/code` 应按请求 Host 返回同域登录页。
+- 下一步：确认平台把设备码登录页最终固定在 .zrob 还是 .work，二者取一后同步默认值；另行决定是否用本工作树出正式签名包。`ai.openfox.com` 为第三方域名（TLS 直接拒），勿写入任何默认值。
+
+### 2026-09-22T16:55:00+08:00 | Claude Code | 修复 Linux 桌面端「工具调用全失效」（本地补丁，未改本仓库源码）
+
+- 基线：用户报障「OpenFox 工具调用全失效」；现场来自桌面端会话日志 `~/.openfox/sessions/.../session.v3.jsonl.zstd`（10 次工具调用 10 次失败）。
+- 问题：`bash` 报 `subprocess scope exited before its bootstrap consumed the launch request`；`glob`/`grep` 报 `... (ripgrep provider failure)`（`SEARCH_FAILED`）。定位：`@deepseek-ai/dsh-subprocess-local` 在 Linux 用 `systemd-run --user --scope` 启动 runner（invocation = `[Electron 可执行文件, runner.js]`），`runnerEnvironment()` 仅在 Windows 分支补 `ELECTRON_RUN_AS_NODE=1`，Linux 指望父进程环境继承，而打包后的 Electron 宿主自身没有该变量 → 子进程作为第二个 App 实例启动、撞单实例锁秒退 → launch request 无人消费。
+- 已完成（均为**包内补丁**，未改仓库源码）：在官方 beta.3 产物上同时应用 ① 登录修复（同 fix1：默认域 → `https://ai.openfox.work`、legacy 并入 `.zrob`）② Linux + Electron 宿主镜像 Windows 分支补 `ELECTRON_RUN_AS_NODE=1`；版本号 → `2.0.10-beta.3.fix2`；用原运行时 + 自建 gzip squashfs 重打包。
+- 验证：A/B 直接调用 `runnerEnvironment()`（先删除测试进程自身变量以模拟真实环境）——原包返回 `undefined`、补丁版返回 `"1"`；另验证该 runner 裸跑时无变量静默退出码 0、有变量进入协议层退出码 127。产物核验：包内版本、补丁 A/B 均就位。
+- 产物（本地，未发布、未签名）：`~/下载/OpenFox Beta-2.0.10-beta.3.fix2.AppImage`，199,180,264 字节，SHA256 `e45144203d6bc3a928178691da42f1ce19b425a804642055da7f8f2d52bb7d53`。
+- 未完成 / 限制：未跑真实模型的端到端工具调用（需登录态与模型）；根治在上游 `dsh-subprocess-local.runnerEnvironment`（应覆盖所有 Electron 宿主的平台）或 desktop 侧用 pnpm `patchedDependencies` 固化；stable 变体仍未同步（与上一条同一批待办）。
+- 下一步：用 fix2 启动后重试工具调用；向上游报 Linux 分支缺 `ELECTRON_RUN_AS_NODE` 的问题（Linux 桌面路径 2026-09-21 才落地，属新路径未覆盖分支）。
+- 补充（17:20，**已固化进仓库**，替代上条"未改本仓库源码"的表述）：发现本仓库对该包**已有** patch 机制——依赖为 vendor tarball（`vendor/dsh-runtime/0.1.5-rc.2/`），根 `package.json` 早有 `patch:` 决议指向 `patches/dsh-subprocess-local@0.1.5-rc.2.patch`，且该补丁改的正是同一文件同一处（Windows 分支即本仓库旧补丁）。遂将本次改动并入该补丁（追加 Linux 分支、保留 Windows 分支；837 → 1507 字节），无需新增决议。逐字节验证：`tarball + 旧补丁 == 官方 (1) 包文件`、`tarball + 新补丁 == fix2 包文件`。生效需在真实工作区 `corepack yarn install`（非 --immutable）刷新 lock，推送前跑 `corepack yarn check`；本机无 `~/项目/openfox-workspace`，无反向同步对象。
+
 - 2026-09-22T20:48:00+08:00 | ZCode | Linux 增强模式（无边框+自绘标题栏）+ 默认增强模式并隐藏模式选择入口（分支 `codex/linux-advanced-mode-20260922`，基线 `699f48d8ae`）
   - 背景：Linux 只能兼容模式（原生标题栏+官方客户端，观感如浏览器网页），设备/技能侧边栏仅非兼容模式注册（client/index.ts 模式门）。用户决定：默认全平台增强、不再展示模式选择入口；Linux 增强按"无边框+自绘三按钮+拖拽区"实现，不做玻璃材质（90% 观感即可）。
   - 已完成（stable/Beta 双变体同步）：① Linux 无边框：`window-options.ts` customChrome linux 分支 `frame:false, hasShadow:true`（advanced/extended 共用）；② 自绘标题栏：`AdvancedFrame.tsx` 新增 `LinuxCaptionRow`（最小化/最大化切换/关闭三按钮），`styles.ts` 新增 linux 帧行高 32px、拖拽带、按钮 hover（关闭红 #e81123）、模态框 no-drag 规则；③ 窗口控制链路：新增 `window-controls-contract.ts` / `window-controls-route.ts`（同源 `/_dsh/desktop/window-controls` POST，校验 origin+action）/ `client/window-controls.ts`，`runtime.ts`→`electron-runtime.ts`→`electron-shell-generation.ts`→`host-runtime-bridge.ts` 贯通 `controlWindow(action)`（linux 时注册路由）；④ 几何：`window-chrome.ts` 新增 `ADVANCED_LINUX_TITLEBAR_HEIGHT=32`/`LINUX_CAPTION_CONTROLS_WIDTH=138`，`window-service.ts` linux advanced insets/dragRegion；⑤ 默认 `advanced`：index.ts 两处 schema default；Linux 模式限制已在 PR#1 合并中移除，向导 contract 的 linux 强制 compat 与 App.tsx normalize 强制同步删除；⑥ 入口隐藏：向导删除 mode 步骤（步骤平台感知，linux 跳过 material 步），设置区模式三卡删除（保留 mac/win 材质选择，linux 整节隐藏），compatibility chrome 标题栏模式弹层及 `setMode` 传递删除；语言包清理 13+9 个废弃 key。托盘 Mode 子菜单保留为唯一切换通道（Linux 老用户仍可自救切换）。
