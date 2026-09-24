@@ -4,6 +4,13 @@
 
 ## 当前状态
 
+- 2026-09-24T19:47:00+08:00 | ZCode | 合并 Beta 2.0.10-beta.4 发布线回 `main`（承接根仓库 dev→main 合并，desktop gitlink 两侧分叉）
+  - 背景：`main`（会话续期加固 + Linux 增强模式 + 分支更名线，tip `7b34ae9eca`）与 `f9cb7b5c70`（Beta 2.0.10-beta.4 发布线：fox 默认 + 版本钉住）自 `a5a58d173b` 分叉；根仓库按用户指令把 dev 全量并入 main 时 desktop gitlink 两侧冲突，按工作区约定先在组件内合并并推送。
+  - 冲突解决：两变体 `robocoding-account-controller.ts` 的 `LEGACY_DEFAULT_ROBOCODING_PLATFORM_URLS` 取两线并集 → `['https://www.openfox.work', 'https://ai.openzrob.com', 'https://www.openzrob.com']`（默认源保持 `ai.openfox.work`；`www.openzrob.com` 来自续期加固线、`ai.openzrob.com` 来自 fox 切回线，兼容期主机全部保留、迁移仅重绑 origin 不清会话）；log.md 双方条目按时间序全部保留。
+  - 验证：`corepack yarn check:desktop-variants` 225 共享文件对齐；两变体 `robocoding-account-controller.spec.ts` 各 16/16 通过；无冲突标记残留。
+  - 未完成 / 阻塞：Linux 实机验收仍待做（见 09-22 20:48 条目）；合并后未重新打包安装器。
+  - 下一步：推送 `origin/main` 后回根仓库把 desktop gitlink 指向本合并提交；后续打包时 stable 变体与 fox 默认一并出包。
+
 - 2026-09-22T21:15:00+08:00 | ZCode | 主分支更名：`robo/main` → `main`（应用户要求统一分支命名）
   - 已完成：`main` 新建于 `11787d6d84`（原 `robo/main` tip）并推送；GitHub 默认分支由 `master`（上游镜像）改为 `main`；远端与本地 `robo/main` 删除；已合并的功能分支本地清理。上游镜像分支 `master` 与 upstream remote 不动。
   - 验证：`origin/main` = `11787d6d84` 与根 gitlink 一致；origin/HEAD 指向 main。
@@ -22,6 +29,19 @@
   - 验证：双变体 typecheck 0 错误；新增 `tests/window-controls-route.spec.ts`（7 例）+ window-options linux 断言 2 例 + client-environment linux advanced 几何断言，全部通过；`check:desktop-variants` 225 共享文件对齐；双变体全量测试失败集与基线 `699f48d8ae` 完全一致（stable 32/beta 27，均为预存：plugin.spec 19 例 ctx.inject harness 缺 mock、client-desktop-settings 2 例 DSH→OpenFox 文案漂移、nsis 5/module-resolution 2/desktop-plugins 2/installer-messages 1/boot-recovery 1 环境相关），本改动零新增失败。
   - 未完成 / 阻塞：未在真实 Linux 桌面（X11/Wayland）运行验证——拖拽/边缘缩放/双击最大化行为未实测（Electron linux frameless 用 Motif hints，X11 通常可缩放，Wayland 存疑）；未打包 Linux 安装目标；既有 vendor tgz 本地 WIP 未动。
   - 下一步：分支已推送 `origin/codex/linux-advanced-mode-20260922`（随本提交）；在 Linux 实机验收（重点：拖拽、边缘 resize、最大化、关闭、模态框防拖拽）；确认后合入 `robo/main`；预存失败族（ctx.inject harness、DSH 文案）另行修复。
+
+- 2026-09-22T17:05:00+08:00 | ZCode | Beta 2.0.10-beta.4 发布至官网下载页：默认平台地址切回 openfox.work
+  - 背景：备案通过、生产切回 fox 后，下载页仍提供 zrob 默认的 beta.3；用户指示打包更新上去，并要求旧域名继续兼用。
+  - 已完成：Beta 版本 `2.0.10-beta.3 → 2.0.10-beta.4`（`package.json` + `tests/package.spec.ts` 两处钉住值），源码即 `9569536de5` 的 fox 默认（zrob 入 LEGACY 迁移保留会话）。修复打包阻塞：两插件变体 `node_modules/dsh-community-market` 符号链接仍指旧仓库路径 `F:\RoboCoding`（09-17 建立、仓库改名后失效），删除后 `corepack yarn install --immutable` 重建为 `F:\OpenFox`。
+  - 产物与发布：`OpenFox-Beta-2.0.10-beta.4-x64-Setup.exe`（155,196,601 bytes，SHA256 `ffc3985650afd86258d60d757e52805bd7dd39598314b495eba14651fceec7f2`，未签名，安装器自校验通过）；scp 后经平台内部 API 草稿 + publish（actor ops-zcode）上线。
+  - 验证：`check:win-package` 门禁退出码 0（beta.4 钉住值下）；公网 `ai.openfox.work/downloads.json` 与 `ai.openzrob.com/downloads.json` 版本/SHA 一致；`/release-artifacts/2.0.10-beta.4/windows-x64` GET 206（总长 155,196,601 一致、PE 头核对通过）；服务器 /tmp 临时包已删。
+  - 未完成 / 下一步：用户安装 beta.4 验收 fox 默认地址与登录链（旧域配置自动迁移）；stable 变体未单独打包；macos/linux 下载目标仍 unavailable。
+
+- 2026-09-22T12:24:19+08:00 | ZCode | 平台默认入口整组切回 openfox.work（ICP 备案已通过）
+  - 背景：`openfox.work` ICP 备案通过（苏ICP备2026028082号，2026-09-22 用户确认），产品域名从临时 `openzrob.com` 切回；生产侧身份链由工作区整组执行（见根 log 同日条目）。
+  - 已完成：stable/Beta 双变体同改——`DEFAULT_ROBOCODING_PLATFORM_URL` → `https://ai.openfox.work`；`LEGACY_DEFAULT_ROBOCODING_PLATFORM_URLS` 收编 `ai.openzrob.com`（保留更早的 `www.openfox.work`），`restore()` 迁移保留 refreshToken/session、仅重绑 origin；技能目录 `catalogUrl`/`CATALOG_URL` → `api.openfox.work`（代理白名单 fox 优先、zrob 兼容保留）；工作台上传链接 → `dash.openfox.work`；controller spec 的 rebind 用例方向反转为 zrob→fox，market spec 工作台链接断言同步。
+  - 验证：两变体 `robocoding-account-controller.spec.ts` 14/14、`robo-skill-market.spec.ts` 5/5；`corepack yarn check:desktop-variants` 222 共享文件对齐。
+  - 未完成 / 下一步：未重新打包安装器——已发布的 beta.3 安装包仍默认 `ai.openzrob.com`（zrob 入口保持兼容不受影响），fox 默认随下一次打包发布；届时存量 zrob 配置自动迁移并保留登录态。
 
 - 2026-09-21T23:50:00+08:00 | Claude | 修复「登录成功后概率退出登录」：续期瞬时失败不再永久登出
   - 背景：登录成功运行一段时间后有概率被登出（Windows/Linux 均复现）。根因两层：① 续期 `renew()` 内 `refreshDashboardAndRelay` 用 Promise.all 并发打 4 接口，任一瞬时失败（断网/合盖/VPN）→ `fail()` 置 error，而前端 30s 轮询只在 signed_in 才 refresh、error 不自愈 → 永久「未登陆」；② 服务端 refresh token 单次轮换+30s 宽限，旧 token 越窗重放被吊销（见 platform log 同日）。

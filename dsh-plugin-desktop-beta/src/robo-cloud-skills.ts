@@ -10,7 +10,7 @@ import type { SkillCandidate, SkillDefinition, SkillProvider, SkillRegistry } fr
 
 const PROVIDER_NAME = 'robocoding-cloud'
 const PROVIDER_RANK = 250
-const CATALOG_URL = 'https://api.openzrob.com/api/catalog'
+const CATALOG_URL = 'https://api.openfox.work/api/catalog'
 const MAX_RESPONSE_BYTES = 1_048_576
 const SKILL_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u
 

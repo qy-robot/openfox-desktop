@@ -269,7 +269,7 @@ describe('local skill import from the market', () => {
       click(container.querySelector('[aria-label="添加本地技能"]')); await settle()
       expect(container.querySelector('dialog[open]')).not.toBeNull()
       expect(container.textContent).toContain('审核通过后上架')
-      expect(container.querySelector('dialog a')?.getAttribute('href')).toBe('https://dash.openzrob.com/workbench/skills')
+      expect(container.querySelector('dialog a')?.getAttribute('href')).toBe('https://dash.openfox.work/workbench/skills')
       const folder = () => [...container.querySelectorAll('button')].find(button => button.textContent === '选择文件夹')
       click(folder()); await settle()
       expect((container.querySelector('[aria-label="技能文件夹路径"]') as HTMLInputElement).value).toBe('')
