@@ -4,6 +4,13 @@
 
 ## 当前状态
 
+- 2026-09-25T18:30:00+08:00 | Claude Code | `dsh-subprocess-local` 补丁补 Linux 运行器分支（分支 `fix/dsh-subprocess-local-linux-runner`）
+  - 背景：Linux 桌面端工具调用全失效——`@deepseek-ai/dsh-subprocess-local` 的 `runnerEnvironment()` 只在 Windows 分支补 `ELECTRON_RUN_AS_NODE=1`，打包后的 Electron 宿主自身环境没有该变量，systemd scope 启动的子进程于是作为第二个应用实例启动、撞单实例锁后退出，launch request 无人消费（`subprocess scope exited before its bootstrap consumed the launch request`，glob/grep 连带 `SEARCH_FAILED`）。
+  - 已完成：本仓库既有补丁 `patches/dsh-subprocess-local@0.1.5-rc.2.patch` 追加与 Windows 同形的 Linux + Electron 宿主分支（837 → 1507 字节，不新增 patch 决议）；同步刷新 `yarn.lock` 中该补丁的 resolution hash 与 checksum（`9f1343` → `652e89`），否则 `yarn install --immutable` 报 YN0028。
+  - 验证：真实 `yarn install` 后包内 `node_modules/@deepseek-ai/dsh-subprocess-local/lib/runner-launch-*.js` 确认带该分支；Linux x64 实机 `yarn build` + electron-builder 打包出的 AppImage 启动至 `startup.run.completed`（renderer healthy）；两变体 `robocoding-account-controller.spec.ts` 各 16/16、`check:desktop-variants` 225 共享文件对齐、Beta 全量 vitest 相对基线零新增失败。
+  - 未完成 / 阻塞：根治在上游 `runnerEnvironment`（应覆盖所有 Electron 宿主平台）；`scripts/verify-electron-fuses.ts` 在 Linux 目标下抛 `cannot determine requested Electron architecture(s) for linux`，Linux 封包需先修该 arch 解析；未实测增强壳的拖拽/边缘缩放/双击最大化（Wayland）；产物未签名、未发布。
+  - 补充：平台默认域 `ai.openfox.work` 已由 `9569536de5` 在 `main` 落地并随 Beta 2.0.10-beta.4 发布；本分支不重复该改动。
+
 - 2026-09-24T19:47:00+08:00 | ZCode | 合并 Beta 2.0.10-beta.4 发布线回 `main`（承接根仓库 dev→main 合并，desktop gitlink 两侧分叉）
   - 背景：`main`（会话续期加固 + Linux 增强模式 + 分支更名线，tip `7b34ae9eca`）与 `f9cb7b5c70`（Beta 2.0.10-beta.4 发布线：fox 默认 + 版本钉住）自 `a5a58d173b` 分叉；根仓库按用户指令把 dev 全量并入 main 时 desktop gitlink 两侧冲突，按工作区约定先在组件内合并并推送。
   - 冲突解决：两变体 `robocoding-account-controller.ts` 的 `LEGACY_DEFAULT_ROBOCODING_PLATFORM_URLS` 取两线并集 → `['https://www.openfox.work', 'https://ai.openzrob.com', 'https://www.openzrob.com']`（默认源保持 `ai.openfox.work`；`www.openzrob.com` 来自续期加固线、`ai.openzrob.com` 来自 fox 切回线，兼容期主机全部保留、迁移仅重绑 origin 不清会话）；log.md 双方条目按时间序全部保留。
