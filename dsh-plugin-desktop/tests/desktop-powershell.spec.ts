@@ -11,6 +11,7 @@ import {
   DesktopPowerShell,
   DesktopPowerShellApprovalActions,
   DesktopPowerShellLauncher,
+  DesktopPowerShellOverlay,
   DesktopPowerShellPanel,
   DESKTOP_POWERSHELL_TAB_KIND,
   DESKTOP_ROBOT_TERMINAL_TAB_KIND,
@@ -152,17 +153,16 @@ describe('Desktop PowerShell activity projection', () => {
       await act(async () => { root.render(createElement(DesktopPowerShellLauncher, { navigation, device })) })
       const launcher = container.querySelector('.dshDesktopPowerShellButton')
       if (!(launcher instanceof HTMLButtonElement)) throw new Error('terminal launcher missing')
-      expect(launcher.disabled).toBe(true)
+      expect(launcher.disabled).toBe(false)
       let detach = (): void => {}
       act(() => { detach = navigation.attach(sidebarRight) })
-      expect(launcher.disabled).toBe(false)
       act(() => { launcher.click() })
       expect(sidebarRight.openTab).toHaveBeenCalledWith(DESKTOP_POWERSHELL_TAB_KIND)
       act(() => { device.select('robot-1', 'standard', 'Robot 1', { host: 'robot.local', user: 'operator' }) })
       act(() => { launcher.click() })
       expect(sidebarRight.openTab).toHaveBeenLastCalledWith(DESKTOP_ROBOT_TERMINAL_TAB_KIND)
       act(() => { detach() })
-      expect(launcher.disabled).toBe(true)
+      expect(launcher.disabled).toBe(false)
     } finally {
       await act(async () => { root.unmount() })
       device.dispose(); container.remove(); vi.unstubAllGlobals()
@@ -196,7 +196,7 @@ describe('Desktop PowerShell activity projection', () => {
       const launcher = registrations.find(entry => entry.options.name === 'shell.overlay')
       expect(launcher).toMatchObject({
         options: { id: 'desktop-powershell-launcher', order: 90 },
-        occupant: DesktopPowerShellLauncher,
+        occupant: DesktopPowerShellOverlay,
       })
       const injected = (launcher?.options.inject as (() => {
         navigation: ReturnType<typeof createDesktopPowerShellNavigation>
@@ -213,6 +213,44 @@ describe('Desktop PowerShell activity projection', () => {
     } finally {
       for (const dispose of disposers.reverse()) dispose()
       device.dispose()
+    }
+  })
+
+  it('opens an application-level terminal when no session right-Sidebar is mounted', async () => {
+    vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
+    const unavailableSidebar = sidebarRightHarness()
+    unavailableSidebar.openTab.mockImplementation(() => { throw new Error('sidebarRight: no session surface is mounted') })
+    const navigation = createDesktopPowerShellNavigation(() => unavailableSidebar)
+    const device = createRoboDeviceSelection(new MemoryStorage())
+    const shortcuts = createDesktopTerminalShortcuts(new MemoryStorage())
+    const connections = createDesktopSshConnections(new MemoryStorage())
+    const api = apiHarness()
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    try {
+      await act(async () => {
+        root.render(createElement(DesktopPowerShellOverlay, { navigation, device, api, shortcuts, connections }))
+      })
+      const launcher = container.querySelector('.dshDesktopPowerShellButton') as HTMLButtonElement
+      expect(launcher.disabled).toBe(false)
+      await act(async () => { launcher.click(); await Promise.resolve() })
+      expect(unavailableSidebar.openTab).toHaveBeenCalledWith(DESKTOP_POWERSHELL_TAB_KIND)
+      expect(navigation.getSnapshot()).toBe(unavailableSidebar)
+      const fallback = container.querySelector('.dshDesktopPowerShellFallback') as HTMLElement
+      expect(fallback).not.toBeNull()
+      expect(fallback.querySelector('.dshDesktopPowerShellPanel')?.getAttribute('data-terminal-mode')).toBe('local')
+
+      const navButtons = fallback.querySelectorAll('.dshDesktopPowerShellFallbackNav button')
+      await act(async () => { (navButtons[1] as HTMLButtonElement).click(); await Promise.resolve() })
+      expect(fallback.querySelector('.dshDesktopPowerShellPanel')?.getAttribute('data-terminal-mode')).toBe('robot')
+      act(() => { (navButtons[2] as HTMLButtonElement).click() })
+      expect(fallback.getAttribute('data-fullscreen')).toBe('true')
+      act(() => { (navButtons[3] as HTMLButtonElement).click() })
+      expect(container.querySelector('.dshDesktopPowerShellFallback')).toBeNull()
+    } finally {
+      await act(async () => { root.unmount() })
+      connections.dispose(); shortcuts.dispose(); device.dispose(); container.remove(); vi.unstubAllGlobals()
     }
   })
 

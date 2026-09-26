@@ -6,8 +6,8 @@ import type { ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { ToolCallBlock, ToolResultNode } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ISidebarRight, SidebarRightTabDefinition } from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
-import { CirclePlay, Pencil, Plus, RotateCcw, Send, Server, Settings2, ShieldCheck, SquareTerminal, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { CirclePlay, Maximize2, Minimize2, Pencil, Plus, RotateCcw, Send, Server, Settings2, ShieldCheck, SquareTerminal, Trash2, X } from 'lucide-react'
+import { createElement, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { createRoot } from 'react-dom/client'
 import type { DesktopPowerShellTarget } from '../desktop-powershell-contract.ts'
 import { createDesktopPowerShellApi, type DesktopPowerShellApi } from './desktop-powershell-api.ts'
@@ -66,6 +66,7 @@ const ZH = {
   host: 'IP / 主机', username: '用户名', port: '端口', password: '密码', passwordHint: '密码仅用于本次连接，不会保存到连接记录。',
   connect: '连接', editConnection: '编辑连接', deleteConnection: '删除连接', currentConnection: '当前连接',
   connectFirst: '命令已放入输入框。请先连接终端，再点击运行。', invalidPort: '端口必须是 1-65535 之间的整数。',
+  fullscreen: '全屏', exitFullscreen: '退出全屏',
 } as const
 
 const EN = {
@@ -86,6 +87,7 @@ const EN = {
   host: 'IP / host', username: 'User name', port: 'Port', password: 'Password', passwordHint: 'The password is used only for this connection and is never saved.',
   connect: 'Connect', editConnection: 'Edit connection', deleteConnection: 'Delete connection', currentConnection: 'Current connection',
   connectFirst: 'The command is in the command box. Connect a terminal before running it.', invalidPort: 'Port must be an integer from 1 to 65535.',
+  fullscreen: 'Fullscreen', exitFullscreen: 'Exit fullscreen',
 } as const
 
 function copy() { return navigator.language.toLowerCase().startsWith('zh') ? ZH : EN }
@@ -258,16 +260,25 @@ export interface DesktopPowerShellNavigation {
   readonly getSnapshot: () => TerminalNavigation | undefined
   readonly subscribe: (listener: () => void) => () => void
   readonly attach: (sidebarRight: TerminalNavigation) => () => void
+  readonly resolve: () => TerminalNavigation | undefined
 }
 
 /** Keep the title-bar entry independent from right-Sidebar provider ordering. */
-export function createDesktopPowerShellNavigation(): DesktopPowerShellNavigation {
+export function createDesktopPowerShellNavigation(
+  resolver: () => TerminalNavigation | undefined = () => undefined,
+): DesktopPowerShellNavigation {
   let current: TerminalNavigation | undefined
   const listeners = new Set<() => void>()
   const publish = (): void => { for (const listener of listeners) listener() }
   return {
     getSnapshot: () => current,
     subscribe: listener => { listeners.add(listener); return () => { listeners.delete(listener) } },
+    resolve: () => {
+      let resolved = current
+      try { resolved ??= resolver() } catch { resolved = undefined }
+      if (resolved !== undefined && resolved !== current) { current = resolved; publish() }
+      return resolved
+    },
     attach: sidebarRight => {
       current = sidebarRight
       publish()
@@ -284,7 +295,14 @@ export function createDesktopPowerShellNavigation(): DesktopPowerShellNavigation
 export function DesktopPowerShellLauncher({
   navigation,
   device,
-}: { readonly navigation: DesktopPowerShellNavigation; readonly device: RoboDeviceSelection }) {
+  fallbackOpen = false,
+  onFallback,
+}: {
+  readonly navigation: DesktopPowerShellNavigation
+  readonly device: RoboDeviceSelection
+  readonly fallbackOpen?: boolean
+  readonly onFallback?: (mode: DesktopPowerShellMode | undefined) => void
+}) {
   const labels = copy()
   const view = useSyncExternalStore(subscribeView, () => currentView, () => EMPTY_VIEW)
   const open = useSyncExternalStore(subscribePanelVisibility, () => panelVisible, () => false)
@@ -292,19 +310,33 @@ export function DesktopPowerShellLauncher({
   const pending = view.pending
   const runningKey = view.entries.filter(entry => entry.state === 'running').map(entry => entry.callId).join('|')
   const selection = useSyncExternalStore(device.subscribe, device.getSnapshot, device.getSnapshot)
+  const fallbackTimer = useRef<ReturnType<typeof setTimeout>>()
+  useEffect(() => () => { if (fallbackTimer.current !== undefined) clearTimeout(fallbackTimer.current) }, [])
   const preferredKind = selection.modelId === '' ? DESKTOP_POWERSHELL_TAB_KIND : DESKTOP_ROBOT_TERMINAL_TAB_KIND
+  const preferredMode: DesktopPowerShellMode = selection.modelId === '' ? 'local' : 'robot'
   const toggle = (): void => {
-    if (sidebarRight === undefined) return
-    const active = sidebarRight.active()
-    if (sidebarRight.isExpanded() && (active?.kind === DESKTOP_POWERSHELL_TAB_KIND || active?.kind === DESKTOP_ROBOT_TERMINAL_TAB_KIND)) {
-      sidebarRight.toggleExpanded()
+    if (fallbackTimer.current !== undefined) clearTimeout(fallbackTimer.current)
+    if (fallbackOpen) { onFallback?.(undefined); return }
+    const target = sidebarRight ?? navigation.resolve()
+    if (target === undefined) { onFallback?.(preferredMode); return }
+    const active = target.active()
+    if (target.isExpanded() && (active?.kind === DESKTOP_POWERSHELL_TAB_KIND || active?.kind === DESKTOP_ROBOT_TERMINAL_TAB_KIND)) {
+      target.toggleExpanded()
       return
     }
-    sidebarRight.openTab(preferredKind)
+    try {
+      target.openTab(preferredKind)
+      fallbackTimer.current = setTimeout(() => {
+        fallbackTimer.current = undefined
+        if (!panelVisible) onFallback?.(preferredMode)
+      }, 400)
+    } catch {
+      onFallback?.(preferredMode)
+    }
   }
 
-  return <button type="button" className="dshDesktopPowerShellButton" aria-label={labels.button} aria-expanded={open}
-    aria-disabled={sidebarRight === undefined} disabled={sidebarRight === undefined} title={labels.button} onClick={toggle}>
+  return <button type="button" className="dshDesktopPowerShellButton" aria-label={labels.button} aria-expanded={open || fallbackOpen}
+    data-navigation-ready={sidebarRight !== undefined || undefined} title={labels.button} onClick={toggle}>
     <SquareTerminal aria-hidden="true" /><span>{labels.button}</span>
     {(pending !== undefined || runningKey.length > 0) && <i className="dshDesktopPowerShellActivity" aria-hidden="true" />}
   </button>
@@ -760,6 +792,51 @@ export function DesktopPowerShellPanel({ device, api, mode, shortcuts, connectio
     </section>
 }
 
+export interface DesktopPowerShellOverlayProps {
+  readonly navigation: DesktopPowerShellNavigation
+  readonly device: RoboDeviceSelection
+  readonly api: DesktopPowerShellApi
+  readonly shortcuts: DesktopTerminalShortcuts
+  readonly connections: DesktopSshConnections
+}
+
+/** Application-level fallback for pages where the session-scoped native Sidebar is not mounted yet. */
+export function DesktopPowerShellOverlay({ navigation, device, api, shortcuts, connections }: DesktopPowerShellOverlayProps) {
+  const labels = copy()
+  const [fallbackMode, setFallbackMode] = useState<DesktopPowerShellMode>()
+  const [fullscreen, setFullscreen] = useState(false)
+  const useFallbackTabInfo = useCallback(() => ({
+    sidebar: { expanded: true, fullscreen },
+    tab: { visible: true },
+  } as never), [fullscreen])
+  const close = (): void => { setFallbackMode(undefined); setFullscreen(false) }
+  return <>
+    <DesktopPowerShellLauncher navigation={navigation} device={device} fallbackOpen={fallbackMode !== undefined}
+      onFallback={mode => { if (mode === undefined) close(); else setFallbackMode(mode) }} />
+    {fallbackMode !== undefined && <aside className="dshDesktopPowerShellFallback" data-fullscreen={fullscreen || undefined}>
+      <nav className="dshDesktopPowerShellFallbackNav" aria-label={labels.title}>
+        <button type="button" data-active={fallbackMode === 'local' || undefined} onClick={() => { setFallbackMode('local') }}>
+          {labels.localTab}
+        </button>
+        <button type="button" data-active={fallbackMode === 'robot' || undefined} onClick={() => { setFallbackMode('robot') }}>
+          {labels.robotTab}
+        </button>
+        <button type="button" aria-label={fullscreen ? labels.exitFullscreen : labels.fullscreen}
+          title={fullscreen ? labels.exitFullscreen : labels.fullscreen} onClick={() => { setFullscreen(value => !value) }}>
+          {fullscreen ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}
+        </button>
+        <button type="button" aria-label={labels.close} title={labels.close} onClick={close}><X aria-hidden="true" /></button>
+      </nav>
+      {createElement(DesktopPowerShellPanel, {
+        key: fallbackMode, device, api, mode: fallbackMode, shortcuts, connections,
+        useTabInfo: useFallbackTabInfo,
+        renderSlot: (_name: string, owner: DesktopPowerShellFooterActionContext) =>
+          <DesktopPowerShellApprovalActions {...owner} />,
+      } as never)}
+    </aside>}
+  </>
+}
+
 export type DesktopPowerShellProps = PropsRuntime<'conversation.session.header.utilities'> & {
   readonly sidebarRight: Pick<ISidebarRight, 'openTab'>
   readonly device: RoboDeviceSelection
@@ -801,13 +878,17 @@ export function DesktopPowerShellTitle({ mode }: { readonly mode: DesktopPowerSh
 function installCompatibilityPowerShellLauncher(
   navigation: DesktopPowerShellNavigation,
   device: RoboDeviceSelection,
+  api: DesktopPowerShellApi,
+  shortcuts: DesktopTerminalShortcuts,
+  connections: DesktopSshConnections,
 ): () => void {
   document.getElementById('dsh-desktop-powershell-root')?.remove()
   const host = document.createElement('div')
   host.id = 'dsh-desktop-powershell-root'
   document.body.appendChild(host)
   const root = createRoot(host)
-  root.render(<DesktopPowerShellLauncher navigation={navigation} device={device} />)
+  root.render(<DesktopPowerShellOverlay navigation={navigation} device={device} api={api}
+    shortcuts={shortcuts} connections={connections} />)
   return () => { root.unmount(); host.remove() }
 }
 
@@ -820,20 +901,21 @@ export function applyDesktopPowerShell(
   ctx.effect(installDesktopPowerShellStyles, 'dsh-plugin-desktop: PowerShell right Sidebar styles')
   const shortcuts = createDesktopTerminalShortcuts()
   const connections = createDesktopSshConnections()
-  const navigation = createDesktopPowerShellNavigation()
+  const api = createDesktopPowerShellApi()
+  const navigation = createDesktopPowerShellNavigation(() =>
+    ctx.reflect.get('sidebarRight') as TerminalNavigation | undefined)
   ctx.effect(() => () => { shortcuts.dispose() }, 'dsh-plugin-desktop: terminal shortcut storage')
   ctx.effect(() => () => { connections.dispose() }, 'dsh-plugin-desktop: SSH connection storage')
   if (launcherSurface === 'shell-overlay') {
     ctx.slots.inject('shell.overlay', () => ctx.slots.register({
       name: 'shell.overlay', id: 'desktop-powershell-launcher', order: 90,
-      inject: () => ({ navigation, device }),
-    }, DesktopPowerShellLauncher))
+      inject: () => ({ navigation, device, api, shortcuts, connections }),
+    }, DesktopPowerShellOverlay))
   } else {
-    ctx.effect(() => installCompatibilityPowerShellLauncher(navigation, device),
+    ctx.effect(() => installCompatibilityPowerShellLauncher(navigation, device, api, shortcuts, connections),
       'dsh-plugin-desktop: compatibility PowerShell launcher')
   }
   ctx.inject(['sidebarRight', 'sidebarRightTabs'], ready => {
-    const api = createDesktopPowerShellApi()
     ready.effect(() => navigation.attach(ready.sidebarRight),
       'dsh-plugin-desktop: connect PowerShell launcher navigation')
     for (const mode of ['local', 'robot'] as const) {

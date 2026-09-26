@@ -4,6 +4,8 @@
 
 ## 当前状态
 
+- 2026-09-26T23:16:02+08:00 | Codex | `feat/powershell-robot-terminal` 已修复“终端按钮可见但点击无反应”：首页、未登录及无会话 Surface 时改为打开应用级右侧终端，进入会话后仍优先使用原生右侧栏；Stable/Beta 各 54 项关联回归、四项客户端类型检查、两版完整构建、233 个共享源码对齐及 diff 检查均通过。最新 Beta 源码主进程 PID 44088、Renderer PID 39036 正常运行；界面控制仍被 `Codex auth token is unavailable` 阻断，待用户点击验收。
+
 - 2026-09-26T22:50:58+08:00 | Codex | `feat/powershell-robot-terminal` 已修复“终端按钮在真实窗口不显示”：增强/扩展模式入口改为桌面框架 `shell.overlay` 原生贡献项，并与晚到的右侧栏服务解耦；兼容模式保留独立文档入口。Stable/Beta 各 53 项关联回归、客户端与客户端测试类型检查、完整构建、233 个共享源码对齐及 diff 检查均通过。最新 Beta 源码主进程 PID 38864 正常运行；界面控制仍被 `Codex auth token is unavailable` 阻断，待用户查看右上角窗口控制区左侧的“终端”按钮。
 
 - 2026-09-26T22:17:55+08:00 | Codex | `feat/powershell-robot-terminal` 已完成并推送 MobaXterm 式 SSH 历史、机器人连接表单、一次性密码处理和未连接快捷命令修复，功能提交 `1115e93fcd`；stable/Beta 各 47 项相关回归、客户端与测试类型检查、完整构建、233 个共享源码对齐及 diff 检查均通过。Beta 已按最终构建重启，主进程 PID 33360；界面控制仍被 `Codex auth token is unavailable` 阻断，待用户在窗口中点击验收。
@@ -879,3 +881,13 @@
 - 验证：stable/Beta 关联 5 个测试文件各 53/53；两版 `tsconfig.client.json` 与 `tsconfig.tests.client.json` 检查通过；两版完整 build 通过；`check:desktop-variants` 报告 233 个共享源码文件一致；`git diff --check` 通过。
 - 原生启动：使用当前 Beta 构建直接启动 Electron，主进程 PID 38864、Renderer PID 40584 正常运行；Computer Use 按技能流程初始化后仍返回 `Codex auth token is unavailable`，无法自动截图或点击，未使用其他 UI 自动化绕过。
 - 下一步：提交并推送当前分支；用户在已打开的最新 Beta 窗口查看右上角窗口控制区左侧“终端”按钮并点击验收。
+
+### 2026-09-26T23:16:02+08:00 | Codex | 终端入口无会话兜底修复
+
+- 基线：Desktop `feat/powershell-robot-terminal` 提交 `f260f58b5e`；重新拉取远端后确认 `origin/main` 仍为当前分支祖先，功能分支领先主线 8 个提交、未落后。
+- 根因：首页、未登录或新会话尚未挂载 Session Surface 时，右侧栏服务对象可能已经存在，但 `openTab()` 会抛出 `sidebarRight: no session surface is mounted`；旧入口未显示错误，因此用户看到按钮点击后完全没有反应。
+- 已完成：原生 Session 右侧栏可用时继续优先打开原生终端；导航服务晚到时通过反射懒解析；原生 Surface 不存在、打开抛错或未实际显示时，自动打开应用级右侧终端。兜底面板复用完整 PowerShell/SSH 终端，提供本机/机器人切换、命令框、DIY 快捷按键、连接管理、全屏和关闭；普通宽度保持约 31.5vw，颜色、边框、焦点态沿用 OpenFox 语义变量，全屏覆盖原界面。Stable/Beta 同步。
+- 回归覆盖：更新入口始终可点击与 Overlay 注册断言，新增“无 Session 右侧栏时点击打开应用级终端”用例，覆盖本机/机器人切换、全屏和关闭。
+- 验证：Stable/Beta 关联 5 个测试文件各 54/54；两版 `tsconfig.client.json` 与 `tsconfig.tests.client.json` 检查通过；两版完整 build 通过；`check:desktop-variants` 报告 233 个共享源码文件一致；`git diff --check` 通过。
+- 原生启动：使用当前 Beta 构建直接启动 Electron，主进程 PID 44088、Renderer PID 39036 均正常响应；Computer Use 初始化仍返回 `Codex auth token is unavailable`，无法自动点击或截图，未使用其他 UI 自动化绕过。
+- 下一步：提交并推送功能分支；用户在已打开的 Beta 窗口直接点击右上角“终端”验收应用级兜底面板。
