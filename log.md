@@ -817,3 +817,9 @@
 - 验证：Stable/Beta 相关 4 个测试文件各 53/53 通过；Host 与客户端测试 TypeScript 校验通过；Stable/Beta build 通过；运行时依赖闭包检查各 4/4，247 个首方节点闭合；变体 231 个共享源文件对齐；`git diff --check` 通过。Windows Beta 原生验收确认“登录账号，未登陆”时入口可见，侧栏能展开并显示“机器人 · SSH · 宇树 G1”及缺失 SSH 的明确错误态。
 - 限制：当前实时设备目录未给本机旧“宇树 G1”选择提供 SSH 字段，因此原生验收只能确认缺失态，不能实际登录机器人。完整 `typecheck` 仍被 `node_modules` 内 session-controller/session-projection/katex 既有声明冲突阻断；全量 `test` 仍含 Windows 无符号链接权限、旧品牌断言和其他与本功能无关的失败，本轮直接影响用例已单独全部通过。
 - 下一步：提交并推送 `feat/powershell-robot-terminal`，供用户检查；设备目录提供 SSH 配置后进行真机连接验收。
+
+### 2026-09-26T16:52:00+08:00 | Codex | PowerShell/SSH 功能分支已推送
+
+- 已完成：功能提交 `5edf530047` 已推送至 `origin/feat/powershell-robot-terminal`，本地分支已设置跟踪远端。
+- 验证：推送成功，远端分支可用于用户检查。
+- 下一步：等待用户验收；若实时设备目录提供 SSH 配置，再执行真机 SSH 连接验收。
