@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-- 2026-09-26T23:16:02+08:00 | Codex | `feat/powershell-robot-terminal` 已修复“终端按钮可见但点击无反应”：首页、未登录及无会话 Surface 时改为打开应用级右侧终端，进入会话后仍优先使用原生右侧栏；Stable/Beta 各 54 项关联回归、四项客户端类型检查、两版完整构建、233 个共享源码对齐及 diff 检查均通过。最新 Beta 源码主进程 PID 44088、Renderer PID 39036 正常运行；界面控制仍被 `Codex auth token is unavailable` 阻断，待用户点击验收。
+- 2026-09-26T23:16:02+08:00 | Codex | `feat/powershell-robot-terminal` 已修复并推送“终端按钮可见但点击无反应”，功能提交 `e061d6e547`：首页、未登录及无会话 Surface 时改为打开应用级右侧终端，进入会话后仍优先使用原生右侧栏；Stable/Beta 各 54 项关联回归、四项客户端类型检查、两版完整构建、233 个共享源码对齐及 diff 检查均通过。最新 Beta 源码主进程 PID 44088、Renderer PID 39036 正常运行；界面控制仍被 `Codex auth token is unavailable` 阻断，待用户点击验收。
 
 - 2026-09-26T22:50:58+08:00 | Codex | `feat/powershell-robot-terminal` 已修复“终端按钮在真实窗口不显示”：增强/扩展模式入口改为桌面框架 `shell.overlay` 原生贡献项，并与晚到的右侧栏服务解耦；兼容模式保留独立文档入口。Stable/Beta 各 53 项关联回归、客户端与客户端测试类型检查、完整构建、233 个共享源码对齐及 diff 检查均通过。最新 Beta 源码主进程 PID 38864 正常运行；界面控制仍被 `Codex auth token is unavailable` 阻断，待用户查看右上角窗口控制区左侧的“终端”按钮。
 
@@ -890,4 +890,5 @@
 - 回归覆盖：更新入口始终可点击与 Overlay 注册断言，新增“无 Session 右侧栏时点击打开应用级终端”用例，覆盖本机/机器人切换、全屏和关闭。
 - 验证：Stable/Beta 关联 5 个测试文件各 54/54；两版 `tsconfig.client.json` 与 `tsconfig.tests.client.json` 检查通过；两版完整 build 通过；`check:desktop-variants` 报告 233 个共享源码文件一致；`git diff --check` 通过。
 - 原生启动：使用当前 Beta 构建直接启动 Electron，主进程 PID 44088、Renderer PID 39036 均正常响应；Computer Use 初始化仍返回 `Codex auth token is unavailable`，无法自动点击或截图，未使用其他 UI 自动化绕过。
-- 下一步：提交并推送功能分支；用户在已打开的 Beta 窗口直接点击右上角“终端”验收应用级兜底面板。
+- 推送：功能提交 `e061d6e547` 已推送至 `origin/feat/powershell-robot-terminal`。
+- 下一步：用户在已打开的 Beta 窗口直接点击右上角“终端”验收应用级兜底面板。
