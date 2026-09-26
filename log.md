@@ -4,6 +4,8 @@
 
 ## 当前状态
 
+- 2026-09-26T22:17:55+08:00 | Codex | `feat/powershell-robot-terminal` 已完成 MobaXterm 式 SSH 历史、机器人连接表单、一次性密码处理和未连接快捷命令修复；stable/Beta 各 47 项相关回归、客户端与测试类型检查、完整构建、233 个共享源码对齐及 diff 检查均通过。Beta 已按最终构建重启，主进程 PID 33360；界面控制仍被 `Codex auth token is unavailable` 阻断，待用户在窗口中点击验收。
+
 - 2026-09-24T19:47:00+08:00 | ZCode | 合并 Beta 2.0.10-beta.4 发布线回 `main`（承接根仓库 dev→main 合并，desktop gitlink 两侧分叉）
   - 背景：`main`（会话续期加固 + Linux 增强模式 + 分支更名线，tip `7b34ae9eca`）与 `f9cb7b5c70`（Beta 2.0.10-beta.4 发布线：fox 默认 + 版本钉住）自 `a5a58d173b` 分叉；根仓库按用户指令把 dev 全量并入 main 时 desktop gitlink 两侧冲突，按工作区约定先在组件内合并并推送。
   - 冲突解决：两变体 `robocoding-account-controller.ts` 的 `LEGACY_DEFAULT_ROBOCODING_PLATFORM_URLS` 取两线并集 → `['https://www.openfox.work', 'https://ai.openzrob.com', 'https://www.openzrob.com']`（默认源保持 `ai.openfox.work`；`www.openzrob.com` 来自续期加固线、`ai.openzrob.com` 来自 fox 切回线，兼容期主机全部保留、迁移仅重绑 origin 不清会话）；log.md 双方条目按时间序全部保留。
@@ -847,3 +849,20 @@
 - 验证：stable/Beta 定向测试各 38/38；两版客户端 TypeScript 校验和完整 build 通过；`check:desktop-variants` 报告 231 个共享源文件一致；`git diff --check` 通过。
 - 原生验收：已按最终构建重启 OpenFox Beta，主进程正常运行；Windows UI 控制服务仍返回 `Codex auth token is unavailable`，无法自动点击和截图，未使用其他 UI 自动化绕过。
 - 下一步：提交并推送功能分支供用户检查两个入口和全屏覆盖效果。
+
+### 2026-09-26T21:53:41+08:00 | Codex | 终端快捷按键自定义闭环与全屏空白修复
+
+- 基线：Desktop `feat/powershell-robot-terminal` 提交 `2a3a677c9e`；stable/Beta 同步修改。
+- 已完成：命令输入框与 Ctrl+C、运行按键保持常驻；底部新增常驻快捷命令栏，默认提供清屏、当前目录、文件列表。用户可从“自定义按键”就地新增、编辑、删除、恢复默认并选择“立即运行”或“填入命令框”，配置持久化到本机且最多 12 项。立即运行会直接写入当前本机 PowerShell 或机器人 SSH 会话，填入模式只预填命令供用户复核。原有扩展 Slot 同步获得 `runCommand` / `fillCommand` 能力。
+- 修复：移除会遮住终端内容的全屏右栏容器背景覆盖，只提升右侧栏库实际的 fullscreen 面板层级，保持覆盖原页面的同时避免全屏后空白。
+- 验证：stable/Beta 相关 3 个测试文件各 41/41；两版客户端与客户端测试 TypeScript 校验通过；两版完整 build 通过；`check:desktop-variants` 报告 232 个共享源文件一致；`git diff --check` 通过。
+- 下一步：按最终构建重启 Beta，提交并推送功能分支供用户验收快捷按键和全屏终端。
+
+### 2026-09-26T22:17:55+08:00 | Codex | MobaXterm 式机器人连接与终端按键可用性修复
+
+- 基线：Desktop `feat/powershell-robot-terminal` 提交 `2a3a677c9e`；承接同工作树中尚未提交的快捷按键与全屏修复，stable/Beta 同步修改。
+- 已完成：快捷命令按键不再因终端未连接而整体禁用，未连接时会把命令放入常驻命令框并提示先连接；全屏机器人终端新增 236px 左侧 SSH 历史栏，展示名称、用户、IP 和端口，点击记录可直接重连，普通窄侧栏保留紧凑的当前连接与连接管理入口。机器人选择与 SSH 资料拆开，缺少 SSH 时自动展开名称、IP、用户名、端口、密码表单；连接成功后只持久化非敏感资料，密码仅保存在组件内存，检测到 OpenSSH 密码提示后发送一次并立即清空。历史连接支持新建、编辑、删除和按最近连接排序。
+- 验证：stable/Beta 相关 4 个测试文件各 47/47；两版 `tsconfig.client.json` 与 `tsconfig.tests.client.json` 检查通过；两版完整 build 通过；`check:desktop-variants` 报告 233 个共享源文件一致；`git diff --check` 通过。新增测试覆盖未连接快捷按键、历史点击 SSH target、手动表单、密码不落盘、密码提示单次提交、全屏历史栏和 SSH 记录校验。
+- 原生启动：停止旧 Beta 进程后按最终构建重启，OpenFox Beta 主进程 PID 33360 正常运行；Windows 界面控制服务仍返回 `Codex auth token is unavailable`，无法自动点击或截图，未使用其他 UI 自动化绕过。
+- 未完成 / 限制：未连接真实机器人验证远端 SSH 登录；原生窗口布局需要用户在已打开的 Beta 中点击验收。
+- 下一步：提交并推送 `feat/powershell-robot-terminal` 供用户检查；用户在当前 Beta 窗口点击右上角“终端”验收入口、快捷按键和连接管理。

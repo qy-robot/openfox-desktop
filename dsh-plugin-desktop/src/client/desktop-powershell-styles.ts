@@ -30,7 +30,8 @@ const CSS = `
 }
 .dshDesktopPowerShellButton:focus-visible,
 .dshDesktopPowerShellPanel button:focus-visible,
-.dshDesktopPowerShellPanel input:focus-visible {
+.dshDesktopPowerShellPanel input:focus-visible,
+.dshDesktopPowerShellPanel select:focus-visible {
   outline: 2px solid var(--dsw-alias-brand-primary, #3267d6);
   outline-offset: 1px;
 }
@@ -47,7 +48,7 @@ const CSS = `
 }
 .dshDesktopPowerShellPanel {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+  grid-template-columns: minmax(0, 1fr);
   box-sizing: border-box;
   width: 100%;
   height: 100%;
@@ -57,7 +58,18 @@ const CSS = `
   background: var(--dsw-alias-bg-base, #f8fafc);
   color: var(--dsw-alias-label-primary, #17202b);
   font-family: system-ui, sans-serif;
+  container-type: inline-size;
   -webkit-app-region: no-drag;
+}
+.dshDesktopPowerShellPanel[data-terminal-mode="robot"][data-fullscreen="true"] {
+  grid-template-columns: 236px minmax(0, 1fr);
+}
+.dshDesktopPowerShellSurface {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 .dshDesktopPowerShellHeader {
   display: flex;
@@ -88,6 +100,99 @@ const CSS = `
 .dshDesktopPowerShellHeader button svg { width: 16px; height: 16px; }
 .dshDesktopPowerShellTabTitle { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
 .dshDesktopPowerShellTabTitle svg { width: 14px; height: 14px; flex: none; stroke-width: 1.8; }
+.dshDesktopSshRail,
+.dshDesktopSshCompact {
+  min-width: 0;
+  background: var(--dsw-alias-bg-base, #f8fafc);
+  color: var(--dsw-alias-label-primary, #17202b);
+}
+.dshDesktopSshRail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--dsw-alias-border-l1, rgba(120,130,145,.28));
+}
+.dshDesktopSshCompact { border-bottom: 1px solid var(--dsw-alias-border-l1, rgba(120,130,145,.28)); }
+.dshDesktopSshPaneHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  box-sizing: border-box;
+  padding: 8px 10px 8px 12px;
+  border-bottom: 1px solid var(--dsw-alias-border-l1, rgba(120,130,145,.28));
+}
+.dshDesktopSshCompact .dshDesktopSshPaneHeader { min-height: 44px; border-bottom: 0; }
+.dshDesktopSshPaneHeader > div { display: grid; flex: 1; gap: 2px; min-width: 0; }
+.dshDesktopSshPaneHeader strong { font-size: 12px; }
+.dshDesktopSshPaneHeader small { overflow: hidden; color: var(--dsw-alias-label-secondary, #667085); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.dshDesktopSshPaneHeader button,
+.dshDesktopSshEditor button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 30px;
+  box-sizing: border-box;
+  padding: 5px 9px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(120,130,145,.35));
+  border-radius: 7px;
+  background: var(--dsw-alias-bg-layer-1, #f3f5f8);
+  color: var(--dsw-alias-label-primary, #17202b);
+  cursor: pointer;
+  font: 500 11px/1.2 system-ui, sans-serif;
+  white-space: nowrap;
+}
+.dshDesktopSshPaneHeader button:hover,
+.dshDesktopSshEditor button:hover { background: var(--dsw-alias-interactive-bg-hover, #e9edf3); }
+.dshDesktopSshPaneHeader button svg,
+.dshDesktopSshEditor button svg { width: 13px; height: 13px; }
+.dshDesktopSshProfileList { flex: 1; min-height: 0; padding: 8px; overflow: auto; }
+.dshDesktopSshProfileList h3 { margin: 4px 4px 8px; color: var(--dsw-alias-label-secondary, #667085); font-size: 10px; font-weight: 600; }
+.dshDesktopSshProfileList > p { margin: 12px 4px; color: var(--dsw-alias-label-secondary, #667085); font-size: 11px; line-height: 1.5; }
+.dshDesktopSshProfile {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) 26px 26px;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 3px;
+  border-radius: 7px;
+}
+.dshDesktopSshProfile[data-active="true"] { background: var(--dsw-alias-interactive-bg-hover, #e9edf3); }
+.dshDesktopSshProfile button { border: 0; background: transparent; color: inherit; cursor: pointer; }
+.dshDesktopSshProfileConnect { display: grid; grid-template-columns: 18px minmax(0,1fr); align-items: center; gap: 7px; min-width: 0; padding: 7px 5px; text-align: left; }
+.dshDesktopSshProfileConnect > svg { width: 15px; height: 15px; color: var(--dsw-alias-label-secondary, #667085); }
+.dshDesktopSshProfileConnect > span { display: grid; gap: 2px; min-width: 0; }
+.dshDesktopSshProfileConnect strong,
+.dshDesktopSshProfileConnect small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dshDesktopSshProfileConnect strong { font-size: 11px; }
+.dshDesktopSshProfileConnect small { color: var(--dsw-alias-label-secondary, #667085); font: 10px/1.25 "Cascadia Mono", Consolas, monospace; }
+.dshDesktopSshProfileAction { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; padding: 0; border-radius: 6px !important; color: var(--dsw-alias-label-secondary, #667085) !important; }
+.dshDesktopSshProfileAction:hover { background: var(--dsw-alias-interactive-bg-hover, #e9edf3); color: var(--dsw-alias-label-primary, #17202b) !important; }
+.dshDesktopSshProfileAction svg { width: 12px; height: 12px; }
+.dshDesktopSshEditor { display: grid; gap: 9px; padding: 10px 12px 12px; border-top: 1px solid var(--dsw-alias-border-l1, rgba(120,130,145,.28)); overflow: auto; }
+.dshDesktopSshRail .dshDesktopSshEditor { max-height: 58%; }
+.dshDesktopSshCompact .dshDesktopSshEditor { max-height: min(42vh, 360px); }
+.dshDesktopSshEditor label { display: grid; gap: 4px; min-width: 0; }
+.dshDesktopSshEditor label > span { color: var(--dsw-alias-label-secondary, #667085); font-size: 10px; }
+.dshDesktopSshEditor input {
+  width: 100%;
+  height: 30px;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0 8px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(120,130,145,.35));
+  border-radius: 7px;
+  background: var(--dsw-alias-bg-layer-1, #f3f5f8);
+  color: var(--dsw-alias-label-primary, #17202b);
+  font: 11px/1.2 system-ui, sans-serif;
+}
+.dshDesktopSshEditorPair { display: grid; grid-template-columns: minmax(0,1fr) 68px; gap: 7px; }
+.dshDesktopSshEditor p { margin: 0; color: var(--dsw-alias-label-secondary, #667085); font-size: 10px; line-height: 1.4; }
+.dshDesktopSshEditor .dshDesktopSshEditorError { color: var(--dsw-alias-state-error-primary, #b42318); }
+.dshDesktopSshEditorActions { display: flex; justify-content: flex-end; gap: 7px; }
+.dshDesktopSshEditorActions button[data-primary] { border-color: transparent; background: var(--dsw-alias-button-primary-fill, var(--dsw-alias-brand-primary, #3267d6)); color: var(--dsw-alias-label-primary-foreground, #fff); }
 .dshDesktopPowerShellScroll {
   min-height: 0;
   padding: 14px 16px 22px;
@@ -155,7 +260,83 @@ const CSS = `
 .dshDesktopPowerShellInput button svg,
 .dshDesktopPowerShellFooter button svg { width: 14px; height: 14px; }
 .dshDesktopPowerShellInput button:disabled,
-.dshDesktopPowerShellFooter button:disabled { cursor: default; opacity: .5; }
+.dshDesktopPowerShellFooter button:disabled,
+.dshDesktopTerminalShortcutArea button:disabled { cursor: default; opacity: .5; }
+.dshDesktopTerminalShortcutArea {
+  min-width: 0;
+  border-top: 1px solid var(--dsw-alias-border-l1, rgba(120,130,145,.28));
+  background: var(--dsw-alias-bg-base, #f8fafc);
+}
+.dshDesktopTerminalShortcutBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  box-sizing: border-box;
+  padding: 7px 12px;
+}
+.dshDesktopTerminalShortcutList {
+  display: flex;
+  flex: 1;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.dshDesktopTerminalShortcutArea button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 30px;
+  box-sizing: border-box;
+  padding: 5px 10px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(120,130,145,.35));
+  border-radius: 7px;
+  background: var(--dsw-alias-bg-layer-1, #f3f5f8);
+  color: var(--dsw-alias-label-primary, #17202b);
+  cursor: pointer;
+  font: 500 11px/1.2 system-ui, sans-serif;
+  white-space: nowrap;
+}
+.dshDesktopTerminalShortcutArea button:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover, #e9edf3); }
+.dshDesktopTerminalShortcutArea button[data-terminal-shortcut="fill"] { border-style: dashed; }
+.dshDesktopTerminalShortcutArea button svg { width: 14px; height: 14px; }
+.dshDesktopTerminalShortcutSettings[aria-expanded="true"] { background: var(--dsw-alias-interactive-bg-hover, #e9edf3); }
+.dshDesktopTerminalShortcutEditor {
+  display: grid;
+  gap: 10px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--dsw-alias-border-l1, rgba(120,130,145,.28));
+}
+.dshDesktopTerminalShortcutRows { display: grid; gap: 8px; max-height: min(38vh, 340px); overflow: auto; }
+.dshDesktopTerminalShortcutRows > p { margin: 4px 0; color: var(--dsw-alias-label-secondary, #667085); font-size: 12px; }
+.dshDesktopTerminalShortcutRow {
+  display: grid;
+  grid-template-columns: minmax(74px,.36fr) minmax(128px,1fr) minmax(94px,.38fr) 30px;
+  align-items: end;
+  gap: 7px;
+}
+.dshDesktopTerminalShortcutRow label { display: grid; gap: 4px; min-width: 0; }
+.dshDesktopTerminalShortcutRow label > span { color: var(--dsw-alias-label-secondary, #667085); font-size: 10px; }
+.dshDesktopTerminalShortcutRow input,
+.dshDesktopTerminalShortcutRow select {
+  width: 100%;
+  height: 30px;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0 8px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(120,130,145,.35));
+  border-radius: 7px;
+  background: var(--dsw-alias-bg-layer-1, #f3f5f8);
+  color: var(--dsw-alias-label-primary, #17202b);
+  font: 11px/1.2 system-ui, sans-serif;
+}
+.dshDesktopTerminalShortcutRow > button { width: 30px; padding: 0; }
+.dshDesktopTerminalShortcutError { margin: 0; color: var(--dsw-alias-state-error-primary, #b42318); font-size: 11px; }
+.dshDesktopTerminalShortcutEditorActions { display: grid; grid-template-columns: auto auto 1fr auto auto; align-items: center; gap: 7px; }
+.dshDesktopTerminalShortcutEditorActions button[data-primary] { border-color: transparent; background: var(--dsw-alias-button-primary-fill, var(--dsw-alias-brand-primary, #3267d6)); color: var(--dsw-alias-label-primary-foreground, #fff); }
 .dshDesktopPowerShellApproval {
   display: grid;
   gap: 9px;
@@ -172,8 +353,19 @@ const CSS = `
 .dshDesktopPowerShellDefaultActions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 @media (max-width: 620px) {
   .dshDesktopPowerShellButton { right: 140px; }
+}
+@container (max-width: 460px) {
   .dshDesktopPowerShellInput { grid-template-columns: auto minmax(0,1fr) auto; }
-  .dshDesktopPowerShellInput button[type="button"] { display: none; }
+  .dshDesktopPowerShellInput button[type="button"] { grid-column: 2; justify-self: start; }
+  .dshDesktopPowerShellInput button[type="submit"] { grid-column: 3; grid-row: 2; }
+  .dshDesktopTerminalShortcutRow { grid-template-columns: minmax(88px,.45fr) minmax(0,1fr) 30px; }
+  .dshDesktopTerminalShortcutRow label:nth-child(2) { grid-column: 1 / 3; grid-row: 2; }
+  .dshDesktopTerminalShortcutRow label:nth-child(3) { grid-column: 1 / 3; grid-row: 3; }
+  .dshDesktopTerminalShortcutRow > button { grid-column: 3; grid-row: 1; }
+  .dshDesktopTerminalShortcutEditorActions { grid-template-columns: auto auto 1fr; }
+  .dshDesktopTerminalShortcutEditorActions > span { display: none; }
+  .dshDesktopTerminalShortcutEditorActions button:nth-last-child(-n+2) { grid-row: 2; }
+  .dshDesktopTerminalShortcutEditorActions button:last-child { grid-column: 3; }
 }
 `
 

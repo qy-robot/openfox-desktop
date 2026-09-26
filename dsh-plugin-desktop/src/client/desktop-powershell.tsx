@@ -6,12 +6,19 @@ import type { ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { ToolCallBlock, ToolResultNode } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ISidebarRight, SidebarRightTabDefinition } from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
-import { CirclePlay, RotateCcw, Send, ShieldCheck, SquareTerminal } from 'lucide-react'
+import { CirclePlay, Pencil, Plus, RotateCcw, Send, Server, Settings2, ShieldCheck, SquareTerminal, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { createRoot } from 'react-dom/client'
 import type { DesktopPowerShellTarget } from '../desktop-powershell-contract.ts'
 import { createDesktopPowerShellApi, type DesktopPowerShellApi } from './desktop-powershell-api.ts'
 import { installDesktopPowerShellStyles } from './desktop-powershell-styles.ts'
+import {
+  createDesktopSshConnections, type DesktopSshConnections, type DesktopSshProfile,
+} from './desktop-ssh-connections.ts'
+import {
+  createDesktopTerminalShortcuts, DESKTOP_TERMINAL_SHORTCUT_LIMIT,
+  type DesktopTerminalShortcut, type DesktopTerminalShortcuts,
+} from './desktop-terminal-shortcuts.ts'
 import type { RoboDeviceSelection, RoboDeviceSelectionSnapshot } from './robo-device-selection.ts'
 
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
@@ -50,7 +57,15 @@ const ZH = {
   empty: '终端已连接，等待输入。', input: '输入命令', send: '运行', interrupt: '中断', reconnect: '重新连接',
   exited: '终端已退出', failed: '终端连接失败', running: '运行中', complete: '已完成', error: '运行失败',
   approvalTitle: '即将运行命令', approvalReason: 'OpenFox 需要你的确认后才能运行这段代码。', run: '运行', cancel: '取消',
-  modelActivity: '对话命令记录', actions: '终端操作',
+  modelActivity: '对话命令记录', actions: '终端操作', shortcuts: '快捷命令', customize: '自定义按键',
+  shortcutLabel: '按键名称', shortcutCommand: '命令', shortcutBehavior: '点击后', runNow: '立即运行', fillInput: '填入命令框',
+  addShortcut: '添加按键', removeShortcut: '删除按键', resetShortcuts: '恢复默认', saveShortcuts: '保存',
+  cancelEdit: '取消', emptyShortcuts: '还没有快捷按键，可以在这里添加。', shortcutLimit: '快捷按键已达到上限。',
+  connections: 'SSH 连接', connectionManager: '连接管理', recentConnections: '最近连接', newConnection: '新建连接',
+  noConnections: '还没有连接记录。填写 IP 和用户名后即可连接。', connectionName: '连接名称',
+  host: 'IP / 主机', username: '用户名', port: '端口', password: '密码', passwordHint: '密码仅用于本次连接，不会保存到连接记录。',
+  connect: '连接', editConnection: '编辑连接', deleteConnection: '删除连接', currentConnection: '当前连接',
+  connectFirst: '命令已放入输入框。请先连接终端，再点击运行。', invalidPort: '端口必须是 1-65535 之间的整数。',
 } as const
 
 const EN = {
@@ -62,7 +77,15 @@ const EN = {
   empty: 'Terminal connected and ready.', input: 'Enter a command', send: 'Run', interrupt: 'Interrupt', reconnect: 'Reconnect',
   exited: 'Terminal exited', failed: 'Terminal connection failed', running: 'Running', complete: 'Completed', error: 'Failed',
   approvalTitle: 'Command ready to run', approvalReason: 'OpenFox needs your confirmation before it runs this code.', run: 'Run', cancel: 'Cancel',
-  modelActivity: 'Conversation command history', actions: 'Terminal actions',
+  modelActivity: 'Conversation command history', actions: 'Terminal actions', shortcuts: 'Quick commands', customize: 'Customize buttons',
+  shortcutLabel: 'Button label', shortcutCommand: 'Command', shortcutBehavior: 'On click', runNow: 'Run now', fillInput: 'Fill command box',
+  addShortcut: 'Add button', removeShortcut: 'Remove button', resetShortcuts: 'Restore defaults', saveShortcuts: 'Save',
+  cancelEdit: 'Cancel', emptyShortcuts: 'No quick buttons yet. Add one here.', shortcutLimit: 'The quick-button limit has been reached.',
+  connections: 'SSH connections', connectionManager: 'Connection manager', recentConnections: 'Recent connections', newConnection: 'New connection',
+  noConnections: 'No saved connections yet. Enter an IP and user name to connect.', connectionName: 'Connection name',
+  host: 'IP / host', username: 'User name', port: 'Port', password: 'Password', passwordHint: 'The password is used only for this connection and is never saved.',
+  connect: 'Connect', editConnection: 'Edit connection', deleteConnection: 'Delete connection', currentConnection: 'Current connection',
+  connectFirst: 'The command is in the command box. Connect a terminal before running it.', invalidPort: 'Port must be an integer from 1 to 65535.',
 } as const
 
 function copy() { return navigator.language.toLowerCase().startsWith('zh') ? ZH : EN }
@@ -206,6 +229,8 @@ export interface DesktopPowerShellFooterActionContext {
   readonly status: DesktopPowerShellStatus
   readonly target: DesktopPowerShellTarget | undefined
   readonly answer: (decision: 'allowed-once' | 'rejected') => void
+  readonly runCommand: (command: string) => void
+  readonly fillCommand: (command: string) => void
 }
 
 let panelVisible = false
@@ -260,6 +285,8 @@ export type DesktopPowerShellPanelProps = PropsRuntime<'sidebar.right.pane.tab'>
   readonly device: RoboDeviceSelection
   readonly api: DesktopPowerShellApi
   readonly mode: DesktopPowerShellMode
+  readonly shortcuts: DesktopTerminalShortcuts
+  readonly connections: DesktopSshConnections
 } & PropsRenderSlots<'desktop.powershell.footer.action'>
 
 /** Shipped approval buttons; additional actions can join the same list Slot. */
@@ -278,47 +305,290 @@ export function DesktopPowerShellApprovalActions({
   </div>
 }
 
+let shortcutSequence = 0
+function newShortcut(): DesktopTerminalShortcut {
+  shortcutSequence += 1
+  return { id: `shortcut-${Date.now().toString(36)}-${String(shortcutSequence)}`, label: '', command: '', behavior: 'run' }
+}
+
+function DesktopTerminalShortcutBar({
+  shortcuts,
+  status,
+  runCommand,
+  fillCommand,
+}: {
+  readonly shortcuts: DesktopTerminalShortcuts
+  readonly status: DesktopPowerShellStatus
+  readonly runCommand: (command: string) => void
+  readonly fillCommand: (command: string) => void
+}): JSX.Element {
+  const labels = copy()
+  const saved = useSyncExternalStore(shortcuts.subscribe, shortcuts.getSnapshot, shortcuts.getSnapshot)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState<readonly DesktopTerminalShortcut[]>(saved)
+  const [failure, setFailure] = useState('')
+  const ready = status === 'ready'
+  const beginEditing = (): void => { setDraft(saved.map(shortcut => ({ ...shortcut }))); setFailure(''); setEditing(true) }
+  const update = (id: string, patch: Partial<DesktopTerminalShortcut>): void => {
+    setDraft(current => current.map(shortcut => shortcut.id === id ? { ...shortcut, ...patch } : shortcut))
+  }
+  const save = (): void => {
+    try {
+      shortcuts.save(draft.map(shortcut => ({ ...shortcut, label: shortcut.label.trim(), command: shortcut.command.trim() })))
+      setFailure(''); setEditing(false)
+    } catch (cause) { setFailure(cause instanceof Error ? cause.message : String(cause)) }
+  }
+  const reset = (): void => {
+    try { shortcuts.reset(); setFailure(''); setEditing(false) }
+    catch (cause) { setFailure(cause instanceof Error ? cause.message : String(cause)) }
+  }
+
+  return <div className="dshDesktopTerminalShortcutArea">
+    <div className="dshDesktopTerminalShortcutBar" role="toolbar" aria-label={labels.shortcuts}>
+      <div className="dshDesktopTerminalShortcutList">
+        {saved.map(shortcut => <button key={shortcut.id} type="button"
+          title={`${shortcut.behavior === 'run' ? labels.runNow : labels.fillInput}: ${shortcut.command}`}
+          data-terminal-shortcut={shortcut.behavior}
+          onClick={() => { shortcut.behavior === 'run' && ready ? runCommand(shortcut.command) : fillCommand(shortcut.command) }}>
+          {shortcut.label}
+        </button>)}
+      </div>
+      <button type="button" className="dshDesktopTerminalShortcutSettings" aria-expanded={editing}
+        onClick={() => { editing ? setEditing(false) : beginEditing() }}>
+        <Settings2 aria-hidden="true" />{labels.customize}
+      </button>
+    </div>
+    {editing && <section className="dshDesktopTerminalShortcutEditor" aria-label={labels.customize}>
+      <div className="dshDesktopTerminalShortcutRows">
+        {draft.length === 0 && <p>{labels.emptyShortcuts}</p>}
+        {draft.map(shortcut => <div className="dshDesktopTerminalShortcutRow" key={shortcut.id}>
+          <label><span>{labels.shortcutLabel}</span><input value={shortcut.label} maxLength={16}
+            onChange={event => { update(shortcut.id, { label: event.target.value }) }} /></label>
+          <label><span>{labels.shortcutCommand}</span><input value={shortcut.command} maxLength={2_000}
+            onChange={event => { update(shortcut.id, { command: event.target.value }) }} /></label>
+          <label><span>{labels.shortcutBehavior}</span><select value={shortcut.behavior}
+            onChange={event => { update(shortcut.id, { behavior: event.target.value as DesktopTerminalShortcut['behavior'] }) }}>
+            <option value="run">{labels.runNow}</option><option value="fill">{labels.fillInput}</option>
+          </select></label>
+          <button type="button" aria-label={labels.removeShortcut} title={labels.removeShortcut}
+            onClick={() => { setDraft(current => current.filter(item => item.id !== shortcut.id)) }}><Trash2 aria-hidden="true" /></button>
+        </div>)}
+      </div>
+      {failure && <p className="dshDesktopTerminalShortcutError" role="alert">{failure}</p>}
+      <div className="dshDesktopTerminalShortcutEditorActions">
+        <button type="button" onClick={reset}>{labels.resetShortcuts}</button>
+        <button type="button" disabled={draft.length >= DESKTOP_TERMINAL_SHORTCUT_LIMIT}
+          title={draft.length >= DESKTOP_TERMINAL_SHORTCUT_LIMIT ? labels.shortcutLimit : labels.addShortcut}
+          onClick={() => { setDraft(current => [...current, newShortcut()]) }}><Plus aria-hidden="true" />{labels.addShortcut}</button>
+        <span />
+        <button type="button" onClick={() => { setEditing(false); setFailure('') }}>{labels.cancelEdit}</button>
+        <button type="button" data-primary onClick={save}>{labels.saveShortcuts}</button>
+      </div>
+    </section>}
+  </div>
+}
+
+interface DesktopSshDraft {
+  readonly id: string
+  readonly label: string
+  readonly host: string
+  readonly user: string
+  readonly port: string
+  readonly password: string
+}
+
+let connectionSequence = 0
+function connectionDraft(
+  profile: DesktopSshProfile | undefined,
+  selection: RoboDeviceSelectionSnapshot,
+  modelLabel: string,
+): DesktopSshDraft {
+  return {
+    id: profile?.id ?? '',
+    label: profile?.label ?? (modelLabel || selection.modelId),
+    host: profile?.host ?? selection.ssh?.host ?? '',
+    user: profile?.user ?? selection.ssh?.user ?? '',
+    port: String(profile?.port ?? selection.ssh?.port ?? 22),
+    password: '',
+  }
+}
+
+/** Turn a saved MobaXterm-style connection into a Host-owned SSH target. */
+export function terminalTargetForSshProfile(
+  profile: DesktopSshProfile,
+  selection: RoboDeviceSelectionSnapshot,
+): DesktopPowerShellTarget {
+  return {
+    kind: 'robot',
+    modelId: profile.modelId ?? (selection.modelId || `saved:${profile.id}`),
+    profileId: profile.profileId ?? (selection.modelId === '' ? 'manual-ssh' : selection.profileId),
+    label: profile.label,
+    ssh: { host: profile.host, ...(profile.user === undefined ? {} : { user: profile.user }),
+      ...(profile.port === undefined ? {} : { port: profile.port }) },
+  }
+}
+
+function stripTerminalControlSequences(value: string): string {
+  return value.replaceAll(/\u001b\[[0-?]*[ -/]*[@-~]/gu, '')
+}
+
+/** Match OpenSSH password prompts without treating ordinary output as a credential request. */
+export function hasSshPasswordPrompt(value: string): boolean {
+  const text = stripTerminalControlSequences(value).slice(-240)
+  return /(?:password(?:\s+for\s+[^\r\n:]+)?|\u5bc6\u7801)\s*[:\uff1a]\s*$/iu.test(text)
+}
+
+function DesktopSshConnectionPane({
+  profiles,
+  activeConnectionId,
+  target,
+  draft,
+  editing,
+  failure,
+  compact,
+  onConnect,
+  onEdit,
+  onDelete,
+  onChange,
+  onSubmit,
+  onCancel,
+}: {
+  readonly profiles: readonly DesktopSshProfile[]
+  readonly activeConnectionId: string | undefined
+  readonly target: DesktopPowerShellTarget | undefined
+  readonly draft: DesktopSshDraft
+  readonly editing: boolean
+  readonly failure: string
+  readonly compact: boolean
+  readonly onConnect: (profile: DesktopSshProfile) => void
+  readonly onEdit: (profile?: DesktopSshProfile) => void
+  readonly onDelete: (id: string) => void
+  readonly onChange: (patch: Partial<DesktopSshDraft>) => void
+  readonly onSubmit: () => void
+  readonly onCancel: () => void
+}): JSX.Element {
+  const labels = copy()
+  const current = target?.kind === 'robot' ? `${target.label}  ${target.ssh.host}` : labels.unavailable
+  return <aside className={compact ? 'dshDesktopSshCompact' : 'dshDesktopSshRail'} aria-label={labels.connections}>
+    <div className="dshDesktopSshPaneHeader">
+      <div><strong>{compact ? labels.currentConnection : labels.connections}</strong><small>{current}</small></div>
+      <button type="button" title={labels.newConnection} onClick={() => { onEdit() }}>
+        <Plus aria-hidden="true" />{compact ? labels.connectionManager : labels.newConnection}
+      </button>
+    </div>
+    {!compact && <div className="dshDesktopSshProfileList" aria-label={labels.recentConnections}>
+      <h3>{labels.recentConnections}</h3>
+      {profiles.length === 0 && <p>{labels.noConnections}</p>}
+      {profiles.map(profile => <div className="dshDesktopSshProfile" data-active={activeConnectionId === profile.id || undefined} key={profile.id}>
+        <button type="button" className="dshDesktopSshProfileConnect" onClick={() => { onConnect(profile) }}>
+          <Server aria-hidden="true" /><span><strong>{profile.label}</strong><small>{profile.user ? `${profile.user}@${profile.host}` : profile.host}{profile.port && profile.port !== 22 ? `:${String(profile.port)}` : ''}</small></span>
+        </button>
+        <button type="button" className="dshDesktopSshProfileAction" aria-label={labels.editConnection} title={labels.editConnection}
+          onClick={() => { onEdit(profile) }}><Pencil aria-hidden="true" /></button>
+        <button type="button" className="dshDesktopSshProfileAction" aria-label={labels.deleteConnection} title={labels.deleteConnection}
+          onClick={() => { onDelete(profile.id) }}><Trash2 aria-hidden="true" /></button>
+      </div>)}
+    </div>}
+    {editing && <form className="dshDesktopSshEditor" onSubmit={event => { event.preventDefault(); onSubmit() }}>
+      <label><span>{labels.connectionName}</span><input required maxLength={80} value={draft.label}
+        onChange={event => { onChange({ label: event.target.value }) }} /></label>
+      <label><span>{labels.host}</span><input required maxLength={253} value={draft.host} autoComplete="off"
+        onChange={event => { onChange({ host: event.target.value }) }} /></label>
+      <div className="dshDesktopSshEditorPair">
+        <label><span>{labels.username}</span><input maxLength={128} value={draft.user} autoComplete="username"
+          onChange={event => { onChange({ user: event.target.value }) }} /></label>
+        <label><span>{labels.port}</span><input required inputMode="numeric" value={draft.port}
+          onChange={event => { onChange({ port: event.target.value }) }} /></label>
+      </div>
+      <label><span>{labels.password}</span><input type="password" value={draft.password} autoComplete="current-password"
+        onChange={event => { onChange({ password: event.target.value }) }} /></label>
+      <p>{labels.passwordHint}</p>
+      {failure && <p className="dshDesktopSshEditorError" role="alert">{failure}</p>}
+      <div className="dshDesktopSshEditorActions">
+        <button type="button" onClick={onCancel}>{labels.cancelEdit}</button>
+        <button type="submit" data-primary><Server aria-hidden="true" />{labels.connect}</button>
+      </div>
+    </form>}
+  </aside>
+}
+
 /** Session-aware terminal body rendered by the application's native right Sidebar. */
-export function DesktopPowerShellPanel({ device, api, mode, useTabInfo, renderSlot }: DesktopPowerShellPanelProps) {
+export function DesktopPowerShellPanel({ device, api, mode, shortcuts, connections, useTabInfo, renderSlot }: DesktopPowerShellPanelProps) {
   const labels = copy()
   const view = useSyncExternalStore(subscribeView, () => currentView, () => EMPTY_VIEW)
   const selection = useSyncExternalStore(device.subscribe, device.getSnapshot, device.getSnapshot)
+  const profiles = useSyncExternalStore(connections.subscribe, connections.getSnapshot, connections.getSnapshot)
   const modelLabel = device.getModelLabel()
-  const target = useMemo(() => terminalTargetForMode(mode, selection, modelLabel), [mode, selection, modelLabel])
+  const [activeConnectionId, setActiveConnectionId] = useState<string>()
+  const activeProfile = profiles.find(profile => profile.id === activeConnectionId)
+  const target = useMemo(() => mode === 'local'
+    ? terminalTargetForMode(mode, selection, modelLabel)
+    : activeProfile === undefined ? terminalTargetForMode(mode, selection, modelLabel) : terminalTargetForSshProfile(activeProfile, selection),
+  [activeProfile, mode, modelLabel, selection])
   const targetKey = target === undefined ? `missing:${selection.modelId}:${selection.profileId}` : JSON.stringify(target)
   const tabInfo = useTabInfo()
   const visible = tabInfo.sidebar.expanded && tabInfo.tab.visible
+  const fullscreen = tabInfo.sidebar.fullscreen
   const [status, setStatus] = useState<DesktopPowerShellStatus>('idle')
   const [output, setOutput] = useState('')
   const [failure, setFailure] = useState('')
+  const [commandHint, setCommandHint] = useState('')
   const [input, setInput] = useState('')
   const [answering, setAnswering] = useState(false)
   const [generation, setGeneration] = useState(0)
+  const [editingConnection, setEditingConnection] = useState(false)
+  const [connectionFailure, setConnectionFailure] = useState('')
+  const [draft, setDraft] = useState<DesktopSshDraft>(() => connectionDraft(undefined, selection, modelLabel))
   const sessionId = useRef<string>()
+  const pendingPassword = useRef('')
   const offset = useRef(0)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const visibilityOwner = useRef(Symbol('desktop-powershell-panel'))
   const pending = view.pending
+  const selectionKey = `${selection.modelId}\u0000${selection.profileId}`
 
   useEffect(() => {
     publishPanelVisibility(visibilityOwner.current, visible)
     return () => { publishPanelVisibility(visibilityOwner.current, false) }
   }, [visible])
+  useEffect(() => () => { pendingPassword.current = '' }, [])
+  useEffect(() => {
+    setActiveConnectionId(undefined)
+    setConnectionFailure('')
+    if (mode === 'robot' && selection.ssh === undefined) {
+      setDraft(connectionDraft(undefined, selection, modelLabel)); setEditingConnection(true)
+    }
+  }, [mode, modelLabel, selection.ssh, selectionKey])
   useEffect(() => {
     if (!visible) { setStatus('idle'); return }
     if (target === undefined) { setStatus('error'); setFailure(labels.unavailable); setOutput(''); return }
     const controller = new AbortController()
     let timer: ReturnType<typeof setTimeout> | undefined
     let ownedSession = ''
-    setStatus('connecting'); setFailure(''); setOutput(''); offset.current = 0
+    setStatus('connecting'); setFailure(''); setCommandHint(''); setOutput(''); offset.current = 0
+    let passwordProbe = ''
+    const submitPendingPassword = (chunk: string): void => {
+      if (pendingPassword.current === '' || ownedSession === '') return
+      passwordProbe = `${passwordProbe}${chunk}`.slice(-240)
+      if (!hasSshPasswordPrompt(passwordProbe)) return
+      const password = pendingPassword.current
+      pendingPassword.current = ''
+      passwordProbe = ''
+      void api.write(ownedSession, `${password}\r`, controller.signal).catch(cause => {
+        if (!controller.signal.aborted) { setStatus('error'); setFailure(cause instanceof Error ? cause.message : labels.failed) }
+      })
+    }
     const poll = async (): Promise<void> => {
       if (controller.signal.aborted || ownedSession === '') return
       try {
         const result = await api.read(ownedSession, offset.current, controller.signal)
         offset.current = result.offset
-        if (result.output.length > 0) setOutput(previous => result.truncated ? result.output : `${previous}${result.output}`.slice(-500_000))
-        if (result.exited) { setStatus('exited'); return }
+        if (result.output.length > 0) {
+          setOutput(previous => result.truncated ? result.output : `${previous}${result.output}`.slice(-500_000))
+          submitPendingPassword(result.output)
+        }
+        if (result.exited) { pendingPassword.current = ''; setStatus('exited'); return }
       } catch (cause) {
         if (!controller.signal.aborted) { setStatus('error'); setFailure(cause instanceof Error ? cause.message : labels.failed) }
         return
@@ -328,16 +598,33 @@ export function DesktopPowerShellPanel({ device, api, mode, useTabInfo, renderSl
     void api.open(target, 120, 32, controller.signal).then(result => {
       if (controller.signal.aborted) { void api.close(result.sessionId).catch(() => {}); return }
       ownedSession = result.sessionId; sessionId.current = result.sessionId; offset.current = result.offset
-      setOutput(result.output); setStatus('ready'); void poll(); queueMicrotask(() => { inputRef.current?.focus() })
+      setOutput(result.output); setStatus('ready'); submitPendingPassword(result.output); void poll()
+      if (target.kind === 'robot') {
+        try {
+          connections.upsert({
+            id: activeProfile?.id ?? `robot:${target.modelId}:${target.profileId}`,
+            label: target.label,
+            host: target.ssh.host,
+            ...(target.ssh.user === undefined ? {} : { user: target.ssh.user }),
+            ...(target.ssh.port === undefined ? {} : { port: target.ssh.port }),
+            modelId: target.modelId,
+            profileId: target.profileId,
+            lastConnectedAt: Date.now(),
+          })
+        } catch (cause) { setConnectionFailure(cause instanceof Error ? cause.message : String(cause)) }
+      }
+      queueMicrotask(() => { inputRef.current?.focus() })
     }).catch(cause => {
-      if (!controller.signal.aborted) { setStatus('error'); setFailure(cause instanceof Error ? cause.message : labels.failed) }
+      if (!controller.signal.aborted) {
+        pendingPassword.current = ''; setStatus('error'); setFailure(cause instanceof Error ? cause.message : labels.failed)
+      }
     })
     return () => {
       controller.abort(); if (timer !== undefined) clearTimeout(timer)
       if (sessionId.current === ownedSession) sessionId.current = undefined
       if (ownedSession !== '') void api.close(ownedSession).catch(() => {})
     }
-  }, [api, generation, labels.failed, labels.unavailable, targetKey, visible])
+  }, [api, connections, generation, labels.failed, labels.unavailable, targetKey, visible])
 
   useEffect(() => {
     if (!visible) return
@@ -355,19 +642,70 @@ export function DesktopPowerShellPanel({ device, api, mode, useTabInfo, renderSl
     if (id === undefined || status !== 'ready' || data.length === 0) return
     void api.write(id, data).catch(cause => { setStatus('error'); setFailure(cause instanceof Error ? cause.message : labels.failed) })
   }
-  const submit = (): void => { if (input.length > 0) { send(`${input}\r`); setInput('') } }
+  const submit = (): void => { if (status === 'ready' && input.length > 0) { send(`${input}\r`); setInput(''); setCommandHint('') } }
+  const fillCommand = (command: string): void => {
+    setInput(command); if (status !== 'ready') setCommandHint(labels.connectFirst)
+    queueMicrotask(() => { inputRef.current?.focus() })
+  }
+  const runCommand = (command: string): void => {
+    const value = command.trim()
+    if (value.length === 0) return
+    if (status === 'ready') { send(`${value}\r`); setCommandHint('') } else fillCommand(value)
+  }
+  const connectProfile = (profile: DesktopSshProfile): void => {
+    pendingPassword.current = ''; setActiveConnectionId(profile.id); setEditingConnection(false)
+    setConnectionFailure(''); setGeneration(value => value + 1)
+  }
+  const editConnection = (profile?: DesktopSshProfile): void => {
+    setDraft(connectionDraft(profile, selection, modelLabel)); setConnectionFailure(''); setEditingConnection(true)
+  }
+  const deleteConnection = (id: string): void => {
+    try {
+      connections.remove(id)
+      if (activeConnectionId === id) { setActiveConnectionId(undefined); setGeneration(value => value + 1) }
+    } catch (cause) { setConnectionFailure(cause instanceof Error ? cause.message : String(cause)) }
+  }
+  const saveConnection = (): void => {
+    const port = Number(draft.port)
+    if (!Number.isInteger(port) || port < 1 || port > 65_535) { setConnectionFailure(labels.invalidPort); return }
+    connectionSequence += 1
+    const id = draft.id || `ssh-${Date.now().toString(36)}-${String(connectionSequence)}`
+    const profile: DesktopSshProfile = {
+      id, label: draft.label.trim(), host: draft.host.trim(), port,
+      ...(draft.user.trim() === '' ? {} : { user: draft.user.trim() }),
+      ...(selection.modelId === '' ? {} : { modelId: selection.modelId, profileId: selection.profileId }),
+      lastConnectedAt: Date.now(),
+    }
+    try {
+      connections.upsert(profile)
+      pendingPassword.current = draft.password
+      setDraft(current => ({ ...current, password: '' }))
+      setActiveConnectionId(id); setEditingConnection(false); setConnectionFailure('')
+      setGeneration(value => value + 1)
+    } catch (cause) { setConnectionFailure(cause instanceof Error ? cause.message : String(cause)) }
+  }
   const targetTitle = mode === 'local'
     ? labels.local
-    : `${labels.robot}${selection.modelId === '' ? '' : ` · ${target?.kind === 'robot' ? target.label : modelLabel || selection.modelId}`}`
+    : `${labels.robot}${target?.kind === 'robot' ? ` · ${target.label}` : ''}`
 
-  return <section className="dshDesktopPowerShellPanel" aria-label={labels.title}>
+  const connectionPane = mode === 'robot' ? <DesktopSshConnectionPane profiles={profiles} activeConnectionId={activeConnectionId}
+    target={target} draft={draft} editing={editingConnection} failure={connectionFailure} compact={!fullscreen}
+    onConnect={connectProfile} onEdit={editConnection} onDelete={deleteConnection}
+    onChange={patch => { setDraft(current => ({ ...current, ...patch })) }} onSubmit={saveConnection}
+    onCancel={() => { setEditingConnection(false); setConnectionFailure('') }} /> : null
+
+  return <section className="dshDesktopPowerShellPanel" data-terminal-mode={mode} data-fullscreen={fullscreen || undefined} aria-label={labels.title}>
+    {fullscreen && connectionPane}
+    <div className="dshDesktopPowerShellSurface">
       <header className="dshDesktopPowerShellHeader"><SquareTerminal aria-hidden="true" /><div><strong>{labels.title}</strong><small>{targetTitle}</small></div>
         <button type="button" aria-label={labels.reconnect} title={labels.reconnect} onClick={() => { setGeneration(value => value + 1) }}><RotateCcw aria-hidden="true" /></button>
       </header>
+      {!fullscreen && connectionPane}
       <div className="dshDesktopPowerShellScroll" ref={scrollRef} role="log" aria-live="polite">
         {status === 'connecting' && <p className="dshDesktopPowerShellNotice">{labels.waiting}</p>}
         {status === 'error' && <p className="dshDesktopPowerShellNotice" data-error>{failure || labels.failed}</p>}
         {status === 'exited' && <p className="dshDesktopPowerShellNotice">{labels.exited}</p>}
+        {commandHint && <p className="dshDesktopPowerShellNotice">{commandHint}</p>}
         <pre className="dshDesktopPowerShellLiveOutput">{output || (status === 'ready' ? labels.empty : '')}</pre>
         {view.entries.length > 0 && <section className="dshDesktopPowerShellConversationLog"><h3>{labels.modelActivity}</h3>{view.entries.map(entry =>
           <article key={entry.callId}><pre><span>PS&gt; </span>{entry.command}</pre>{entry.output && <pre>{entry.output}</pre>}
@@ -375,19 +713,21 @@ export function DesktopPowerShellPanel({ device, api, mode, useTabInfo, renderSl
       </div>
       <form className="dshDesktopPowerShellInput" onSubmit={event => { event.preventDefault(); submit() }}>
         <span>PS&gt;</span><input ref={inputRef} aria-label={labels.input} placeholder={labels.input} value={input}
-          disabled={status !== 'ready'} onChange={event => { setInput(event.target.value) }} />
+          onChange={event => { setInput(event.target.value); setCommandHint('') }} />
         <button type="button" disabled={status !== 'ready'} title={labels.interrupt} onClick={() => { send('\u0003') }}>Ctrl+C</button>
         <button type="submit" data-primary disabled={status !== 'ready' || input.length === 0}><Send aria-hidden="true" />{labels.send}</button>
       </form>
+      <DesktopTerminalShortcutBar shortcuts={shortcuts} status={status} runCommand={runCommand} fillCommand={fillCommand} />
       {pending !== undefined && <section className="dshDesktopPowerShellApproval" aria-label={labels.approvalTitle}>
         <div className="dshDesktopPowerShellApprovalHeader"><ShieldCheck aria-hidden="true" />{labels.approvalTitle}</div>
         <p>{pending.reason ?? labels.approvalReason}</p>{approvalCommand && <pre>{approvalCommand}</pre>}
       </section>}
       <footer className="dshDesktopPowerShellFooter" aria-label={labels.actions}>
         {renderSlot('desktop.powershell.footer.action', {
-          pending, command: approvalCommand, answering, status, target, answer,
+          pending, command: approvalCommand, answering, status, target, answer, runCommand, fillCommand,
         })}
       </footer>
+    </div>
     </section>
 }
 
@@ -442,6 +782,10 @@ function installDesktopPowerShellLauncher(sidebarRight: TerminalNavigation, devi
 /** Mount the Windows launcher, native right-Sidebar tab, and conversation bridge. */
 export function applyDesktopPowerShell(ctx: Context, device: RoboDeviceSelection): void {
   ctx.effect(installDesktopPowerShellStyles, 'dsh-plugin-desktop: PowerShell right Sidebar styles')
+  const shortcuts = createDesktopTerminalShortcuts()
+  const connections = createDesktopSshConnections()
+  ctx.effect(() => () => { shortcuts.dispose() }, 'dsh-plugin-desktop: terminal shortcut storage')
+  ctx.effect(() => () => { connections.dispose() }, 'dsh-plugin-desktop: SSH connection storage')
   ctx.inject(['sidebarRight', 'sidebarRightTabs'], ready => {
     const api = createDesktopPowerShellApi()
     for (const mode of ['local', 'robot'] as const) {
@@ -449,7 +793,7 @@ export function applyDesktopPowerShell(ctx: Context, device: RoboDeviceSelection
       ready.effect(() => ready.sidebarRightTabs.register(definition),
         `dsh-plugin-desktop: ${mode} terminal right Sidebar tab type`)
       ready.effect(() => ready.slots.inject('sidebar.right.pane.tab', () => ready.slots.register({
-        name: 'sidebar.right.pane.tab', key: definition.id, inject: () => ({ device, api, mode }),
+        name: 'sidebar.right.pane.tab', key: definition.id, inject: () => ({ device, api, mode, shortcuts, connections }),
         children: { 'desktop.powershell.footer.action': { kind: 'list', scope: 'session' } },
       }, DesktopPowerShellPanel)), `dsh-plugin-desktop: ${mode} terminal right Sidebar tab body`)
       ready.effect(() => ready.slots.inject('sidebar.right.pane.tab.title', () => ready.slots.register({
