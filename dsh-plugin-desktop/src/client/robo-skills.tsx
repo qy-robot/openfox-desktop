@@ -5,7 +5,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import { Bot, Store } from 'lucide-react'
 import { RoboDeviceWorkbench } from './RoboDeviceWorkbench.tsx'
-import { createRoboDeviceSelection } from './robo-device-selection.ts'
+import type { RoboDeviceSelection } from './robo-device-selection.ts'
 import { RoboSkillMarket } from './RoboSkillMarket.tsx'
 import { createRoboHostSkillLibrary } from './robo-skills-library.ts'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
@@ -15,15 +15,14 @@ import { RoboSkillPicker, type RoboSkillPickerProps } from './RoboSkillPicker.ts
 import { installRoboSkillsStyles } from './robo-skills-styles.ts'
 
 /** Company skills use a Desktop-owned command; the upstream local /skill source remains independent. */
-export function applyRoboSkills(ctx: Context): void {
+export function applyRoboSkills(ctx: Context, device: RoboDeviceSelection): void {
   const api = createRoboSkillsApi()
   const library = createRoboHostSkillLibrary(ctx.settingsScope.bind<{ skillIds: readonly string[] }>({ namespace: 'robocoding-skill-library' }))
-  const device = createRoboDeviceSelection()
   const marketId = 'robo-skills-market' as MainPanelId
   const devicesId = 'robo-robots' as MainPanelId
   const openMarket = () => { ctx.layout.selectPanel(marketId) }
   const openDevices = () => { ctx.layout.selectPanel(devicesId) }
-  ctx.effect(() => () => { library.dispose(); device.dispose() }, 'robo-skills: release persisted choices')
+  ctx.effect(() => () => { library.dispose() }, 'robo-skills: release persisted choices')
   ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: marketId },
     () => <RoboSkillMarket api={api} library={library} device={device} close={() => { ctx.layout.selectPanel(null) }} />))
   ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: devicesId },

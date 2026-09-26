@@ -1,6 +1,6 @@
 import { Bot, Check, Search, X } from 'lucide-react'
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
-import type { RoboDeviceSelection } from './robo-device-selection.ts'
+import { roboSshConnectionFromConfiguration, type RoboDeviceSelection } from './robo-device-selection.ts'
 import type { RoboCatalog, RoboSkillsApi } from './robo-skills-api.ts'
 
 export interface RoboDeviceWorkbenchProps {
@@ -59,9 +59,11 @@ export function RoboDeviceWorkbench({ api, selection, openMarket }: RoboDeviceWo
   function choose(modelId: string, requestedProfileId?: string, closeDetails = false) {
     const robot = catalog?.robots.find(item => item.id === modelId)
     const profileId = requestedProfileId || robot?.profiles[0]?.id || ''
+    const profile = robot?.profiles.find(item => item.id === profileId)
     setSaveError(''); setNotice('')
     try {
-      selection.select(modelId, profileId, robot?.displayName ?? modelName(robot ?? { displayName: modelId }))
+      selection.select(modelId, profileId, robot?.displayName ?? modelName(robot ?? { displayName: modelId }),
+        roboSshConnectionFromConfiguration(profile?.configuration, robot?.configuration))
       setDetailId(closeDetails ? '' : modelId)
       setProfileChoice('')
       setNotice(`已选择「${robot?.manufacturer ?? ''} ${modelName(robot ?? { displayName: modelId })} · ${robot?.profiles.find(profile => profile.id === profileId)?.label ?? '版本'}」。技能会按这个设备型号进行匹配。`)

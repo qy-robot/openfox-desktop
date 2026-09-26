@@ -13,6 +13,8 @@ import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-agent-default-model'
 import type {} from '@deepseek-ai/dsh-llm'
+import type {} from '@deepseek-ai/dsh-tools'
+import type {} from '@deepseek-ai/dsh-user-approval'
 import {
   THEME_SETTINGS_NAMESPACE,
   type ThemeSettings,
@@ -112,6 +114,9 @@ import {
 import { handleRoboCodingAccountRequest } from './robocoding-account-route.ts'
 import { RoboCodingLlmRegistration } from './robocoding-llm.ts'
 import { installRoboCloudSkills } from './robo-cloud-skills.ts'
+import { DESKTOP_POWERSHELL_PATH } from './desktop-powershell-contract.ts'
+import { DesktopPowerShellController } from './desktop-powershell-controller.ts'
+import { handleDesktopPowerShellRequest } from './desktop-powershell-route.ts'
 
 /** Stable Cordis plugin name. */
 export const name = 'desktop-shell'
@@ -119,6 +124,12 @@ export const name = 'desktop-shell'
 /** Services required before the shell can register its renderer generation. */
 /** Services required by the desktop shell; `desktopRuntime` is probed, not required. */
 export const inject = ['webServer', 'webRuntime', 'appExit', 'settings', 'connection']
+
+/** Match both foreground and owner-scoped persistent PowerShell tools. */
+function isPowerShellToolName(name: string): boolean {
+  const normalized = name.toLowerCase().replaceAll('_', '-').trim()
+  return normalized === 'pwsh' || normalized === 'powershell' || normalized.endsWith('-pwsh')
+}
 
 /** Standard settings namespace shared by tray and configuration surfaces. */
 export const DESKTOP_SETTINGS_NAMESPACE = 'dsh-desktop'
@@ -262,6 +273,25 @@ export function apply(ctx: Context, config: Config): void {
     )
     return
   }
+  const approval = runtime.platform === 'win32' ? ctx.get('approval') : undefined
+  if (approval !== undefined && typeof approval.request === 'function') {
+    // The standard pwsh tool asks only for sandbox escalation. Desktop adds a
+    // first, explicit run/cancel gate so every model-requested PowerShell call
+    // is visible in the renderer before its process starts. The existing tool
+    // and sandbox remain the only execution owners after this decision.
+    ctx.on('tools/pre-execute', async (exec, next) => {
+      if (!isPowerShellToolName(exec.name) || exec.agent === undefined) return next()
+      const outcome = await approval.request({
+        agent: exec.agent,
+        toolName: exec.name,
+        callId: exec.callId,
+        reason: 'OpenFox 正在请求运行一条 PowerShell 命令。请确认命令内容后再运行。',
+        signal: exec.signal,
+      })
+      if (outcome === 'allowed-once') return next()
+      return { kind: 'deny', reason: '用户取消了 PowerShell 命令运行。' }
+    })
+  }
   ctx.inject(['skills'], skillsCtx => {
     skillsCtx.effect(
       () => installRoboCloudSkills(skillsCtx),
@@ -305,6 +335,22 @@ export function apply(ctx: Context, config: Config): void {
     },
   )
   const rendererOrigin = `http://127.0.0.1:${String(ctx.webServer.port)}`
+  if (runtime.platform === 'win32') {
+    ctx.effect(() => {
+      const controller = new DesktopPowerShellController({ platform: runtime.platform })
+      const unregister = ctx.webServer.register({
+        kind: 'exact',
+        path: DESKTOP_POWERSHELL_PATH,
+        handler: (req, res) => {
+          if (rejectDesktopRequest(ctx, req, res)) return
+          return handleDesktopPowerShellRequest(req, res, rendererOrigin, controller, cause => {
+            ctx.logger.error(`dsh-plugin-desktop: embedded terminal failed: ${cause instanceof Error ? cause.message : String(cause)}`)
+          })
+        },
+      })
+      return () => { unregister(); controller.dispose() }
+    }, 'dsh-plugin-desktop: private embedded PowerShell route')
+  }
   ctx.settings.register('robocoding-skill-library', z.object({ skillIds: z.array(z.string().min(1).max(64)).max(2000).default([]) }))
   ctx.settings.register('robocoding-onboarding', z.object({ completed: z.boolean().default(false) }))
   if (runtime.readAccountSecret !== undefined && runtime.writeAccountSecret !== undefined

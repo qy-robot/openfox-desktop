@@ -3,7 +3,11 @@ import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { describe, expect, it, vi } from 'vitest'
 import { RoboDeviceWorkbench } from '../src/client/RoboDeviceWorkbench.tsx'
-import { createRoboDeviceSelection } from '../src/client/robo-device-selection.ts'
+import {
+  createRoboDeviceSelection,
+  parseRoboSshConnection,
+  roboSshConnectionFromConfiguration,
+} from '../src/client/robo-device-selection.ts'
 import { parseRoboCatalog, selectionFor, type RoboSkillsApi } from '../src/client/robo-skills-api.ts'
 
 const catalog = parseRoboCatalog({
@@ -50,6 +54,42 @@ describe('Robo device selection', () => {
     expect(reloaded.reconcile(parseRoboCatalog({ ...catalog, robots: [catalog.robots[1]], skills: [] }))).toBe(true)
     expect(reloaded.getSnapshot()).toEqual({ modelId: '', profileId: '' })
     selection.dispose(); reloaded.dispose()
+  })
+
+  it('persists the SSH target supplied by robot selection and rejects unsafe targets', () => {
+    const storage = new MemoryStorage()
+    const selection = createRoboDeviceSelection(storage)
+    const ssh = { host: 'robot.local', user: 'operator', port: 2222, identityFile: 'C:\\keys\\robot' }
+    selection.select('qy-x1', 'standard', '擎云 X1', ssh)
+    expect(selection.getSnapshot()).toEqual({ modelId: 'qy-x1', profileId: 'standard', ssh })
+    const reloaded = createRoboDeviceSelection(storage)
+    expect(reloaded.getSnapshot()).toEqual({ modelId: 'qy-x1', profileId: 'standard', ssh })
+    const listener = vi.fn()
+    selection.subscribe(listener)
+    selection.select('qy-x1', 'standard', '擎云 X1', { ...ssh, host: 'robot-new.local' })
+    expect(selection.getSnapshot().ssh?.host).toBe('robot-new.local')
+    expect(listener).toHaveBeenCalledOnce()
+    expect(roboSshConnectionFromConfiguration(
+      { terminal: { kind: 'ssh', host: 'profile.local', user: 'profile' } },
+      { ssh: { host: 'model.local', user: 'model' } },
+    )).toEqual({ host: 'profile.local', user: 'profile' })
+    expect(parseRoboSshConnection({ host: '-oProxyCommand=bad' })).toBeUndefined()
+    expect(parseRoboSshConnection({ host: 'robot.local', port: 70_000 })).toBeUndefined()
+    expect(() => selection.select('qy-x1', 'standard', '擎云 X1', { host: '-bad' })).toThrow('机器人 SSH 连接信息无效')
+
+    const legacyStorage = new MemoryStorage()
+    legacyStorage.value = '{"modelId":"qy-x1","profileId":"standard","modelLabel":"擎云 X1"}'
+    const legacy = createRoboDeviceSelection(legacyStorage)
+    const catalogWithSsh = parseRoboCatalog({ ...catalog, robots: catalog.robots.map((robot, index) => index ? robot : {
+      ...robot, profiles: robot.profiles.map((profile, profileIndex) => profileIndex ? profile : {
+        ...profile, configuration: { ssh: { host: 'catalog.local', user: 'catalog' } },
+      }),
+    }) })
+    expect(legacy.reconcile(catalogWithSsh)).toBe(false)
+    expect(legacy.getSnapshot()).toEqual({ modelId: 'qy-x1', profileId: 'standard',
+      ssh: { host: 'catalog.local', user: 'catalog' } })
+    expect(legacyStorage.value).toContain('catalog.local')
+    selection.dispose(); reloaded.dispose(); legacy.dispose()
   })
 
   it('keeps the previous selection when local persistence fails', () => {
@@ -152,7 +192,9 @@ describe('Robo device selection', () => {
     const enhanced = parseRoboCatalog({ ...catalog, robots: catalog.robots.map((robot, index) => index ? robot : {
       ...robot, description: '型号默认说明', configuration: { network: '型号默认网络' }, tutorialUrl: 'https://example.feishu.cn/wiki/model-tutorial',
       profiles: [
-        { ...robot.profiles[0], description: '标准开发方式说明', configuration: { sdk: 'Standard SDK' }, tutorialUrl: 'https://example.feishu.cn/wiki/standard-tutorial' },
+        { ...robot.profiles[0], description: '标准开发方式说明', configuration: {
+          sdk: 'Standard SDK', ssh: { host: 'robot.local', user: 'operator', port: 2222 },
+        }, tutorialUrl: 'https://example.feishu.cn/wiki/standard-tutorial' },
         { ...robot.profiles[1], description: '激光开发方式说明', configuration: {} },
       ],
     }), skills: catalog.skills.map(skill => ({ ...skill, publisher: { kind: 'company', displayName: '小高', labels: ['擎云·小高'], secret: 'hidden' } })) })
@@ -166,6 +208,8 @@ describe('Robo device selection', () => {
       await act(async () => { root.render(createElement(RoboDeviceWorkbench, { api, selection, close: vi.fn(), openMarket: vi.fn() })) }); await settle()
       expect(container.querySelector('iframe')).toBeNull()
       click([...container.querySelectorAll('button')].find(button => button.textContent === '使用此型号'))
+      expect(selection.getSnapshot()).toEqual({ modelId: 'qy-x1', profileId: 'standard',
+        ssh: { host: 'robot.local', user: 'operator', port: 2222 } })
       expect(container.querySelector('[role="dialog"]')?.textContent).toContain('厂商擎云机器人型号擎云 X1')
       expect(container.querySelector('[aria-label="擎云 X1版本"]')).not.toBeNull()
       changeValue(container.querySelector('[aria-label="擎云 X1版本"]'), 'lidar')

@@ -801,3 +801,19 @@
 - 验证：Beta/stable 目录代理测试 29/29、28/28；两版 typecheck 通过；变体对齐 222 个共享源文件；Beta Windows NSIS 包测试 257/257 与安装器校验通过。
 - 产物：Beta `dist/OpenFox-Beta-2.0.10-beta.1-x64-Setup.exe`，SHA256 `0F12EEFCA7650453054908A1EC51FFF2FB9534AB34402BB106F88F829FF67DD6`；Stable `dist/OpenFox-2.0.10-x64-Setup.exe`，SHA256 `B346E23806299F0A3211EC6F0086A780EC9515058F7FB2BBA1B4F2BC036A10D5`；均未签名。
 - 下一步：安装新包并重新打开桌面端，确认技能和设备目录；旧进程/旧安装包不会包含本修复。
+
+### 2026-09-22T22:50:00+08:00 | Codex | Windows 对话 PowerShell 侧栏
+
+- 基线：Desktop `main` 提交 `7b34ae9eca`；stable/Beta 工作树新增同一份客户端实现。
+- 已完成：Windows 桌面端在会话右上角增加 PowerShell 入口；点击后打开侧边栏，实时投影当前会话中的 `pwsh` 调用、命令、输出和状态；Host 的 `tools/pre-execute` 为每次 PowerShell 调用增加显式审批，侧栏自动展开并提供“运行/取消”，允许后继续使用既有 Host 沙箱和审批链路。
+- 验证：stable/Beta `desktop-powershell.spec.ts` 各 3/3；Beta build 通过；`check:desktop-variants` 报告 227 个共享源文件一致；`git diff --check` 通过。
+- 未完成 / 限制：stable/Beta 完整 typecheck 被当前依赖快照已有的上游声明冲突阻断（session-controller、session-projection、katex 类型等），本次新增源码不再产生额外 TypeScript 错误；未制作安装包或进行原生窗口截图验收。
+- 下一步：在 Windows 本地重建并启动 Beta/Stable，确认右上角入口、审批提示和侧栏输出的实际视觉布局。
+
+### 2026-09-26T16:48:56+08:00 | Codex | PowerShell/SSH 侧栏完整接入
+
+- 基线：Desktop `main` / `origin/main` 均为 `a53545e14b`，功能分支 `feat/powershell-robot-terminal`；stable/Beta 同步修改。
+- 已完成：未登录时仍在右上角挂载应用级终端入口；未选机器人进入本机 PowerShell，已选机器人仅消费选择流程提供的结构化 SSH 配置并由 `ssh.exe` 连接；机器人切换时关闭旧 PTY 并连接新目标。旧版已保存选择会在设备目录加载后自动补入/刷新 SSH 参数；PTY 启动早期输出竞争已修复。对话命令保留显式“运行/取消”审批和自动展开。
+- 验证：Stable/Beta 相关 4 个测试文件各 53/53 通过；Host 与客户端测试 TypeScript 校验通过；Stable/Beta build 通过；运行时依赖闭包检查各 4/4，247 个首方节点闭合；变体 231 个共享源文件对齐；`git diff --check` 通过。Windows Beta 原生验收确认“登录账号，未登陆”时入口可见，侧栏能展开并显示“机器人 · SSH · 宇树 G1”及缺失 SSH 的明确错误态。
+- 限制：当前实时设备目录未给本机旧“宇树 G1”选择提供 SSH 字段，因此原生验收只能确认缺失态，不能实际登录机器人。完整 `typecheck` 仍被 `node_modules` 内 session-controller/session-projection/katex 既有声明冲突阻断；全量 `test` 仍含 Windows 无符号链接权限、旧品牌断言和其他与本功能无关的失败，本轮直接影响用例已单独全部通过。
+- 下一步：提交并推送 `feat/powershell-robot-terminal`，供用户检查；设备目录提供 SSH 配置后进行真机连接验收。

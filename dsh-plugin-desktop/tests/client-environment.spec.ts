@@ -52,7 +52,8 @@ describe('desktop client environment', () => {
     try {
       apply(ctx)
       expect(inject.mock.calls.map(([name]) => name)).toEqual([
-        'settings.section', 'settings.action', 'settings.section', 'sidebar.footer.action', 'sidebar.brand.mark', 'conversation.hero.brand.mark',
+        'settings.section', 'settings.action', 'settings.section', 'sidebar.footer.action', 'sidebar.brand.mark',
+        ...(platform === 'win32' ? ['conversation.session.header.utilities'] : []), 'conversation.hero.brand.mark',
       ])
       expect(effect.mock.calls.map(([, label]) => label)).not.toContain('desktop: independent compatibility frame styles')
     } finally {
@@ -169,7 +170,9 @@ describe('desktop client environment', () => {
       releaseConversation?.()
 
       expect(skills).toHaveBeenCalledOnce()
-      expect(skills).toHaveBeenCalledWith(context)
+      expect(skills).toHaveBeenCalledWith(context, expect.objectContaining({
+        getSnapshot: expect.any(Function), select: expect.any(Function), reconcile: expect.any(Function),
+      }))
     } finally {
       disposers.reverse().forEach(dispose => { dispose() })
       vi.unstubAllGlobals()
