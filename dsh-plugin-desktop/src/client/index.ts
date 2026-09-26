@@ -102,7 +102,9 @@ export function apply(ctx: ClientContext): void {
   applyRoboServiceOnboarding(ctx)
   ctx.inject(['remote.settings', 'remote.credentials', 'remote.llm', 'remote.session'], ready => { applyRoboModels(ready) })
   applyRoboBranding(ctx)
-  if (environment.platform === 'win32') applyDesktopPowerShell(ctx, roboDevice)
+  if (environment.platform === 'win32') {
+    applyDesktopPowerShell(ctx, roboDevice, environment.mode === 'compatibility' ? 'document' : 'shell-overlay')
+  }
   ctx.slots.inject('conversation.hero.brand.mark', () =>
     ctx.slots.register({ name: 'conversation.hero.brand.mark', priority: -100 }, RoboHeroBrand))
   if (environment.mode !== 'compatibility') {

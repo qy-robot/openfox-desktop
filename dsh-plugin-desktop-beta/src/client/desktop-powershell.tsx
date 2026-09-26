@@ -253,19 +253,48 @@ function subscribePanelVisibility(listener: () => void): () => void {
 
 type TerminalNavigation = Pick<ISidebarRight, 'active' | 'isExpanded' | 'openTab' | 'toggleExpanded'>
 
+/** Late-bound right-Sidebar navigation used by the always-mounted shell entry. */
+export interface DesktopPowerShellNavigation {
+  readonly getSnapshot: () => TerminalNavigation | undefined
+  readonly subscribe: (listener: () => void) => () => void
+  readonly attach: (sidebarRight: TerminalNavigation) => () => void
+}
+
+/** Keep the title-bar entry independent from right-Sidebar provider ordering. */
+export function createDesktopPowerShellNavigation(): DesktopPowerShellNavigation {
+  let current: TerminalNavigation | undefined
+  const listeners = new Set<() => void>()
+  const publish = (): void => { for (const listener of listeners) listener() }
+  return {
+    getSnapshot: () => current,
+    subscribe: listener => { listeners.add(listener); return () => { listeners.delete(listener) } },
+    attach: sidebarRight => {
+      current = sidebarRight
+      publish()
+      return () => {
+        if (current !== sidebarRight) return
+        current = undefined
+        publish()
+      }
+    },
+  }
+}
+
 /** Application-level entry that opens the terminal inside the existing right Sidebar. */
 export function DesktopPowerShellLauncher({
-  sidebarRight,
+  navigation,
   device,
-}: { readonly sidebarRight: TerminalNavigation; readonly device: RoboDeviceSelection }) {
+}: { readonly navigation: DesktopPowerShellNavigation; readonly device: RoboDeviceSelection }) {
   const labels = copy()
   const view = useSyncExternalStore(subscribeView, () => currentView, () => EMPTY_VIEW)
   const open = useSyncExternalStore(subscribePanelVisibility, () => panelVisible, () => false)
+  const sidebarRight = useSyncExternalStore(navigation.subscribe, navigation.getSnapshot, navigation.getSnapshot)
   const pending = view.pending
   const runningKey = view.entries.filter(entry => entry.state === 'running').map(entry => entry.callId).join('|')
   const selection = useSyncExternalStore(device.subscribe, device.getSnapshot, device.getSnapshot)
   const preferredKind = selection.modelId === '' ? DESKTOP_POWERSHELL_TAB_KIND : DESKTOP_ROBOT_TERMINAL_TAB_KIND
   const toggle = (): void => {
+    if (sidebarRight === undefined) return
     const active = sidebarRight.active()
     if (sidebarRight.isExpanded() && (active?.kind === DESKTOP_POWERSHELL_TAB_KIND || active?.kind === DESKTOP_ROBOT_TERMINAL_TAB_KIND)) {
       sidebarRight.toggleExpanded()
@@ -275,7 +304,7 @@ export function DesktopPowerShellLauncher({
   }
 
   return <button type="button" className="dshDesktopPowerShellButton" aria-label={labels.button} aria-expanded={open}
-    title={labels.button} onClick={toggle}>
+    aria-disabled={sidebarRight === undefined} disabled={sidebarRight === undefined} title={labels.button} onClick={toggle}>
     <SquareTerminal aria-hidden="true" /><span>{labels.button}</span>
     {(pending !== undefined || runningKey.length > 0) && <i className="dshDesktopPowerShellActivity" aria-hidden="true" />}
   </button>
@@ -769,25 +798,44 @@ export function DesktopPowerShellTitle({ mode }: { readonly mode: DesktopPowerSh
     {mode === 'robot' ? labels.robotTab : labels.localTab}</span>
 }
 
-function installDesktopPowerShellLauncher(sidebarRight: TerminalNavigation, device: RoboDeviceSelection): () => void {
+function installCompatibilityPowerShellLauncher(
+  navigation: DesktopPowerShellNavigation,
+  device: RoboDeviceSelection,
+): () => void {
   document.getElementById('dsh-desktop-powershell-root')?.remove()
-  const host = document.createElement('div'); host.id = 'dsh-desktop-powershell-root'; document.body.appendChild(host)
-  const root = createRoot(host); root.render(<DesktopPowerShellLauncher sidebarRight={sidebarRight} device={device} />)
-  return () => {
-    root.unmount(); host.remove(); currentOwner = undefined; currentView = EMPTY_VIEW
-    panelVisible = false; visiblePanels.clear(); panelVisibilityListeners.clear()
-  }
+  const host = document.createElement('div')
+  host.id = 'dsh-desktop-powershell-root'
+  document.body.appendChild(host)
+  const root = createRoot(host)
+  root.render(<DesktopPowerShellLauncher navigation={navigation} device={device} />)
+  return () => { root.unmount(); host.remove() }
 }
 
 /** Mount the Windows launcher, native right-Sidebar tab, and conversation bridge. */
-export function applyDesktopPowerShell(ctx: Context, device: RoboDeviceSelection): void {
+export function applyDesktopPowerShell(
+  ctx: Context,
+  device: RoboDeviceSelection,
+  launcherSurface: 'shell-overlay' | 'document' = 'shell-overlay',
+): void {
   ctx.effect(installDesktopPowerShellStyles, 'dsh-plugin-desktop: PowerShell right Sidebar styles')
   const shortcuts = createDesktopTerminalShortcuts()
   const connections = createDesktopSshConnections()
+  const navigation = createDesktopPowerShellNavigation()
   ctx.effect(() => () => { shortcuts.dispose() }, 'dsh-plugin-desktop: terminal shortcut storage')
   ctx.effect(() => () => { connections.dispose() }, 'dsh-plugin-desktop: SSH connection storage')
+  if (launcherSurface === 'shell-overlay') {
+    ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+      name: 'shell.overlay', id: 'desktop-powershell-launcher', order: 90,
+      inject: () => ({ navigation, device }),
+    }, DesktopPowerShellLauncher))
+  } else {
+    ctx.effect(() => installCompatibilityPowerShellLauncher(navigation, device),
+      'dsh-plugin-desktop: compatibility PowerShell launcher')
+  }
   ctx.inject(['sidebarRight', 'sidebarRightTabs'], ready => {
     const api = createDesktopPowerShellApi()
+    ready.effect(() => navigation.attach(ready.sidebarRight),
+      'dsh-plugin-desktop: connect PowerShell launcher navigation')
     for (const mode of ['local', 'robot'] as const) {
       const definition = desktopPowerShellTabDefinition(mode)
       ready.effect(() => ready.sidebarRightTabs.register(definition),
@@ -803,8 +851,6 @@ export function applyDesktopPowerShell(ctx: Context, device: RoboDeviceSelection
     ready.effect(() => ready.slots.inject('desktop.powershell.footer.action', () => ready.slots.register({
       name: 'desktop.powershell.footer.action', id: 'approval', order: 100,
     }, DesktopPowerShellApprovalActions)), 'dsh-plugin-desktop: PowerShell default footer actions')
-    ready.effect(() => installDesktopPowerShellLauncher(ready.sidebarRight, device),
-      'dsh-plugin-desktop: application-level PowerShell launcher')
     ready.effect(() => ready.slots.inject('conversation.session.header.utilities', () => ready.slots.register({
       name: 'conversation.session.header.utilities', id: 'desktop-powershell-session-bridge', order: 90,
       inject: () => ({ sidebarRight: ready.sidebarRight, device }),

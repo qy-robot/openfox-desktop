@@ -4,8 +4,8 @@ const STYLE_ID = 'dsh-desktop-powershell-styles'
 
 const CSS = `
 .dshDesktopPowerShellButton {
-  position: fixed;
-  z-index: 2147482998;
+  position: absolute;
+  z-index: 1;
   top: 4px;
   right: 148px;
   display: inline-flex;
@@ -23,6 +23,7 @@ const CSS = `
   font: 500 12px/1 system-ui, sans-serif;
   -webkit-app-region: no-drag;
 }
+#dsh-desktop-powershell-root .dshDesktopPowerShellButton { position: fixed; }
 .dshDesktopPowerShellButton:hover,
 .dshDesktopPowerShellButton[aria-expanded="true"] {
   background: var(--dsw-alias-interactive-bg-hover, #e9edf3);

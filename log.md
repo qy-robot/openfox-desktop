@@ -4,6 +4,8 @@
 
 ## 当前状态
 
+- 2026-09-26T22:50:58+08:00 | Codex | `feat/powershell-robot-terminal` 已修复“终端按钮在真实窗口不显示”：增强/扩展模式入口改为桌面框架 `shell.overlay` 原生贡献项，并与晚到的右侧栏服务解耦；兼容模式保留独立文档入口。Stable/Beta 各 53 项关联回归、客户端与客户端测试类型检查、完整构建、233 个共享源码对齐及 diff 检查均通过。最新 Beta 源码主进程 PID 38864 正常运行；界面控制仍被 `Codex auth token is unavailable` 阻断，待用户查看右上角窗口控制区左侧的“终端”按钮。
+
 - 2026-09-26T22:17:55+08:00 | Codex | `feat/powershell-robot-terminal` 已完成并推送 MobaXterm 式 SSH 历史、机器人连接表单、一次性密码处理和未连接快捷命令修复，功能提交 `1115e93fcd`；stable/Beta 各 47 项相关回归、客户端与测试类型检查、完整构建、233 个共享源码对齐及 diff 检查均通过。Beta 已按最终构建重启，主进程 PID 33360；界面控制仍被 `Codex auth token is unavailable` 阻断，待用户在窗口中点击验收。
 
 - 2026-09-24T19:47:00+08:00 | ZCode | 合并 Beta 2.0.10-beta.4 发布线回 `main`（承接根仓库 dev→main 合并，desktop gitlink 两侧分叉）
@@ -867,3 +869,13 @@
 - 未完成 / 限制：未连接真实机器人验证远端 SSH 登录；原生窗口布局需要用户在已打开的 Beta 中点击验收。
 - 推送：功能提交 `1115e93fcd` 已推送至 `origin/feat/powershell-robot-terminal`。
 - 下一步：用户在当前 Beta 窗口点击右上角“终端”验收入口、快捷按键和连接管理；有真实机器人时再验证 SSH 登录。
+
+### 2026-09-26T22:50:58+08:00 | Codex | 终端入口挂载链路修复
+
+- 基线：Desktop `feat/powershell-robot-terminal` 提交 `4bd268a5c0`；用户截图显示增强模式首页右上角完全没有终端按钮，stable/Beta 同步修改。
+- 根因：入口仅在 `sidebarRight` 与 `sidebarRightTabs` 两个动态服务同时就绪后，才通过独立 React Root 追加到 `document.body`；按钮不属于桌面框架渲染树，真实 Provider 时序或 Windows caption 覆盖均可导致入口缺失。
+- 已完成：增强/扩展模式把 Launcher 注册为 `shell.overlay` 原生列表项，入口随桌面根框架立即存在；新增晚绑定 navigation store，右侧栏服务就绪后再接通点击能力。按钮改为覆盖层内绝对定位，继续位于 Windows 三个窗口按键左侧并复用现有语义色。兼容模式继续使用文档级固定入口，但同样与右栏服务时序解耦。stable/Beta 已同步。
+- 回归覆盖：新增“入口先渲染、服务后接入、服务释放后禁用”和“应用时立即注册 shell.overlay”用例；组件 DOM 断言继续确认 `.dshDesktopPowerShellButton` 存在。
+- 验证：stable/Beta 关联 5 个测试文件各 53/53；两版 `tsconfig.client.json` 与 `tsconfig.tests.client.json` 检查通过；两版完整 build 通过；`check:desktop-variants` 报告 233 个共享源码文件一致；`git diff --check` 通过。
+- 原生启动：使用当前 Beta 构建直接启动 Electron，主进程 PID 38864、Renderer PID 40584 正常运行；Computer Use 按技能流程初始化后仍返回 `Codex auth token is unavailable`，无法自动截图或点击，未使用其他 UI 自动化绕过。
+- 下一步：提交并推送当前分支；用户在已打开的最新 Beta 窗口查看右上角窗口控制区左侧“终端”按钮并点击验收。

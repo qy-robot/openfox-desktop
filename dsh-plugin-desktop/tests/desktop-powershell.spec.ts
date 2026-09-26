@@ -3,7 +3,9 @@ import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { describe, expect, it, vi } from 'vitest'
 import {
+  applyDesktopPowerShell,
   collectPowerShellEntries,
+  createDesktopPowerShellNavigation,
   desktopPowerShellTabDefinition,
   desktopPowerShellTabDefinitions,
   DesktopPowerShell,
@@ -141,22 +143,76 @@ describe('Desktop PowerShell activity projection', () => {
     expect(robot?.guide?.[0]?.title()).toMatch(/机器人|robot/i)
     expect(desktopPowerShellTabDefinition('robot').guide).toHaveLength(1)
     const sidebarRight = sidebarRightHarness()
+    const navigation = createDesktopPowerShellNavigation()
     const device = createRoboDeviceSelection(new MemoryStorage())
     const container = document.createElement('div')
     document.body.append(container)
     const root = createRoot(container)
     try {
-      await act(async () => { root.render(createElement(DesktopPowerShellLauncher, { sidebarRight, device })) })
+      await act(async () => { root.render(createElement(DesktopPowerShellLauncher, { navigation, device })) })
       const launcher = container.querySelector('.dshDesktopPowerShellButton')
       if (!(launcher instanceof HTMLButtonElement)) throw new Error('terminal launcher missing')
+      expect(launcher.disabled).toBe(true)
+      let detach = (): void => {}
+      act(() => { detach = navigation.attach(sidebarRight) })
+      expect(launcher.disabled).toBe(false)
       act(() => { launcher.click() })
       expect(sidebarRight.openTab).toHaveBeenCalledWith(DESKTOP_POWERSHELL_TAB_KIND)
       act(() => { device.select('robot-1', 'standard', 'Robot 1', { host: 'robot.local', user: 'operator' }) })
       act(() => { launcher.click() })
       expect(sidebarRight.openTab).toHaveBeenLastCalledWith(DESKTOP_ROBOT_TERMINAL_TAB_KIND)
+      act(() => { detach() })
+      expect(launcher.disabled).toBe(true)
     } finally {
       await act(async () => { root.unmount() })
       device.dispose(); container.remove(); vi.unstubAllGlobals()
+    }
+  })
+
+  it('registers the title-bar launcher before right-Sidebar services become available', () => {
+    localStorage.clear()
+    const registrations: Array<{ readonly options: Record<string, unknown>; readonly occupant: unknown }> = []
+    const injectors: Array<(ready: never) => void> = []
+    const disposers: Array<() => void> = []
+    const slots = {
+      inject: vi.fn((_name: string, mount: () => unknown) => mount()),
+      register: vi.fn((options: Record<string, unknown>, occupant: unknown) => {
+        registrations.push({ options, occupant })
+        return () => {}
+      }),
+    }
+    const ctx = {
+      effect: vi.fn((mount: () => void | (() => void)) => {
+        const dispose = mount()
+        if (typeof dispose === 'function') disposers.push(dispose)
+      }),
+      inject: vi.fn((_services: readonly string[], mount: (ready: never) => void) => { injectors.push(mount) }),
+      slots,
+    }
+    const device = createRoboDeviceSelection(new MemoryStorage())
+    try {
+      applyDesktopPowerShell(ctx as never, device)
+      expect(slots.inject).toHaveBeenCalledWith('shell.overlay', expect.any(Function))
+      const launcher = registrations.find(entry => entry.options.name === 'shell.overlay')
+      expect(launcher).toMatchObject({
+        options: { id: 'desktop-powershell-launcher', order: 90 },
+        occupant: DesktopPowerShellLauncher,
+      })
+      const injected = (launcher?.options.inject as (() => {
+        navigation: ReturnType<typeof createDesktopPowerShellNavigation>
+      }))()
+      expect(injected.navigation.getSnapshot()).toBeUndefined()
+
+      const sidebarRight = sidebarRightHarness()
+      injectors[0]?.({
+        ...ctx,
+        sidebarRight,
+        sidebarRightTabs: { register: vi.fn(() => () => {}) },
+      } as never)
+      expect(injected.navigation.getSnapshot()).toBe(sidebarRight)
+    } finally {
+      for (const dispose of disposers.reverse()) dispose()
+      device.dispose()
     }
   })
 
