@@ -43,20 +43,26 @@ export interface DesktopPowerShellEntry {
 
 const ZH = {
   button: '终端', title: '终端', local: '设备本机 · PowerShell', robot: '机器人 SSH', close: '关闭终端',
-  waiting: '正在启动终端…', unavailable: '已选择机器人，但机器人选择尚未提供 SSH 连接信息。',
+  localEntry: '进入本机设备终端', robotEntry: '进入机器人终端',
+  localTab: '本机终端', robotTab: '机器人终端',
+  localGuide: '在当前设备上打开 PowerShell', robotGuide: '通过 SSH 连接当前选择的机器人',
+  waiting: '正在启动终端…', unavailable: '请先选择机器人，并确保机器人选择已提供 SSH 连接信息。',
   empty: '终端已连接，等待输入。', input: '输入命令', send: '运行', interrupt: '中断', reconnect: '重新连接',
   exited: '终端已退出', failed: '终端连接失败', running: '运行中', complete: '已完成', error: '运行失败',
   approvalTitle: '即将运行命令', approvalReason: 'OpenFox 需要你的确认后才能运行这段代码。', run: '运行', cancel: '取消',
-  modelActivity: '对话命令记录', guide: '打开 PowerShell 或当前机器人的 SSH 终端', actions: '终端操作',
+  modelActivity: '对话命令记录', actions: '终端操作',
 } as const
 
 const EN = {
   button: 'Terminal', title: 'Terminal', local: 'This device · PowerShell', robot: 'Robot SSH', close: 'Close terminal',
-  waiting: 'Starting terminal…', unavailable: 'A robot is selected, but its SSH connection is not available yet.',
+  localEntry: 'Open device terminal', robotEntry: 'Open robot terminal',
+  localTab: 'Device terminal', robotTab: 'Robot terminal',
+  localGuide: 'Open PowerShell on this device', robotGuide: 'Connect to the selected robot over SSH',
+  waiting: 'Starting terminal…', unavailable: 'Select a robot and make sure its SSH connection is available.',
   empty: 'Terminal connected and ready.', input: 'Enter a command', send: 'Run', interrupt: 'Interrupt', reconnect: 'Reconnect',
   exited: 'Terminal exited', failed: 'Terminal connection failed', running: 'Running', complete: 'Completed', error: 'Failed',
   approvalTitle: 'Command ready to run', approvalReason: 'OpenFox needs your confirmation before it runs this code.', run: 'Run', cancel: 'Cancel',
-  modelActivity: 'Conversation command history', guide: 'Open PowerShell or the selected robot SSH terminal', actions: 'Terminal actions',
+  modelActivity: 'Conversation command history', actions: 'Terminal actions',
 } as const
 
 function copy() { return navigator.language.toLowerCase().startsWith('zh') ? ZH : EN }
@@ -70,16 +76,29 @@ function TerminalGuideIcon({
 
 export const DESKTOP_POWERSHELL_TAB_ID = 'dsh-plugin-desktop/powershell'
 export const DESKTOP_POWERSHELL_TAB_KIND = 'desktop-powershell'
+export const DESKTOP_ROBOT_TERMINAL_TAB_ID = 'dsh-plugin-desktop/powershell-robot'
+export const DESKTOP_ROBOT_TERMINAL_TAB_KIND = 'desktop-powershell-robot'
+export type DesktopPowerShellMode = 'local' | 'robot'
 
-/** Register the terminal as a first-class page in the existing right Sidebar. */
-export function desktopPowerShellTabDefinition(): SidebarRightTabDefinition {
+/** Register one explicit terminal destination as a first-class right-Sidebar page. */
+export function desktopPowerShellTabDefinition(mode: DesktopPowerShellMode = 'local'): SidebarRightTabDefinition {
   const labels = copy()
+  const robot = mode === 'robot'
   return {
-    id: DESKTOP_POWERSHELL_TAB_ID,
-    kind: DESKTOP_POWERSHELL_TAB_KIND,
-    title: () => labels.title,
-    guide: [{ order: 40, title: () => labels.title, description: () => labels.guide, icon: TerminalGuideIcon }],
+    id: robot ? DESKTOP_ROBOT_TERMINAL_TAB_ID : DESKTOP_POWERSHELL_TAB_ID,
+    kind: robot ? DESKTOP_ROBOT_TERMINAL_TAB_KIND : DESKTOP_POWERSHELL_TAB_KIND,
+    title: () => robot ? labels.robotTab : labels.localTab,
+    guide: [{
+      order: robot ? 41 : 40,
+      title: () => robot ? labels.robotEntry : labels.localEntry,
+      description: () => robot ? labels.robotGuide : labels.localGuide,
+      icon: TerminalGuideIcon,
+    }],
   }
+}
+
+export function desktopPowerShellTabDefinitions(): readonly SidebarRightTabDefinition[] {
+  return [desktopPowerShellTabDefinition('local'), desktopPowerShellTabDefinition('robot')]
 }
 
 export function isPowerShellToolName(name: string | undefined): boolean {
@@ -147,6 +166,17 @@ export function terminalTargetForSelection(selection: RoboDeviceSelectionSnapsho
     label: label || selection.modelId, ssh: selection.ssh }
 }
 
+/** Resolve the destination chosen explicitly on the right-Sidebar guide page. */
+export function terminalTargetForMode(
+  mode: DesktopPowerShellMode,
+  selection: RoboDeviceSelectionSnapshot,
+  label: string,
+): DesktopPowerShellTarget | undefined {
+  if (mode === 'local') return { kind: 'local' }
+  if (selection.modelId === '') return undefined
+  return terminalTargetForSelection(selection, label)
+}
+
 interface ConversationView { readonly entries: readonly DesktopPowerShellEntry[]; readonly pending?: PendingApproval }
 const EMPTY_VIEW: ConversationView = { entries: [] }
 let currentView = EMPTY_VIEW
@@ -179,9 +209,13 @@ export interface DesktopPowerShellFooterActionContext {
 }
 
 let panelVisible = false
+const visiblePanels = new Set<symbol>()
 const panelVisibilityListeners = new Set<() => void>()
 
-function publishPanelVisibility(visible: boolean): void {
+function publishPanelVisibility(owner: symbol, visible: boolean): void {
+  if (visible) visiblePanels.add(owner)
+  else visiblePanels.delete(owner)
+  visible = visiblePanels.size > 0
   if (panelVisible === visible) return
   panelVisible = visible
   for (const listener of panelVisibilityListeners) listener()
@@ -195,19 +229,24 @@ function subscribePanelVisibility(listener: () => void): () => void {
 type TerminalNavigation = Pick<ISidebarRight, 'active' | 'isExpanded' | 'openTab' | 'toggleExpanded'>
 
 /** Application-level entry that opens the terminal inside the existing right Sidebar. */
-export function DesktopPowerShellLauncher({ sidebarRight }: { readonly sidebarRight: TerminalNavigation }) {
+export function DesktopPowerShellLauncher({
+  sidebarRight,
+  device,
+}: { readonly sidebarRight: TerminalNavigation; readonly device: RoboDeviceSelection }) {
   const labels = copy()
   const view = useSyncExternalStore(subscribeView, () => currentView, () => EMPTY_VIEW)
   const open = useSyncExternalStore(subscribePanelVisibility, () => panelVisible, () => false)
   const pending = view.pending
   const runningKey = view.entries.filter(entry => entry.state === 'running').map(entry => entry.callId).join('|')
+  const selection = useSyncExternalStore(device.subscribe, device.getSnapshot, device.getSnapshot)
+  const preferredKind = selection.modelId === '' ? DESKTOP_POWERSHELL_TAB_KIND : DESKTOP_ROBOT_TERMINAL_TAB_KIND
   const toggle = (): void => {
     const active = sidebarRight.active()
-    if (sidebarRight.isExpanded() && active?.kind === DESKTOP_POWERSHELL_TAB_KIND) {
+    if (sidebarRight.isExpanded() && (active?.kind === DESKTOP_POWERSHELL_TAB_KIND || active?.kind === DESKTOP_ROBOT_TERMINAL_TAB_KIND)) {
       sidebarRight.toggleExpanded()
       return
     }
-    sidebarRight.openTab(DESKTOP_POWERSHELL_TAB_KIND)
+    sidebarRight.openTab(preferredKind)
   }
 
   return <button type="button" className="dshDesktopPowerShellButton" aria-label={labels.button} aria-expanded={open}
@@ -220,6 +259,7 @@ export function DesktopPowerShellLauncher({ sidebarRight }: { readonly sidebarRi
 export type DesktopPowerShellPanelProps = PropsRuntime<'sidebar.right.pane.tab'> & {
   readonly device: RoboDeviceSelection
   readonly api: DesktopPowerShellApi
+  readonly mode: DesktopPowerShellMode
 } & PropsRenderSlots<'desktop.powershell.footer.action'>
 
 /** Shipped approval buttons; additional actions can join the same list Slot. */
@@ -239,12 +279,12 @@ export function DesktopPowerShellApprovalActions({
 }
 
 /** Session-aware terminal body rendered by the application's native right Sidebar. */
-export function DesktopPowerShellPanel({ device, api, useTabInfo, renderSlot }: DesktopPowerShellPanelProps) {
+export function DesktopPowerShellPanel({ device, api, mode, useTabInfo, renderSlot }: DesktopPowerShellPanelProps) {
   const labels = copy()
   const view = useSyncExternalStore(subscribeView, () => currentView, () => EMPTY_VIEW)
   const selection = useSyncExternalStore(device.subscribe, device.getSnapshot, device.getSnapshot)
   const modelLabel = device.getModelLabel()
-  const target = useMemo(() => terminalTargetForSelection(selection, modelLabel), [selection, modelLabel])
+  const target = useMemo(() => terminalTargetForMode(mode, selection, modelLabel), [mode, selection, modelLabel])
   const targetKey = target === undefined ? `missing:${selection.modelId}:${selection.profileId}` : JSON.stringify(target)
   const tabInfo = useTabInfo()
   const visible = tabInfo.sidebar.expanded && tabInfo.tab.visible
@@ -258,11 +298,12 @@ export function DesktopPowerShellPanel({ device, api, useTabInfo, renderSlot }: 
   const offset = useRef(0)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const visibilityOwner = useRef(Symbol('desktop-powershell-panel'))
   const pending = view.pending
 
   useEffect(() => {
-    publishPanelVisibility(visible)
-    return () => { publishPanelVisibility(false) }
+    publishPanelVisibility(visibilityOwner.current, visible)
+    return () => { publishPanelVisibility(visibilityOwner.current, false) }
   }, [visible])
   useEffect(() => {
     if (!visible) { setStatus('idle'); return }
@@ -315,9 +356,9 @@ export function DesktopPowerShellPanel({ device, api, useTabInfo, renderSlot }: 
     void api.write(id, data).catch(cause => { setStatus('error'); setFailure(cause instanceof Error ? cause.message : labels.failed) })
   }
   const submit = (): void => { if (input.length > 0) { send(`${input}\r`); setInput('') } }
-  const targetTitle = selection.modelId !== ''
-    ? `${labels.robot} · ${target?.kind === 'robot' ? target.label : modelLabel || selection.modelId}`
-    : labels.local
+  const targetTitle = mode === 'local'
+    ? labels.local
+    : `${labels.robot}${selection.modelId === '' ? '' : ` · ${target?.kind === 'robot' ? target.label : modelLabel || selection.modelId}`}`
 
   return <section className="dshDesktopPowerShellPanel" aria-label={labels.title}>
       <header className="dshDesktopPowerShellHeader"><SquareTerminal aria-hidden="true" /><div><strong>{labels.title}</strong><small>{targetTitle}</small></div>
@@ -352,10 +393,12 @@ export function DesktopPowerShellPanel({ device, api, useTabInfo, renderSlot }: 
 
 export type DesktopPowerShellProps = PropsRuntime<'conversation.session.header.utilities'> & {
   readonly sidebarRight: Pick<ISidebarRight, 'openTab'>
+  readonly device: RoboDeviceSelection
 }
 
 /** Invisible bridge from the active conversation to the application-level terminal. */
 export function DesktopPowerShell({
+  device,
   sessionId: activeSessionId,
   sidebarRight,
   useChat,
@@ -367,30 +410,32 @@ export function DesktopPowerShell({
     const interaction = snapshot.get(activeSessionId)
     return isPowerShellApproval(interaction) ? interaction : undefined
   })
+  const selection = useSyncExternalStore(device.subscribe, device.getSnapshot, device.getSnapshot)
   const owner = useRef(Symbol('desktop-powershell-session'))
   useEffect(() => { publishView(owner.current, { entries, ...(pending === undefined ? {} : { pending }) }) }, [entries, pending])
   const runningKey = entries.filter(entry => entry.state === 'running').map(entry => entry.callId).join('|')
   useEffect(() => {
     if (pending === undefined && runningKey.length === 0) return
-    sidebarRight.openTab(DESKTOP_POWERSHELL_TAB_KIND)
-  }, [pending?.key, runningKey, sidebarRight])
+    sidebarRight.openTab(selection.modelId === '' ? DESKTOP_POWERSHELL_TAB_KIND : DESKTOP_ROBOT_TERMINAL_TAB_KIND)
+  }, [pending?.key, runningKey, selection.modelId, sidebarRight])
   useEffect(() => () => { clearView(owner.current) }, [])
   return null
 }
 
 /** Compact terminal label used by the right Sidebar tab strip. */
-export function DesktopPowerShellTitle(): JSX.Element {
+export function DesktopPowerShellTitle({ mode }: { readonly mode: DesktopPowerShellMode }): JSX.Element {
   const labels = copy()
-  return <span className="dshDesktopPowerShellTabTitle"><SquareTerminal aria-hidden="true" />{labels.title}</span>
+  return <span className="dshDesktopPowerShellTabTitle"><SquareTerminal aria-hidden="true" />
+    {mode === 'robot' ? labels.robotTab : labels.localTab}</span>
 }
 
-function installDesktopPowerShellLauncher(sidebarRight: TerminalNavigation): () => void {
+function installDesktopPowerShellLauncher(sidebarRight: TerminalNavigation, device: RoboDeviceSelection): () => void {
   document.getElementById('dsh-desktop-powershell-root')?.remove()
   const host = document.createElement('div'); host.id = 'dsh-desktop-powershell-root'; document.body.appendChild(host)
-  const root = createRoot(host); root.render(<DesktopPowerShellLauncher sidebarRight={sidebarRight} />)
+  const root = createRoot(host); root.render(<DesktopPowerShellLauncher sidebarRight={sidebarRight} device={device} />)
   return () => {
     root.unmount(); host.remove(); currentOwner = undefined; currentView = EMPTY_VIEW
-    panelVisible = false; panelVisibilityListeners.clear()
+    panelVisible = false; visiblePanels.clear(); panelVisibilityListeners.clear()
   }
 }
 
@@ -399,23 +444,26 @@ export function applyDesktopPowerShell(ctx: Context, device: RoboDeviceSelection
   ctx.effect(installDesktopPowerShellStyles, 'dsh-plugin-desktop: PowerShell right Sidebar styles')
   ctx.inject(['sidebarRight', 'sidebarRightTabs'], ready => {
     const api = createDesktopPowerShellApi()
-    ready.effect(() => ready.sidebarRightTabs.register(desktopPowerShellTabDefinition()),
-      'dsh-plugin-desktop: PowerShell right Sidebar tab type')
-    ready.effect(() => ready.slots.inject('sidebar.right.pane.tab', () => ready.slots.register({
-      name: 'sidebar.right.pane.tab', key: DESKTOP_POWERSHELL_TAB_ID, inject: () => ({ device, api }),
-      children: { 'desktop.powershell.footer.action': { kind: 'list', scope: 'session' } },
-    }, DesktopPowerShellPanel)), 'dsh-plugin-desktop: PowerShell right Sidebar tab body')
+    for (const mode of ['local', 'robot'] as const) {
+      const definition = desktopPowerShellTabDefinition(mode)
+      ready.effect(() => ready.sidebarRightTabs.register(definition),
+        `dsh-plugin-desktop: ${mode} terminal right Sidebar tab type`)
+      ready.effect(() => ready.slots.inject('sidebar.right.pane.tab', () => ready.slots.register({
+        name: 'sidebar.right.pane.tab', key: definition.id, inject: () => ({ device, api, mode }),
+        children: { 'desktop.powershell.footer.action': { kind: 'list', scope: 'session' } },
+      }, DesktopPowerShellPanel)), `dsh-plugin-desktop: ${mode} terminal right Sidebar tab body`)
+      ready.effect(() => ready.slots.inject('sidebar.right.pane.tab.title', () => ready.slots.register({
+        name: 'sidebar.right.pane.tab.title', key: definition.id, inject: () => ({ mode }),
+      }, DesktopPowerShellTitle)), `dsh-plugin-desktop: ${mode} terminal right Sidebar tab title`)
+    }
     ready.effect(() => ready.slots.inject('desktop.powershell.footer.action', () => ready.slots.register({
       name: 'desktop.powershell.footer.action', id: 'approval', order: 100,
     }, DesktopPowerShellApprovalActions)), 'dsh-plugin-desktop: PowerShell default footer actions')
-    ready.effect(() => ready.slots.inject('sidebar.right.pane.tab.title', () => ready.slots.register({
-      name: 'sidebar.right.pane.tab.title', key: DESKTOP_POWERSHELL_TAB_ID,
-    }, DesktopPowerShellTitle)), 'dsh-plugin-desktop: PowerShell right Sidebar tab title')
-    ready.effect(() => installDesktopPowerShellLauncher(ready.sidebarRight),
+    ready.effect(() => installDesktopPowerShellLauncher(ready.sidebarRight, device),
       'dsh-plugin-desktop: application-level PowerShell launcher')
     ready.effect(() => ready.slots.inject('conversation.session.header.utilities', () => ready.slots.register({
       name: 'conversation.session.header.utilities', id: 'desktop-powershell-session-bridge', order: 90,
-      inject: () => ({ sidebarRight: ready.sidebarRight }),
+      inject: () => ({ sidebarRight: ready.sidebarRight, device }),
     }, DesktopPowerShell)), 'dsh-plugin-desktop: PowerShell conversation bridge')
   })
 }

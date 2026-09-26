@@ -5,14 +5,17 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   collectPowerShellEntries,
   desktopPowerShellTabDefinition,
+  desktopPowerShellTabDefinitions,
   DesktopPowerShell,
   DesktopPowerShellApprovalActions,
   DesktopPowerShellLauncher,
   DesktopPowerShellPanel,
   DESKTOP_POWERSHELL_TAB_KIND,
+  DESKTOP_ROBOT_TERMINAL_TAB_KIND,
   isPowerShellToolName,
   parsePowerShellCommand,
   terminalTargetForSelection,
+  terminalTargetForMode,
 } from '../src/client/desktop-powershell.tsx'
 import type { DesktopPowerShellApi } from '../src/client/desktop-powershell-api.ts'
 import { createRoboDeviceSelection } from '../src/client/robo-device-selection.ts'
@@ -101,30 +104,41 @@ describe('Desktop PowerShell activity projection', () => {
       kind: 'robot', modelId: 'robot-1', profileId: 'standard', label: 'Robot 1',
       ssh: { host: '192.0.2.20', user: 'robot', port: 2222 },
     })
+    expect(terminalTargetForMode('local', {
+      modelId: 'robot-1', profileId: 'standard', ssh: { host: '192.0.2.20', user: 'robot' },
+    }, 'Robot 1')).toEqual({ kind: 'local' })
+    expect(terminalTargetForMode('robot', { modelId: '', profileId: '' }, '')).toBeUndefined()
   })
 
-  it('registers the terminal as a native right Sidebar page and opens it from the title-bar entry', async () => {
+  it('registers separate local and robot entries and opens the selected default from the title-bar entry', async () => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
-    const definition = desktopPowerShellTabDefinition()
-    expect(definition).toMatchObject({ kind: DESKTOP_POWERSHELL_TAB_KIND, title: expect.any(Function) })
-    expect(definition.guide).toHaveLength(1)
+    const [local, robot] = desktopPowerShellTabDefinitions()
+    expect(local).toMatchObject({ kind: DESKTOP_POWERSHELL_TAB_KIND, title: expect.any(Function) })
+    expect(robot).toMatchObject({ kind: DESKTOP_ROBOT_TERMINAL_TAB_KIND, title: expect.any(Function) })
+    expect(local?.guide?.[0]?.title()).toMatch(/本机|device/i)
+    expect(robot?.guide?.[0]?.title()).toMatch(/机器人|robot/i)
+    expect(desktopPowerShellTabDefinition('robot').guide).toHaveLength(1)
     const sidebarRight = sidebarRightHarness()
+    const device = createRoboDeviceSelection(new MemoryStorage())
     const container = document.createElement('div')
     document.body.append(container)
     const root = createRoot(container)
     try {
-      await act(async () => { root.render(createElement(DesktopPowerShellLauncher, { sidebarRight })) })
+      await act(async () => { root.render(createElement(DesktopPowerShellLauncher, { sidebarRight, device })) })
       const launcher = container.querySelector('.dshDesktopPowerShellButton')
       if (!(launcher instanceof HTMLButtonElement)) throw new Error('terminal launcher missing')
       act(() => { launcher.click() })
       expect(sidebarRight.openTab).toHaveBeenCalledWith(DESKTOP_POWERSHELL_TAB_KIND)
+      act(() => { device.select('robot-1', 'standard', 'Robot 1', { host: 'robot.local', user: 'operator' }) })
+      act(() => { launcher.click() })
+      expect(sidebarRight.openTab).toHaveBeenLastCalledWith(DESKTOP_ROBOT_TERMINAL_TAB_KIND)
     } finally {
       await act(async () => { root.unmount() })
-      container.remove(); vi.unstubAllGlobals()
+      device.dispose(); container.remove(); vi.unstubAllGlobals()
     }
   })
 
-  it('closes the local PTY and opens the robot SSH PTY when robot selection changes', async () => {
+  it('keeps the local entry on this device and connects the robot entry through supplied SSH', async () => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
     const device = createRoboDeviceSelection(new MemoryStorage())
     const api = apiHarness()
@@ -134,7 +148,7 @@ describe('Desktop PowerShell activity projection', () => {
     try {
       await act(async () => {
         root.render(createElement(DesktopPowerShellPanel, {
-          device, api, useTabInfo: visibleTabInfo, renderSlot: renderFooterSlot,
+          device, api, mode: 'local', useTabInfo: visibleTabInfo, renderSlot: renderFooterSlot,
         } as never))
       })
       await settle()
@@ -142,7 +156,13 @@ describe('Desktop PowerShell activity projection', () => {
 
       act(() => { device.select('robot-1', 'standard', 'Robot 1', { host: 'robot.local', user: 'operator' }) })
       await settle()
-      expect(api.close).toHaveBeenCalledWith('session-1')
+      expect(api.open).toHaveBeenCalledTimes(1)
+      await act(async () => {
+        root.render(createElement(DesktopPowerShellPanel, {
+          device, api, mode: 'robot', useTabInfo: visibleTabInfo, renderSlot: renderFooterSlot,
+        } as never))
+      })
+      await settle()
       expect(api.open).toHaveBeenNthCalledWith(2, {
         kind: 'robot', modelId: 'robot-1', profileId: 'standard', label: 'Robot 1',
         ssh: { host: 'robot.local', user: 'operator' },
@@ -156,6 +176,7 @@ describe('Desktop PowerShell activity projection', () => {
   it('automatically opens for a pending PowerShell approval and exposes run and cancel', async () => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
     const device = createRoboDeviceSelection(new MemoryStorage())
+    device.select('robot-1', 'standard', 'Robot 1', { host: 'robot.local', user: 'operator' })
     const api = apiHarness()
     const answer = vi.fn(async () => {})
     const pending = { kind: 'approval', key: 'approval-1', toolName: 'pwsh', callId: 'call-1', reason: 'Review this command.', answer }
@@ -171,14 +192,14 @@ describe('Desktop PowerShell activity projection', () => {
       await act(async () => {
         root.render(createElement('div', null,
           createElement(DesktopPowerShellPanel, {
-            device, api, useTabInfo: visibleTabInfo, renderSlot,
+            device, api, mode: 'robot', useTabInfo: visibleTabInfo, renderSlot,
           } as never),
           createElement(DesktopPowerShell, {
-            sessionId: 'session-1', sidebarRight, useChat, useSessionPendingInteraction: usePending,
+            sessionId: 'session-1', sidebarRight, device, useChat, useSessionPendingInteraction: usePending,
           } as never)))
       })
       await settle()
-      expect(sidebarRight.openTab).toHaveBeenCalledWith(DESKTOP_POWERSHELL_TAB_KIND)
+      expect(sidebarRight.openTab).toHaveBeenCalledWith(DESKTOP_ROBOT_TERMINAL_TAB_KIND)
       expect(container.querySelector('.dshDesktopPowerShellPanel')).not.toBeNull()
       expect(container.querySelector('.dshDesktopPowerShellApproval pre')?.textContent).toContain('Get-Date')
       expect(renderSlot).toHaveBeenCalledWith('desktop.powershell.footer.action', expect.objectContaining({

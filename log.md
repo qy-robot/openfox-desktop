@@ -839,3 +839,11 @@
 - 验证：stable/Beta 相关 4 个测试文件各 55/55 通过；两版客户端测试 TypeScript 校验通过；两版 build 通过；`check:desktop-variants` 报告 231 个共享源文件一致；`git diff --check` 通过。已按新构建重启 OpenFox Beta，窗口正常响应。
 - 限制：Windows UI 验收工具仍返回 `Codex auth token is unavailable`，无法代替用户点击并截图；当前只能完成构建、测试和进程级原生启动验收。
 - 下一步：提交并推送当前分支；由用户在已打开的 Beta 窗口查看缩窄后的原生右栏和底部操作区。
+
+### 2026-09-26T21:29:38+08:00 | Codex | 本机与机器人终端双入口及覆盖式全屏
+
+- 基线：Desktop `feat/powershell-robot-terminal` 提交 `6b7f672bb1`；已拉取 `origin/main` 并确认功能分支处于最新主线，stable/Beta 同步修改。
+- 已完成：右侧栏“开始”页将终端拆分为“进入本机设备终端”和“进入机器人终端”两个原生入口；本机入口始终使用本机 PowerShell，机器人入口始终消费当前机器人选择提供的 SSH 配置，缺少选择或 SSH 时显示明确错误且不回退本机。右上角快捷入口与对话命令触发会按当前机器人选择进入对应终端。全屏态将右侧栏表面提升为固定全窗口层，覆盖原会话、左右栏与应用内容。
+- 验证：stable/Beta 定向测试各 38/38；两版客户端 TypeScript 校验和完整 build 通过；`check:desktop-variants` 报告 231 个共享源文件一致；`git diff --check` 通过。
+- 原生验收：已按最终构建重启 OpenFox Beta，主进程正常运行；Windows UI 控制服务仍返回 `Codex auth token is unavailable`，无法自动点击和截图，未使用其他 UI 自动化绕过。
+- 下一步：提交并推送功能分支供用户检查两个入口和全屏覆盖效果。
