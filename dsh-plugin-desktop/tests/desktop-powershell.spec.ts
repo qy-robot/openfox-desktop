@@ -37,12 +37,6 @@ async function settle(): Promise<void> {
   await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)) })
 }
 
-function changeField(element: HTMLInputElement | HTMLSelectElement, value: string): void {
-  const prototype = element instanceof HTMLSelectElement ? HTMLSelectElement.prototype : HTMLInputElement.prototype
-  Object.getOwnPropertyDescriptor(prototype, 'value')?.set?.call(element, value)
-  element.dispatchEvent(new Event(element instanceof HTMLSelectElement ? 'change' : 'input', { bubbles: true }))
-}
-
 function apiHarness() {
   let count = 0
   const api: DesktopPowerShellApi = {
@@ -135,7 +129,7 @@ describe('Desktop PowerShell activity projection', () => {
     expect(hasSshPasswordPrompt('password authentication is enabled')).toBe(false)
   })
 
-  it('registers separate local and robot entries and opens the selected default from the title-bar entry', async () => {
+  it('registers separate local and robot entries on the guide page opened by the title-bar entry', async () => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
     const [local, robot] = desktopPowerShellTabDefinitions()
     expect(local).toMatchObject({ kind: DESKTOP_POWERSHELL_TAB_KIND, title: expect.any(Function) })
@@ -150,17 +144,17 @@ describe('Desktop PowerShell activity projection', () => {
     document.body.append(container)
     const root = createRoot(container)
     try {
-      await act(async () => { root.render(createElement(DesktopPowerShellLauncher, { navigation, device })) })
+      await act(async () => { root.render(createElement(DesktopPowerShellLauncher, { navigation })) })
       const launcher = container.querySelector('.dshDesktopPowerShellButton')
       if (!(launcher instanceof HTMLButtonElement)) throw new Error('terminal launcher missing')
       expect(launcher.disabled).toBe(false)
       let detach = (): void => {}
       act(() => { detach = navigation.attach(sidebarRight) })
       act(() => { launcher.click() })
-      expect(sidebarRight.openTab).toHaveBeenCalledWith(DESKTOP_POWERSHELL_TAB_KIND)
+      expect(sidebarRight.openTab).toHaveBeenCalledWith('guide')
       act(() => { device.select('robot-1', 'standard', 'Robot 1', { host: 'robot.local', user: 'operator' }) })
       act(() => { launcher.click() })
-      expect(sidebarRight.openTab).toHaveBeenLastCalledWith(DESKTOP_ROBOT_TERMINAL_TAB_KIND)
+      expect(sidebarRight.openTab).toHaveBeenLastCalledWith('guide')
       act(() => { detach() })
       expect(launcher.disabled).toBe(false)
     } finally {
@@ -234,19 +228,22 @@ describe('Desktop PowerShell activity projection', () => {
     try {
       await act(async () => {
         root.render(createElement(DesktopPowerShellOverlay, {
-          navigation, device, api, shortcuts, connections, resolveLayout: () => layout,
+          navigation, device, api, resolveLayout: () => layout,
         }))
       })
       const launcher = container.querySelector('.dshDesktopPowerShellButton') as HTMLButtonElement
       expect(launcher.disabled).toBe(false)
       await act(async () => { launcher.click(); await Promise.resolve() })
-      expect(unavailableSidebar.openTab).toHaveBeenCalledWith(DESKTOP_POWERSHELL_TAB_KIND)
+      expect(unavailableSidebar.openTab).toHaveBeenCalledWith('guide')
       expect(navigation.getSnapshot()).toBe(unavailableSidebar)
       expect(layout.openRightbar).toHaveBeenCalledWith(true, false)
       const fallback = rightbarHost.querySelector('.dshDesktopPowerShellFallback') as HTMLElement
       expect(fallback).not.toBeNull()
+      expect(fallback.querySelector('.dshDesktopPowerShellPanel')).toBeNull()
+      const entries = fallback.querySelectorAll('.dshDesktopPowerShellEntry > div > button')
+      expect(entries).toHaveLength(2)
+      act(() => { (entries[0] as HTMLButtonElement).click() })
       expect(fallback.querySelector('.dshDesktopPowerShellPanel')?.getAttribute('data-terminal-mode')).toBe('local')
-      expect(fallback.querySelector('.dshDesktopPowerShellFallbackNav')).toBeNull()
       const headerButtons = fallback.querySelectorAll('.dshDesktopPowerShellHeader button')
       act(() => { (headerButtons[1] as HTMLButtonElement).click() })
       expect(layout.openRightbar).toHaveBeenLastCalledWith(true, true)
@@ -278,6 +275,8 @@ describe('Desktop PowerShell activity projection', () => {
       await settle()
       expect(api.open).toHaveBeenNthCalledWith(1, { kind: 'local' }, 120, 32, expect.any(AbortSignal))
       expect(container.querySelector('.dshDesktopPowerShellSurface')?.hasAttribute('data-connection-pane')).toBe(false)
+      expect(container.querySelector('.dshDesktopPowerShellInput')).toBeNull()
+      expect(container.querySelector('.dshDesktopTerminalShortcutArea')).toBeNull()
 
       act(() => { device.select('robot-1', 'standard', 'Robot 1', { host: 'robot.local', user: 'operator' }) })
       await settle()
@@ -288,7 +287,8 @@ describe('Desktop PowerShell activity projection', () => {
         } as never))
       })
       await settle()
-      expect(container.querySelector('.dshDesktopPowerShellSurface')?.getAttribute('data-connection-pane')).toBe('true')
+      expect(container.querySelector('.dshDesktopPowerShellSurface')?.hasAttribute('data-connection-pane')).toBe(false)
+      expect(container.querySelector('.dshDesktopSshCompact')).toBeNull()
       expect(api.open).toHaveBeenNthCalledWith(2, {
         kind: 'robot', modelId: 'robot-1', profileId: 'standard', label: 'Robot 1',
         ssh: { host: 'robot.local', user: 'operator' },
@@ -299,7 +299,7 @@ describe('Desktop PowerShell activity projection', () => {
     }
   })
 
-  it('runs a quick command immediately or fills the command box for review', async () => {
+  it('keeps manual command controls out of the terminal display', async () => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
     const device = createRoboDeviceSelection(new MemoryStorage())
     const shortcuts = createDesktopTerminalShortcuts(new MemoryStorage())
@@ -320,32 +320,16 @@ describe('Desktop PowerShell activity projection', () => {
         } as never))
       })
       await settle()
-      const run = container.querySelector('[data-terminal-shortcut="run"]') as HTMLButtonElement
-      const fill = container.querySelector('[data-terminal-shortcut="fill"]') as HTMLButtonElement
-      act(() => { run.click() })
-      expect(api.write).toHaveBeenCalledWith('session-1', 'Get-Location\r')
-      act(() => { fill.click() })
-      expect((container.querySelector('.dshDesktopPowerShellInput input') as HTMLInputElement).value).toBe('Get-Date')
-      expect(api.write).toHaveBeenCalledTimes(1)
-      act(() => { (container.querySelector('.dshDesktopTerminalShortcutSettings') as HTMLButtonElement).click() })
-      expect(container.querySelector('.dshDesktopTerminalShortcutEditor')).not.toBeNull()
-      const firstRow = container.querySelector('.dshDesktopTerminalShortcutRow') as HTMLDivElement
-      const fields = firstRow.querySelectorAll('input')
-      act(() => {
-        changeField(fields[0] as HTMLInputElement, '查看位置')
-        changeField(fields[1] as HTMLInputElement, 'pwd')
-        changeField(firstRow.querySelector('select') as HTMLSelectElement, 'fill')
-      })
-      act(() => { (container.querySelector('.dshDesktopTerminalShortcutEditorActions button[data-primary]') as HTMLButtonElement).click() })
-      expect(shortcuts.getSnapshot()[0]).toMatchObject({ label: '查看位置', command: 'pwd', behavior: 'fill' })
-      expect(container.querySelector('.dshDesktopTerminalShortcutEditor')).toBeNull()
+      expect(container.querySelector('.dshDesktopPowerShellInput')).toBeNull()
+      expect(container.querySelector('.dshDesktopTerminalShortcutArea')).toBeNull()
+      expect(api.write).not.toHaveBeenCalled()
     } finally {
       await act(async () => { root.unmount() })
       connections.dispose(); shortcuts.dispose(); device.dispose(); container.remove(); vi.unstubAllGlobals()
     }
   })
 
-  it('keeps quick buttons clickable before a terminal is ready and stages the command for review', async () => {
+  it('shows only terminal status while a connection is starting', async () => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
     const device = createRoboDeviceSelection(new MemoryStorage())
     const shortcuts = createDesktopTerminalShortcuts(new MemoryStorage())
@@ -362,11 +346,9 @@ describe('Desktop PowerShell activity projection', () => {
           device, api, mode: 'local', shortcuts, connections, useTabInfo: visibleTabInfo, renderSlot: renderFooterSlot,
         } as never))
       })
-      const run = container.querySelector('[data-terminal-shortcut="run"]') as HTMLButtonElement
-      expect(run.disabled).toBe(false)
-      act(() => { run.click() })
-      expect((container.querySelector('.dshDesktopPowerShellInput input') as HTMLInputElement).value).toBe('Get-Location')
-      expect(container.textContent).toMatch(/连接终端|Connect a terminal/i)
+      expect(container.querySelector('.dshDesktopPowerShellInput')).toBeNull()
+      expect(container.querySelector('.dshDesktopTerminalShortcutArea')).toBeNull()
+      expect(container.textContent).toMatch(/正在启动终端|Starting terminal/i)
       expect(api.write).not.toHaveBeenCalled()
     } finally {
       await act(async () => { root.unmount() })
@@ -374,7 +356,7 @@ describe('Desktop PowerShell activity projection', () => {
     }
   })
 
-  it('saves a manual robot profile without its password and submits the password only to an SSH prompt', async () => {
+  it('uses robot selection data and does not put connection forms inside the terminal', async () => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
     const device = createRoboDeviceSelection(new MemoryStorage())
     device.select('robot-1', 'standard', 'Robot 1')
@@ -397,32 +379,18 @@ describe('Desktop PowerShell activity projection', () => {
         } as never))
       })
       await settle()
-      const editor = container.querySelector('.dshDesktopSshEditor') as HTMLFormElement
-      expect(editor).not.toBeNull()
-      const fields = editor.querySelectorAll('input')
-      act(() => {
-        changeField(fields[0] as HTMLInputElement, 'Robot 1 lab')
-        changeField(fields[1] as HTMLInputElement, '192.0.2.44')
-        changeField(fields[2] as HTMLInputElement, 'operator')
-        changeField(fields[3] as HTMLInputElement, '2222')
-        changeField(fields[4] as HTMLInputElement, 'one-time-secret')
-      })
-      act(() => { (editor.querySelector('button[type="submit"]') as HTMLButtonElement).click() })
-      await settle()
-      expect(api.open).toHaveBeenCalledWith({
-        kind: 'robot', modelId: 'robot-1', profileId: 'standard', label: 'Robot 1 lab',
-        ssh: { host: '192.0.2.44', user: 'operator', port: 2222 },
-      }, 120, 32, expect.any(AbortSignal))
-      expect(api.write).toHaveBeenCalledWith('session-1', 'one-time-secret\r', expect.any(AbortSignal))
-      expect(connectionStorage.value).not.toContain('one-time-secret')
-      expect(connectionStorage.value).not.toContain('password')
+      expect(container.querySelector('.dshDesktopSshEditor')).toBeNull()
+      expect(container.querySelector('.dshDesktopSshCompact')).toBeNull()
+      expect(container.textContent).toMatch(/请先选择机器人|Select a robot/i)
+      expect(api.open).not.toHaveBeenCalled()
+      expect(connectionStorage.value).toBeNull()
     } finally {
       await act(async () => { root.unmount() })
       connections.dispose(); shortcuts.dispose(); device.dispose(); container.remove(); vi.unstubAllGlobals()
     }
   })
 
-  it('shows MobaXterm-style saved connections in fullscreen and reconnects by clicking an IP entry', async () => {
+  it('keeps saved connection management out of the fullscreen terminal', async () => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
     const device = createRoboDeviceSelection(new MemoryStorage())
     const shortcuts = createDesktopTerminalShortcuts(new MemoryStorage())
@@ -440,15 +408,11 @@ describe('Desktop PowerShell activity projection', () => {
         } as never))
       })
       await settle()
-      expect(container.querySelector('.dshDesktopSshRail')).not.toBeNull()
+      expect(container.querySelector('.dshDesktopSshRail')).toBeNull()
       expect(container.querySelector('.dshDesktopSshCompact')).toBeNull()
-      expect(container.querySelector('.dshDesktopSshProfile')?.textContent).toContain('192.0.2.88')
-      act(() => { (container.querySelector('.dshDesktopSshProfileConnect') as HTMLButtonElement).click() })
-      await settle()
-      expect(api.open).toHaveBeenCalledWith({
-        kind: 'robot', modelId: 'saved:saved-robot', profileId: 'manual-ssh', label: 'Bumi lab',
-        ssh: { host: '192.0.2.88', user: 'ubuntu', port: 22 },
-      }, 120, 32, expect.any(AbortSignal))
+      expect(container.querySelector('.dshDesktopSshProfile')).toBeNull()
+      expect(container.querySelector('.dshDesktopPowerShellInput')).toBeNull()
+      expect(api.open).not.toHaveBeenCalled()
     } finally {
       await act(async () => { root.unmount() })
       connections.dispose(); shortcuts.dispose(); device.dispose(); container.remove(); vi.unstubAllGlobals()

@@ -93,19 +93,26 @@ const CSS = `
   container-type: inline-size;
   -webkit-app-region: no-drag;
 }
-.dshDesktopPowerShellPanel[data-terminal-mode="robot"][data-fullscreen="true"] {
-  grid-template-columns: 236px minmax(0, 1fr);
-}
 .dshDesktopPowerShellSurface {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
 }
-.dshDesktopPowerShellSurface[data-connection-pane="true"] {
-  grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
-}
+.dshDesktopPowerShellEntry { display: grid; grid-template-rows: auto minmax(0,1fr); width: 100%; height: 100%; min-height: 0; }
+.dshDesktopPowerShellEntry > header { display: flex; align-items: center; min-height: 52px; padding: 0 10px 0 16px; border-bottom: 1px solid var(--dsw-alias-border-l1, rgba(120,130,145,.28)); }
+.dshDesktopPowerShellEntry > header strong { flex: 1; font-size: 14px; font-weight: 650; }
+.dshDesktopPowerShellEntry > header button { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 7px; background: transparent; color: var(--dsw-alias-label-secondary, #667085); cursor: pointer; }
+.dshDesktopPowerShellEntry > header button:hover { background: var(--dsw-alias-interactive-bg-hover, #e9edf3); color: var(--dsw-alias-label-primary, #17202b); }
+.dshDesktopPowerShellEntry > header svg { width: 16px; height: 16px; }
+.dshDesktopPowerShellEntry > div { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; min-height: 0; padding: 24px; }
+.dshDesktopPowerShellEntry > div > button { display: flex; align-items: center; gap: 14px; width: 380px; max-width: 100%; min-height: 56px; box-sizing: border-box; padding: 14px 20px; border: 1px solid var(--dsw-alias-border-l2, rgba(120,130,145,.35)); border-radius: 24px; background: var(--dsw-alias-bg-layer-1, #f3f5f8); color: var(--dsw-alias-label-primary, #17202b); cursor: pointer; text-align: left; }
+.dshDesktopPowerShellEntry > div > button:hover { background: var(--dsw-alias-interactive-bg-hover, #e9edf3); }
+.dshDesktopPowerShellEntry > div > button > svg { width: 22px; height: 22px; flex: none; color: var(--dsw-alias-label-secondary, #667085); }
+.dshDesktopPowerShellEntry > div > button > span { display: grid; gap: 3px; min-width: 0; }
+.dshDesktopPowerShellEntry > div > button strong { font-size: 13px; font-weight: 600; }
+.dshDesktopPowerShellEntry > div > button small { overflow: hidden; color: var(--dsw-alias-label-secondary, #667085); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .dshDesktopPowerShellHeader {
   display: flex;
   align-items: center;
