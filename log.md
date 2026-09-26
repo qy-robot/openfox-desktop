@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-- 2026-09-26T22:17:55+08:00 | Codex | `feat/powershell-robot-terminal` 已完成 MobaXterm 式 SSH 历史、机器人连接表单、一次性密码处理和未连接快捷命令修复；stable/Beta 各 47 项相关回归、客户端与测试类型检查、完整构建、233 个共享源码对齐及 diff 检查均通过。Beta 已按最终构建重启，主进程 PID 33360；界面控制仍被 `Codex auth token is unavailable` 阻断，待用户在窗口中点击验收。
+- 2026-09-26T22:17:55+08:00 | Codex | `feat/powershell-robot-terminal` 已完成并推送 MobaXterm 式 SSH 历史、机器人连接表单、一次性密码处理和未连接快捷命令修复，功能提交 `1115e93fcd`；stable/Beta 各 47 项相关回归、客户端与测试类型检查、完整构建、233 个共享源码对齐及 diff 检查均通过。Beta 已按最终构建重启，主进程 PID 33360；界面控制仍被 `Codex auth token is unavailable` 阻断，待用户在窗口中点击验收。
 
 - 2026-09-24T19:47:00+08:00 | ZCode | 合并 Beta 2.0.10-beta.4 发布线回 `main`（承接根仓库 dev→main 合并，desktop gitlink 两侧分叉）
   - 背景：`main`（会话续期加固 + Linux 增强模式 + 分支更名线，tip `7b34ae9eca`）与 `f9cb7b5c70`（Beta 2.0.10-beta.4 发布线：fox 默认 + 版本钉住）自 `a5a58d173b` 分叉；根仓库按用户指令把 dev 全量并入 main 时 desktop gitlink 两侧冲突，按工作区约定先在组件内合并并推送。
@@ -865,4 +865,5 @@
 - 验证：stable/Beta 相关 4 个测试文件各 47/47；两版 `tsconfig.client.json` 与 `tsconfig.tests.client.json` 检查通过；两版完整 build 通过；`check:desktop-variants` 报告 233 个共享源文件一致；`git diff --check` 通过。新增测试覆盖未连接快捷按键、历史点击 SSH target、手动表单、密码不落盘、密码提示单次提交、全屏历史栏和 SSH 记录校验。
 - 原生启动：停止旧 Beta 进程后按最终构建重启，OpenFox Beta 主进程 PID 33360 正常运行；Windows 界面控制服务仍返回 `Codex auth token is unavailable`，无法自动点击或截图，未使用其他 UI 自动化绕过。
 - 未完成 / 限制：未连接真实机器人验证远端 SSH 登录；原生窗口布局需要用户在已打开的 Beta 中点击验收。
-- 下一步：提交并推送 `feat/powershell-robot-terminal` 供用户检查；用户在当前 Beta 窗口点击右上角“终端”验收入口、快捷按键和连接管理。
+- 推送：功能提交 `1115e93fcd` 已推送至 `origin/feat/powershell-robot-terminal`。
+- 下一步：用户在当前 Beta 窗口点击右上角“终端”验收入口、快捷按键和连接管理；有真实机器人时再验证 SSH 登录。
