@@ -6,6 +6,7 @@ import {
   collectPowerShellEntries,
   desktopPowerShellTabDefinition,
   DesktopPowerShell,
+  DesktopPowerShellApprovalActions,
   DesktopPowerShellLauncher,
   DesktopPowerShellPanel,
   DESKTOP_POWERSHELL_TAB_KIND,
@@ -49,6 +50,10 @@ function sidebarRightHarness() {
 
 function visibleTabInfo() {
   return { sidebar: { expanded: true, fullscreen: false }, tab: { visible: true } } as never
+}
+
+function renderFooterSlot(_name: string, owner: unknown) {
+  return createElement(DesktopPowerShellApprovalActions, owner as never)
 }
 
 describe('Desktop PowerShell activity projection', () => {
@@ -128,7 +133,9 @@ describe('Desktop PowerShell activity projection', () => {
     const root = createRoot(container)
     try {
       await act(async () => {
-        root.render(createElement(DesktopPowerShellPanel, { device, api, useTabInfo: visibleTabInfo } as never))
+        root.render(createElement(DesktopPowerShellPanel, {
+          device, api, useTabInfo: visibleTabInfo, renderSlot: renderFooterSlot,
+        } as never))
       })
       await settle()
       expect(api.open).toHaveBeenNthCalledWith(1, { kind: 'local' }, 120, 32, expect.any(AbortSignal))
@@ -156,13 +163,16 @@ describe('Desktop PowerShell activity projection', () => {
     const useChat = (selector: (snapshot: unknown) => unknown) => selector({ legacy: { nodes: [], runningCalls: [running] } })
     const usePending = (selector: (snapshot: Map<string, unknown>) => unknown) => selector(new Map([['session-1', pending]]))
     const sidebarRight = sidebarRightHarness()
+    const renderSlot = vi.fn(renderFooterSlot)
     const container = document.createElement('div')
     document.body.append(container)
     const root = createRoot(container)
     try {
       await act(async () => {
         root.render(createElement('div', null,
-          createElement(DesktopPowerShellPanel, { device, api, useTabInfo: visibleTabInfo } as never),
+          createElement(DesktopPowerShellPanel, {
+            device, api, useTabInfo: visibleTabInfo, renderSlot,
+          } as never),
           createElement(DesktopPowerShell, {
             sessionId: 'session-1', sidebarRight, useChat, useSessionPendingInteraction: usePending,
           } as never)))
@@ -171,7 +181,12 @@ describe('Desktop PowerShell activity projection', () => {
       expect(sidebarRight.openTab).toHaveBeenCalledWith(DESKTOP_POWERSHELL_TAB_KIND)
       expect(container.querySelector('.dshDesktopPowerShellPanel')).not.toBeNull()
       expect(container.querySelector('.dshDesktopPowerShellApproval pre')?.textContent).toContain('Get-Date')
-      const buttons = [...container.querySelectorAll('.dshDesktopPowerShellApproval button')]
+      expect(renderSlot).toHaveBeenCalledWith('desktop.powershell.footer.action', expect.objectContaining({
+        pending, command: 'Get-Date', answer: expect.any(Function),
+      }))
+      const footer = container.querySelector('.dshDesktopPowerShellFooter')
+      expect(footer).toBe(container.querySelector('.dshDesktopPowerShellPanel')?.lastElementChild)
+      const buttons = [...container.querySelectorAll('.dshDesktopPowerShellFooter button')]
       expect(buttons).toHaveLength(2)
       act(() => { (buttons[1] as HTMLButtonElement).click() }); await settle()
       expect(answer).toHaveBeenCalledWith('allowed-once')

@@ -831,3 +831,11 @@
 - 验证：stable/Beta 相关 4 个测试文件各 54/54 通过；运行时依赖闭包各 4/4、248 个首方节点闭合；stable/Beta build 与定向 TypeScript 校验通过；`check:desktop-variants` 报告 231 个共享源文件一致；`git diff --check` 通过。已按最新构建重启 OpenFox Beta，主窗口正常出现。
 - 限制：Windows UI 验收工具本轮返回 `Codex auth token is unavailable`，未能自动点击并截图核对右侧栏最终画面；未使用其他 UI 自动化绕过。当前旧“宇树 G1”选择仍缺少 SSH 字段，因此无法进行真实机器人 SSH 登录验收。
 - 下一步：提交并推送 `feat/powershell-robot-terminal`，由用户在当前已打开的 Beta 窗口点击右上角“终端”检查原生右侧栏效果。
+
+### 2026-09-26T21:16:28+08:00 | Codex | 终端侧栏配色、宽度与可扩展底栏
+
+- 基线：Desktop `feat/powershell-robot-terminal` 提交 `ef8e1a19c8`；stable/Beta 同步修改，工作树尚未提交。
+- 已完成：终端面板移除独立深蓝黑配色，背景、文字、边框、交互、状态和按钮全部改用应用现有语义色变量；原生右侧栏默认比例从 45% 调为 31.5%，相对缩窄 30%，手动拖动宽度和最小宽度保护不变。审批说明仍位于输入区下方，“运行/取消”移动到固定最底部；新增 `desktop.powershell.footer.action` 列表 Slot，默认审批按钮也作为贡献项注册，后续插件可按同一上下文追加 DIY 操作。
+- 验证：stable/Beta 相关 4 个测试文件各 55/55 通过；两版客户端测试 TypeScript 校验通过；两版 build 通过；`check:desktop-variants` 报告 231 个共享源文件一致；`git diff --check` 通过。已按新构建重启 OpenFox Beta，窗口正常响应。
+- 限制：Windows UI 验收工具仍返回 `Codex auth token is unavailable`，无法代替用户点击并截图；当前只能完成构建、测试和进程级原生启动验收。
+- 下一步：提交并推送当前分支；由用户在已打开的 Beta 窗口查看缩窄后的原生右栏和底部操作区。

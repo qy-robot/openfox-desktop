@@ -13,7 +13,7 @@ import { ExtendedFrame } from '../src/client/ExtendedFrame.tsx'
 import { applyExtendedShell, applyFramedShell } from '../src/client/extended-shell.ts'
 import { installExtendedStyles } from '../src/client/extended-styles.ts'
 import {
-  collapsedSidebarWidth, computeDesktopColumns, DesktopLayoutState, MACOS_SIDEBAR_COLLAPSED, SIDEBAR_COLLAPSED,
+  collapsedSidebarWidth, computeDesktopColumns, DesktopLayoutState, MACOS_SIDEBAR_COLLAPSED, RIGHTBAR_DEFAULT_RATIO, SIDEBAR_COLLAPSED,
 } from '../src/client/layout-state.ts'
 import { installDesktopOwnedStyles } from '../src/client/styles.ts'
 import { desktopWindowService, provideDesktopWindow } from '../src/client/window-service.ts'
@@ -204,6 +204,10 @@ describe('desktop client environment', () => {
 })
 
 describe('advanced desktop layout', () => {
+  it('starts the normal right Sidebar 30% narrower than the former layout', () => {
+    expect(RIGHTBAR_DEFAULT_RATIO).toBe(0.315)
+  })
+
   it.each([['advanced', AdvancedFrame], ['extended', ExtendedFrame]] as const)(
     'passes right Sidebar geometry and preserves its track beneath fullscreen in %s mode', (_mode, Frame) => {
       vi.stubGlobal('window', { innerWidth: 1440 })

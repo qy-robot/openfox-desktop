@@ -33,7 +33,8 @@ export const SIDEBAR_DEFAULT = 280
 export const SIDEBAR_MIN = 264
 export const SIDEBAR_MAX = 420
 export const SIDEBAR_AUTO_COLLAPSE = 1024
-export const RIGHTBAR_DEFAULT_RATIO = 0.45
+/** Compact initial width for the native right Sidebar (30% narrower than the former 45%). */
+export const RIGHTBAR_DEFAULT_RATIO = 0.315
 export const RIGHTBAR_MIN = 300
 export const RIGHTBAR_MAX_RATIO = 0.7
 export const CENTER_MIN = 400

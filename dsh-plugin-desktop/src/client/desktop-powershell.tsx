@@ -4,7 +4,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { PendingApproval } from '@deepseek-ai/dsh-client-ui-approval/client'
 import type { ChatSnapshot } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { ToolCallBlock, ToolResultNode } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ISidebarRight, SidebarRightTabDefinition } from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import { CirclePlay, RotateCcw, Send, ShieldCheck, SquareTerminal } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
@@ -22,6 +22,17 @@ import type {} from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 
+declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface SlotMap {
+    /** Extensible action row pinned to the bottom of the Desktop terminal. */
+    'desktop.powershell.footer.action': {
+      kind: 'list'
+      scope: 'session'
+      owner: DesktopPowerShellFooterActionContext
+    }
+  }
+}
+
 export interface DesktopPowerShellEntry {
   readonly callId: string
   readonly command: string
@@ -36,7 +47,7 @@ const ZH = {
   empty: '终端已连接，等待输入。', input: '输入命令', send: '运行', interrupt: '中断', reconnect: '重新连接',
   exited: '终端已退出', failed: '终端连接失败', running: '运行中', complete: '已完成', error: '运行失败',
   approvalTitle: '即将运行命令', approvalReason: 'OpenFox 需要你的确认后才能运行这段代码。', run: '运行', cancel: '取消',
-  modelActivity: '对话命令记录', guide: '打开 PowerShell 或当前机器人的 SSH 终端',
+  modelActivity: '对话命令记录', guide: '打开 PowerShell 或当前机器人的 SSH 终端', actions: '终端操作',
 } as const
 
 const EN = {
@@ -45,7 +56,7 @@ const EN = {
   empty: 'Terminal connected and ready.', input: 'Enter a command', send: 'Run', interrupt: 'Interrupt', reconnect: 'Reconnect',
   exited: 'Terminal exited', failed: 'Terminal connection failed', running: 'Running', complete: 'Completed', error: 'Failed',
   approvalTitle: 'Command ready to run', approvalReason: 'OpenFox needs your confirmation before it runs this code.', run: 'Run', cancel: 'Cancel',
-  modelActivity: 'Conversation command history', guide: 'Open PowerShell or the selected robot SSH terminal',
+  modelActivity: 'Conversation command history', guide: 'Open PowerShell or the selected robot SSH terminal', actions: 'Terminal actions',
 } as const
 
 function copy() { return navigator.language.toLowerCase().startsWith('zh') ? ZH : EN }
@@ -155,7 +166,17 @@ function subscribeView(listener: () => void): () => void {
   viewListeners.add(listener); return () => { viewListeners.delete(listener) }
 }
 
-type TerminalStatus = 'idle' | 'connecting' | 'ready' | 'exited' | 'error'
+export type DesktopPowerShellStatus = 'idle' | 'connecting' | 'ready' | 'exited' | 'error'
+
+/** Public owner share for plugins adding user-configurable terminal actions. */
+export interface DesktopPowerShellFooterActionContext {
+  readonly pending: PendingApproval | undefined
+  readonly command: string
+  readonly answering: boolean
+  readonly status: DesktopPowerShellStatus
+  readonly target: DesktopPowerShellTarget | undefined
+  readonly answer: (decision: 'allowed-once' | 'rejected') => void
+}
 
 let panelVisible = false
 const panelVisibilityListeners = new Set<() => void>()
@@ -199,10 +220,26 @@ export function DesktopPowerShellLauncher({ sidebarRight }: { readonly sidebarRi
 export type DesktopPowerShellPanelProps = PropsRuntime<'sidebar.right.pane.tab'> & {
   readonly device: RoboDeviceSelection
   readonly api: DesktopPowerShellApi
+} & PropsRenderSlots<'desktop.powershell.footer.action'>
+
+/** Shipped approval buttons; additional actions can join the same list Slot. */
+export function DesktopPowerShellApprovalActions({
+  pending,
+  answering,
+  answer,
+}: DesktopPowerShellFooterActionContext): JSX.Element | null {
+  if (pending === undefined) return null
+  const labels = copy()
+  return <div className="dshDesktopPowerShellDefaultActions">
+    <button type="button" disabled={answering} onClick={() => { answer('rejected') }}>{labels.cancel}</button>
+    <button type="button" data-primary disabled={answering} onClick={() => { answer('allowed-once') }}>
+      <CirclePlay aria-hidden="true" />{labels.run}
+    </button>
+  </div>
 }
 
 /** Session-aware terminal body rendered by the application's native right Sidebar. */
-export function DesktopPowerShellPanel({ device, api, useTabInfo }: DesktopPowerShellPanelProps) {
+export function DesktopPowerShellPanel({ device, api, useTabInfo, renderSlot }: DesktopPowerShellPanelProps) {
   const labels = copy()
   const view = useSyncExternalStore(subscribeView, () => currentView, () => EMPTY_VIEW)
   const selection = useSyncExternalStore(device.subscribe, device.getSnapshot, device.getSnapshot)
@@ -211,7 +248,7 @@ export function DesktopPowerShellPanel({ device, api, useTabInfo }: DesktopPower
   const targetKey = target === undefined ? `missing:${selection.modelId}:${selection.profileId}` : JSON.stringify(target)
   const tabInfo = useTabInfo()
   const visible = tabInfo.sidebar.expanded && tabInfo.tab.visible
-  const [status, setStatus] = useState<TerminalStatus>('idle')
+  const [status, setStatus] = useState<DesktopPowerShellStatus>('idle')
   const [output, setOutput] = useState('')
   const [failure, setFailure] = useState('')
   const [input, setInput] = useState('')
@@ -304,9 +341,12 @@ export function DesktopPowerShellPanel({ device, api, useTabInfo }: DesktopPower
       {pending !== undefined && <section className="dshDesktopPowerShellApproval" aria-label={labels.approvalTitle}>
         <div className="dshDesktopPowerShellApprovalHeader"><ShieldCheck aria-hidden="true" />{labels.approvalTitle}</div>
         <p>{pending.reason ?? labels.approvalReason}</p>{approvalCommand && <pre>{approvalCommand}</pre>}
-        <div><button type="button" disabled={answering} onClick={() => { answer('rejected') }}>{labels.cancel}</button>
-          <button type="button" data-primary disabled={answering} onClick={() => { answer('allowed-once') }}><CirclePlay aria-hidden="true" />{labels.run}</button></div>
       </section>}
+      <footer className="dshDesktopPowerShellFooter" aria-label={labels.actions}>
+        {renderSlot('desktop.powershell.footer.action', {
+          pending, command: approvalCommand, answering, status, target, answer,
+        })}
+      </footer>
     </section>
 }
 
@@ -363,7 +403,11 @@ export function applyDesktopPowerShell(ctx: Context, device: RoboDeviceSelection
       'dsh-plugin-desktop: PowerShell right Sidebar tab type')
     ready.effect(() => ready.slots.inject('sidebar.right.pane.tab', () => ready.slots.register({
       name: 'sidebar.right.pane.tab', key: DESKTOP_POWERSHELL_TAB_ID, inject: () => ({ device, api }),
+      children: { 'desktop.powershell.footer.action': { kind: 'list', scope: 'session' } },
     }, DesktopPowerShellPanel)), 'dsh-plugin-desktop: PowerShell right Sidebar tab body')
+    ready.effect(() => ready.slots.inject('desktop.powershell.footer.action', () => ready.slots.register({
+      name: 'desktop.powershell.footer.action', id: 'approval', order: 100,
+    }, DesktopPowerShellApprovalActions)), 'dsh-plugin-desktop: PowerShell default footer actions')
     ready.effect(() => ready.slots.inject('sidebar.right.pane.tab.title', () => ready.slots.register({
       name: 'sidebar.right.pane.tab.title', key: DESKTOP_POWERSHELL_TAB_ID,
     }, DesktopPowerShellTitle)), 'dsh-plugin-desktop: PowerShell right Sidebar tab title')
