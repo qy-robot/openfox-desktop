@@ -4,8 +4,11 @@ import { createRoot } from 'react-dom/client'
 import { describe, expect, it, vi } from 'vitest'
 import {
   collectPowerShellEntries,
+  desktopPowerShellTabDefinition,
   DesktopPowerShell,
   DesktopPowerShellLauncher,
+  DesktopPowerShellPanel,
+  DESKTOP_POWERSHELL_TAB_KIND,
   isPowerShellToolName,
   parsePowerShellCommand,
   terminalTargetForSelection,
@@ -33,6 +36,19 @@ function apiHarness() {
     close: vi.fn(async () => {}),
   }
   return api
+}
+
+function sidebarRightHarness() {
+  return {
+    active: vi.fn(() => undefined),
+    isExpanded: vi.fn(() => false),
+    openTab: vi.fn(),
+    toggleExpanded: vi.fn(),
+  }
+}
+
+function visibleTabInfo() {
+  return { sidebar: { expanded: true, fullscreen: false }, tab: { visible: true } } as never
 }
 
 describe('Desktop PowerShell activity projection', () => {
@@ -82,6 +98,27 @@ describe('Desktop PowerShell activity projection', () => {
     })
   })
 
+  it('registers the terminal as a native right Sidebar page and opens it from the title-bar entry', async () => {
+    vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
+    const definition = desktopPowerShellTabDefinition()
+    expect(definition).toMatchObject({ kind: DESKTOP_POWERSHELL_TAB_KIND, title: expect.any(Function) })
+    expect(definition.guide).toHaveLength(1)
+    const sidebarRight = sidebarRightHarness()
+    const container = document.createElement('div')
+    document.body.append(container)
+    const root = createRoot(container)
+    try {
+      await act(async () => { root.render(createElement(DesktopPowerShellLauncher, { sidebarRight })) })
+      const launcher = container.querySelector('.dshDesktopPowerShellButton')
+      if (!(launcher instanceof HTMLButtonElement)) throw new Error('terminal launcher missing')
+      act(() => { launcher.click() })
+      expect(sidebarRight.openTab).toHaveBeenCalledWith(DESKTOP_POWERSHELL_TAB_KIND)
+    } finally {
+      await act(async () => { root.unmount() })
+      container.remove(); vi.unstubAllGlobals()
+    }
+  })
+
   it('closes the local PTY and opens the robot SSH PTY when robot selection changes', async () => {
     vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
     const device = createRoboDeviceSelection(new MemoryStorage())
@@ -90,10 +127,9 @@ describe('Desktop PowerShell activity projection', () => {
     document.body.append(container)
     const root = createRoot(container)
     try {
-      await act(async () => { root.render(createElement(DesktopPowerShellLauncher, { device, api })) })
-      const launcher = container.querySelector('.dshDesktopPowerShellButton')
-      if (!(launcher instanceof HTMLButtonElement)) throw new Error('terminal launcher missing')
-      act(() => { launcher.click() })
+      await act(async () => {
+        root.render(createElement(DesktopPowerShellPanel, { device, api, useTabInfo: visibleTabInfo } as never))
+      })
       await settle()
       expect(api.open).toHaveBeenNthCalledWith(1, { kind: 'local' }, 120, 32, expect.any(AbortSignal))
 
@@ -119,19 +155,21 @@ describe('Desktop PowerShell activity projection', () => {
     const running = { callId: 'call-1', name: 'pwsh', argsRaw: '{"command":"Get-Date"}', turn: 1, step: 1, time: 10, subCalls: [] }
     const useChat = (selector: (snapshot: unknown) => unknown) => selector({ legacy: { nodes: [], runningCalls: [running] } })
     const usePending = (selector: (snapshot: Map<string, unknown>) => unknown) => selector(new Map([['session-1', pending]]))
+    const sidebarRight = sidebarRightHarness()
     const container = document.createElement('div')
     document.body.append(container)
     const root = createRoot(container)
     try {
       await act(async () => {
         root.render(createElement('div', null,
-          createElement(DesktopPowerShellLauncher, { device, api }),
+          createElement(DesktopPowerShellPanel, { device, api, useTabInfo: visibleTabInfo } as never),
           createElement(DesktopPowerShell, {
-            sessionId: 'session-1', useChat, useSessionPendingInteraction: usePending,
+            sessionId: 'session-1', sidebarRight, useChat, useSessionPendingInteraction: usePending,
           } as never)))
       })
       await settle()
-      expect(container.querySelector('.dshDesktopPowerShellDrawer')).not.toBeNull()
+      expect(sidebarRight.openTab).toHaveBeenCalledWith(DESKTOP_POWERSHELL_TAB_KIND)
+      expect(container.querySelector('.dshDesktopPowerShellPanel')).not.toBeNull()
       expect(container.querySelector('.dshDesktopPowerShellApproval pre')?.textContent).toContain('Get-Date')
       const buttons = [...container.querySelectorAll('.dshDesktopPowerShellApproval button')]
       expect(buttons).toHaveLength(2)

@@ -1884,6 +1884,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@deepseek-ai/dsh-client-ui-dockkit@file:vendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-client-ui-dockkit-0.1.5-rc.2.tgz::locator=deepseek-harness-desktop%40workspace%3A.":
+  version: 0.1.5-rc.2
+  resolution: "@deepseek-ai/dsh-client-ui-dockkit@file:vendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-client-ui-dockkit-0.1.5-rc.2.tgz#vendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-client-ui-dockkit-0.1.5-rc.2.tgz::hash=679a91&locator=deepseek-harness-desktop%40workspace%3A."
+  peerDependencies:
+    "@deepseek-ai/cordis": ^4.0.2
+  checksum: 10c0/d93c85e73574a0913da251c0b8360884e8cc9826dfcd572ee1b684f05033da305ba61f867362f28eb21edf793ee54e12b01d046b05414656507403b3b194bd0e
+  languageName: node
+  linkType: hard
+
 "@deepseek-ai/dsh-client-ui-goal@file:vendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-client-ui-goal-0.1.5-rc.2.tgz::locator=deepseek-harness-desktop%40workspace%3A.":
   version: 0.1.5-rc.2
   resolution: "@deepseek-ai/dsh-client-ui-goal@file:vendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-client-ui-goal-0.1.5-rc.2.tgz#vendor/dsh-runtime/0.1.5-rc.2/deepseek-ai-dsh-client-ui-goal-0.1.5-rc.2.tgz::hash=e8b281&locator=deepseek-harness-desktop%40workspace%3A."
@@ -9023,6 +9032,7 @@ __metadata:
     "@deepseek-ai/dsh-client-ui-conversation": "npm:0.1.5-rc.2"
     "@deepseek-ai/dsh-client-ui-directory-picker-browse": "npm:0.1.5-rc.2"
     "@deepseek-ai/dsh-client-ui-directory-picker-native": "npm:0.1.5-rc.2"
+    "@deepseek-ai/dsh-client-ui-dockkit": "npm:0.1.5-rc.2"
     "@deepseek-ai/dsh-client-ui-input-trigger": "npm:0.1.5-rc.2"
     "@deepseek-ai/dsh-client-ui-layout": "npm:0.1.5-rc.2"
     "@deepseek-ai/dsh-client-ui-primitives": "npm:0.1.5-rc.2"
@@ -9030,6 +9040,7 @@ __metadata:
     "@deepseek-ai/dsh-client-ui-session": "npm:0.1.5-rc.2"
     "@deepseek-ai/dsh-client-ui-settings": "npm:0.1.5-rc.2"
     "@deepseek-ai/dsh-client-ui-sidebar": "npm:0.1.5-rc.2"
+    "@deepseek-ai/dsh-client-ui-sidebar-right": "npm:0.1.5-rc.2"
     "@deepseek-ai/dsh-client-ui-slots": "npm:0.1.5-rc.2"
     "@deepseek-ai/dsh-client-ui-theme": "npm:0.1.5-rc.2"
     "@deepseek-ai/dsh-client-ui-tool": "npm:0.1.5-rc.2"
@@ -9222,6 +9233,7 @@ __metadata:
     "@deepseek-ai/dsh-client-ui-conversation": "npm:0.1.5-rc.2"
     "@deepseek-ai/dsh-client-ui-directory-picker-browse": "npm:0.1.5-rc.2"
     "@deepseek-ai/dsh-client-ui-directory-picker-native": "npm:0.1.5-rc.2"
+    "@deepseek-ai/dsh-client-ui-dockkit": "npm:0.1.5-rc.2"
     "@deepseek-ai/dsh-client-ui-input-trigger": "npm:0.1.5-rc.2"
     "@deepseek-ai/dsh-client-ui-layout": "npm:0.1.5-rc.2"
     "@deepseek-ai/dsh-client-ui-primitives": "npm:0.1.5-rc.2"
@@ -9229,6 +9241,7 @@ __metadata:
     "@deepseek-ai/dsh-client-ui-session": "npm:0.1.5-rc.2"
     "@deepseek-ai/dsh-client-ui-settings": "npm:0.1.5-rc.2"
     "@deepseek-ai/dsh-client-ui-sidebar": "npm:0.1.5-rc.2"
+    "@deepseek-ai/dsh-client-ui-sidebar-right": "npm:0.1.5-rc.2"
     "@deepseek-ai/dsh-client-ui-slots": "npm:0.1.5-rc.2"
     "@deepseek-ai/dsh-client-ui-theme": "npm:0.1.5-rc.2"
     "@deepseek-ai/dsh-client-ui-tool": "npm:0.1.5-rc.2"

@@ -823,3 +823,11 @@
 - 已完成：功能提交 `5edf530047` 已推送至 `origin/feat/powershell-robot-terminal`，本地分支已设置跟踪远端。
 - 验证：推送成功，远端分支可用于用户检查。
 - 下一步：等待用户验收；若实时设备目录提供 SSH 配置，再执行真机 SSH 连接验收。
+
+### 2026-09-26T20:50:12+08:00 | Codex | PowerShell 迁移至原生右侧栏
+
+- 基线：Desktop `feat/powershell-robot-terminal` 提交 `0afd57bdfe`，`origin/main` 为 `a53545e14b`；工作树修改尚未提交。
+- 已完成：按参考界面移除覆盖式固定抽屉，将 PowerShell 注册为现有右侧栏的原生 `desktop-powershell` 页面；主对话区随右栏真实缩窄，并复用现有标签栏、入口列表、拖动分隔线及窄窗口策略。右上角“终端”按钮、对话命令自动展开、“运行/取消”、本机 PowerShell 与机器人 SSH 路由保持不变；stable/Beta 已同步。
+- 验证：stable/Beta 相关 4 个测试文件各 54/54 通过；运行时依赖闭包各 4/4、248 个首方节点闭合；stable/Beta build 与定向 TypeScript 校验通过；`check:desktop-variants` 报告 231 个共享源文件一致；`git diff --check` 通过。已按最新构建重启 OpenFox Beta，主窗口正常出现。
+- 限制：Windows UI 验收工具本轮返回 `Codex auth token is unavailable`，未能自动点击并截图核对右侧栏最终画面；未使用其他 UI 自动化绕过。当前旧“宇树 G1”选择仍缺少 SSH 字段，因此无法进行真实机器人 SSH 登录验收。
+- 下一步：提交并推送 `feat/powershell-robot-terminal`，由用户在当前已打开的 Beta 窗口点击右上角“终端”检查原生右侧栏效果。

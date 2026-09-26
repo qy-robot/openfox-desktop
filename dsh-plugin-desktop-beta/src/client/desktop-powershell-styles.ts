@@ -1,4 +1,4 @@
-/** PowerShell/SSH drawer styles shared by every Windows Desktop presentation mode. */
+/** PowerShell/SSH right-Sidebar tab styles shared by every Windows presentation mode. */
 
 const STYLE_ID = 'dsh-desktop-powershell-styles'
 
@@ -29,8 +29,8 @@ const CSS = `
   color: var(--dsw-alias-label-primary, #17202b);
 }
 .dshDesktopPowerShellButton:focus-visible,
-.dshDesktopPowerShellDrawer button:focus-visible,
-.dshDesktopPowerShellDrawer input:focus-visible {
+.dshDesktopPowerShellPanel button:focus-visible,
+.dshDesktopPowerShellPanel input:focus-visible {
   outline: 2px solid var(--dsw-alias-brand-primary, #3267d6);
   outline-offset: 1px;
 }
@@ -45,20 +45,16 @@ const CSS = `
   border-radius: 50%;
   background: var(--dsw-alias-brand-primary, #3267d6);
 }
-.dshDesktopPowerShellDrawer {
-  position: fixed;
-  z-index: 2147483000;
-  top: 36px;
-  right: 0;
-  bottom: 0;
+.dshDesktopPowerShellPanel {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto auto;
   box-sizing: border-box;
-  width: min(520px, calc(100vw - 72px));
-  min-width: min(380px, calc(100vw - 24px));
-  border-left: 1px solid var(--dsw-alias-border-l1, rgba(120,130,145,.28));
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   background: var(--dsw-alias-bg-layer-1, #f8fafc);
-  box-shadow: -18px 0 48px rgba(0,0,0,.24);
   color: var(--dsw-alias-label-primary, #17202b);
   font-family: system-ui, sans-serif;
   -webkit-app-region: no-drag;
@@ -90,6 +86,8 @@ const CSS = `
 }
 .dshDesktopPowerShellHeader button:hover { background: var(--dsw-alias-interactive-bg-hover, #e9edf3); color: var(--dsw-alias-label-primary, #17202b); }
 .dshDesktopPowerShellHeader button svg { width: 16px; height: 16px; }
+.dshDesktopPowerShellTabTitle { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.dshDesktopPowerShellTabTitle svg { width: 14px; height: 14px; flex: none; stroke-width: 1.8; }
 .dshDesktopPowerShellScroll {
   min-height: 0;
   padding: 14px 16px 22px;
@@ -172,13 +170,8 @@ const CSS = `
 .dshDesktopPowerShellApproval > div:last-child { display: flex; justify-content: flex-end; gap: 8px; }
 @media (max-width: 620px) {
   .dshDesktopPowerShellButton { right: 140px; }
-  .dshDesktopPowerShellDrawer { width: calc(100vw - 16px); min-width: 0; }
   .dshDesktopPowerShellInput { grid-template-columns: auto minmax(0,1fr) auto; }
   .dshDesktopPowerShellInput button[type="button"] { display: none; }
-}
-@media (prefers-reduced-motion: no-preference) {
-  .dshDesktopPowerShellDrawer { animation: dshDesktopPowerShellIn 150ms ease-out; }
-  @keyframes dshDesktopPowerShellIn { from { opacity: 0; transform: translateX(16px); } }
 }
 `
 
