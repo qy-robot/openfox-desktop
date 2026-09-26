@@ -4,6 +4,8 @@
 
 ## 当前状态
 
+- 2026-09-26T23:40:24+08:00 | Codex | `feat/powershell-robot-terminal` 已按用户最新截图收回终端布局：本机模式不再因缺少 SSH 连接行而让固定六行网格错位，输出区保持唯一弹性主体，`PS>`、命令框、`Ctrl+C`、`运行`恢复为同一紧凑行，快捷按键紧随其下；无会话兜底终端改为进入 OpenFox 原生右栏并删除额外顶部切换栏，全屏仍覆盖原界面。Stable/Beta 同步；各 54 项关联回归、四项客户端类型检查、两版完整构建、233 个共享源码对齐及 `git diff --check` 已通过。最新 Beta 源码窗口已重启，主进程 PID 44044、窗口标题 `OpenFox Beta`、响应正常；真实界面自动读取仍被 `Codex auth token is unavailable` 阻断。未完成：提交并推送本次修复，等待用户在已打开窗口中验收。
+
 - 2026-09-26T23:16:02+08:00 | Codex | `feat/powershell-robot-terminal` 已修复并推送“终端按钮可见但点击无反应”，功能提交 `e061d6e547`：首页、未登录及无会话 Surface 时改为打开应用级右侧终端，进入会话后仍优先使用原生右侧栏；Stable/Beta 各 54 项关联回归、四项客户端类型检查、两版完整构建、233 个共享源码对齐及 diff 检查均通过。最新 Beta 源码可见窗口主进程 PID 32024、Renderer PID 42440 正常运行；界面控制仍被 `Codex auth token is unavailable` 阻断，待用户点击验收。
 
 - 2026-09-26T22:50:58+08:00 | Codex | `feat/powershell-robot-terminal` 已修复“终端按钮在真实窗口不显示”：增强/扩展模式入口改为桌面框架 `shell.overlay` 原生贡献项，并与晚到的右侧栏服务解耦；兼容模式保留独立文档入口。Stable/Beta 各 53 项关联回归、客户端与客户端测试类型检查、完整构建、233 个共享源码对齐及 diff 检查均通过。最新 Beta 源码主进程 PID 38864 正常运行；界面控制仍被 `Codex auth token is unavailable` 阻断，待用户查看右上角窗口控制区左侧的“终端”按钮。

@@ -225,32 +225,38 @@ describe('Desktop PowerShell activity projection', () => {
     const shortcuts = createDesktopTerminalShortcuts(new MemoryStorage())
     const connections = createDesktopSshConnections(new MemoryStorage())
     const api = apiHarness()
+    const layout = { openRightbar: vi.fn(), closeRightbar: vi.fn() }
     const container = document.createElement('div')
-    document.body.append(container)
+    const rightbarHost = document.createElement('aside')
+    rightbarHost.className = 'dshDesktopRightbarSurface'
+    document.body.append(container, rightbarHost)
     const root = createRoot(container)
     try {
       await act(async () => {
-        root.render(createElement(DesktopPowerShellOverlay, { navigation, device, api, shortcuts, connections }))
+        root.render(createElement(DesktopPowerShellOverlay, {
+          navigation, device, api, shortcuts, connections, resolveLayout: () => layout,
+        }))
       })
       const launcher = container.querySelector('.dshDesktopPowerShellButton') as HTMLButtonElement
       expect(launcher.disabled).toBe(false)
       await act(async () => { launcher.click(); await Promise.resolve() })
       expect(unavailableSidebar.openTab).toHaveBeenCalledWith(DESKTOP_POWERSHELL_TAB_KIND)
       expect(navigation.getSnapshot()).toBe(unavailableSidebar)
-      const fallback = container.querySelector('.dshDesktopPowerShellFallback') as HTMLElement
+      expect(layout.openRightbar).toHaveBeenCalledWith(true, false)
+      const fallback = rightbarHost.querySelector('.dshDesktopPowerShellFallback') as HTMLElement
       expect(fallback).not.toBeNull()
       expect(fallback.querySelector('.dshDesktopPowerShellPanel')?.getAttribute('data-terminal-mode')).toBe('local')
-
-      const navButtons = fallback.querySelectorAll('.dshDesktopPowerShellFallbackNav button')
-      await act(async () => { (navButtons[1] as HTMLButtonElement).click(); await Promise.resolve() })
-      expect(fallback.querySelector('.dshDesktopPowerShellPanel')?.getAttribute('data-terminal-mode')).toBe('robot')
-      act(() => { (navButtons[2] as HTMLButtonElement).click() })
+      expect(fallback.querySelector('.dshDesktopPowerShellFallbackNav')).toBeNull()
+      const headerButtons = fallback.querySelectorAll('.dshDesktopPowerShellHeader button')
+      act(() => { (headerButtons[1] as HTMLButtonElement).click() })
+      expect(layout.openRightbar).toHaveBeenLastCalledWith(true, true)
       expect(fallback.getAttribute('data-fullscreen')).toBe('true')
-      act(() => { (navButtons[3] as HTMLButtonElement).click() })
-      expect(container.querySelector('.dshDesktopPowerShellFallback')).toBeNull()
+      act(() => { (headerButtons[2] as HTMLButtonElement).click() })
+      expect(layout.closeRightbar).toHaveBeenCalled()
+      expect(rightbarHost.querySelector('.dshDesktopPowerShellFallback')).toBeNull()
     } finally {
       await act(async () => { root.unmount() })
-      connections.dispose(); shortcuts.dispose(); device.dispose(); container.remove(); vi.unstubAllGlobals()
+      connections.dispose(); shortcuts.dispose(); device.dispose(); container.remove(); rightbarHost.remove(); vi.unstubAllGlobals()
     }
   })
 
@@ -271,6 +277,7 @@ describe('Desktop PowerShell activity projection', () => {
       })
       await settle()
       expect(api.open).toHaveBeenNthCalledWith(1, { kind: 'local' }, 120, 32, expect.any(AbortSignal))
+      expect(container.querySelector('.dshDesktopPowerShellSurface')?.hasAttribute('data-connection-pane')).toBe(false)
 
       act(() => { device.select('robot-1', 'standard', 'Robot 1', { host: 'robot.local', user: 'operator' }) })
       await settle()
@@ -281,6 +288,7 @@ describe('Desktop PowerShell activity projection', () => {
         } as never))
       })
       await settle()
+      expect(container.querySelector('.dshDesktopPowerShellSurface')?.getAttribute('data-connection-pane')).toBe('true')
       expect(api.open).toHaveBeenNthCalledWith(2, {
         kind: 'robot', modelId: 'robot-1', profileId: 'standard', label: 'Robot 1',
         ssh: { host: 'robot.local', user: 'operator' },

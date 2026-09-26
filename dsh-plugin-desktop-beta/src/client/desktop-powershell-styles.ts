@@ -48,74 +48,35 @@ const CSS = `
   background: var(--dsw-alias-brand-primary, #3267d6);
 }
 .dshDesktopPowerShellFallback {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--dsw-alias-bg-base, #f8fafc);
+  color: var(--dsw-alias-label-primary, #17202b);
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+}
+#dsh-desktop-powershell-root .dshDesktopPowerShellFallback {
   position: fixed;
   z-index: 1001;
   top: 32px;
   right: 0;
   bottom: 0;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  left: auto;
   width: clamp(320px, 31.5vw, 520px);
   max-width: 100vw;
-  min-height: 0;
-  overflow: hidden;
   border-left: 1px solid var(--dsw-alias-border-l1, rgba(120,130,145,.28));
-  background: var(--dsw-alias-bg-base, #f8fafc);
-  box-shadow: -10px 0 28px color-mix(in srgb, var(--dsw-alias-label-primary, #17202b) 12%, transparent);
-  color: var(--dsw-alias-label-primary, #17202b);
-  pointer-events: auto;
-  -webkit-app-region: no-drag;
 }
 .dshDesktopPowerShellFallback[data-fullscreen="true"] {
   z-index: 1100;
+  position: fixed;
   inset: 0;
   width: auto;
   max-width: none;
   border-left: 0;
-  box-shadow: none;
 }
-.dshDesktopPowerShellFallbackNav {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 32px 32px;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
-  min-height: 40px;
-  box-sizing: border-box;
-  padding: 4px 6px;
-  border-bottom: 1px solid var(--dsw-alias-border-l1, rgba(120,130,145,.28));
-  background: var(--dsw-alias-bg-layer-1, #f3f5f8);
-}
-.dshDesktopPowerShellFallbackNav button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-  height: 30px;
-  padding: 0 8px;
-  overflow: hidden;
-  border: 1px solid transparent;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--dsw-alias-label-secondary, #667085);
-  cursor: pointer;
-  font: 500 11px/1 system-ui, sans-serif;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.dshDesktopPowerShellFallbackNav button:hover,
-.dshDesktopPowerShellFallbackNav button[data-active="true"] {
-  background: var(--dsw-alias-interactive-bg-hover, #e9edf3);
-  color: var(--dsw-alias-label-primary, #17202b);
-}
-.dshDesktopPowerShellFallbackNav button[data-active="true"] {
-  border-color: var(--dsw-alias-border-l2, rgba(120,130,145,.35));
-}
-.dshDesktopPowerShellFallbackNav button:focus-visible {
-  outline: 2px solid var(--dsw-alias-brand-primary, #3267d6);
-  outline-offset: 1px;
-}
-.dshDesktopPowerShellFallbackNav button svg { width: 14px; height: 14px; }
 .dshDesktopPowerShellFallback > .dshDesktopPowerShellPanel { min-height: 0; }
 .dshDesktopPowerShellPanel {
   display: grid;
@@ -137,10 +98,13 @@ const CSS = `
 }
 .dshDesktopPowerShellSurface {
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
+  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+}
+.dshDesktopPowerShellSurface[data-connection-pane="true"] {
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
 }
 .dshDesktopPowerShellHeader {
   display: flex;
@@ -424,12 +388,9 @@ const CSS = `
 .dshDesktopPowerShellDefaultActions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 @media (max-width: 620px) {
   .dshDesktopPowerShellButton { right: 140px; }
-  .dshDesktopPowerShellFallback { left: 0; width: auto; max-width: none; }
+  #dsh-desktop-powershell-root .dshDesktopPowerShellFallback { left: 0; width: auto; max-width: none; }
 }
 @container (max-width: 460px) {
-  .dshDesktopPowerShellInput { grid-template-columns: auto minmax(0,1fr) auto; }
-  .dshDesktopPowerShellInput button[type="button"] { grid-column: 2; justify-self: start; }
-  .dshDesktopPowerShellInput button[type="submit"] { grid-column: 3; grid-row: 2; }
   .dshDesktopTerminalShortcutRow { grid-template-columns: minmax(88px,.45fr) minmax(0,1fr) 30px; }
   .dshDesktopTerminalShortcutRow label:nth-child(2) { grid-column: 1 / 3; grid-row: 2; }
   .dshDesktopTerminalShortcutRow label:nth-child(3) { grid-column: 1 / 3; grid-row: 3; }

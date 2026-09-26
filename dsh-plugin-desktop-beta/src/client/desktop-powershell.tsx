@@ -8,6 +8,7 @@ import type { PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-
 import type { ISidebarRight, SidebarRightTabDefinition } from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import { CirclePlay, Maximize2, Minimize2, Pencil, Plus, RotateCcw, Send, Server, Settings2, ShieldCheck, SquareTerminal, Trash2, X } from 'lucide-react'
 import { createElement, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
 import { createRoot } from 'react-dom/client'
 import type { DesktopPowerShellTarget } from '../desktop-powershell-contract.ts'
 import { createDesktopPowerShellApi, type DesktopPowerShellApi } from './desktop-powershell-api.ts'
@@ -20,6 +21,7 @@ import {
   type DesktopTerminalShortcut, type DesktopTerminalShortcuts,
 } from './desktop-terminal-shortcuts.ts'
 import type { RoboDeviceSelection, RoboDeviceSelectionSnapshot } from './robo-device-selection.ts'
+import type { DesktopLayoutState } from './layout-state.ts'
 
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
@@ -348,7 +350,14 @@ export type DesktopPowerShellPanelProps = PropsRuntime<'sidebar.right.pane.tab'>
   readonly mode: DesktopPowerShellMode
   readonly shortcuts: DesktopTerminalShortcuts
   readonly connections: DesktopSshConnections
+  readonly fallbackControls?: DesktopPowerShellFallbackControls
 } & PropsRenderSlots<'desktop.powershell.footer.action'>
+
+interface DesktopPowerShellFallbackControls {
+  readonly fullscreen: boolean
+  readonly onToggleFullscreen: () => void
+  readonly onClose: () => void
+}
 
 /** Shipped approval buttons; additional actions can join the same list Slot. */
 export function DesktopPowerShellApprovalActions({
@@ -574,7 +583,9 @@ function DesktopSshConnectionPane({
 }
 
 /** Session-aware terminal body rendered by the application's native right Sidebar. */
-export function DesktopPowerShellPanel({ device, api, mode, shortcuts, connections, useTabInfo, renderSlot }: DesktopPowerShellPanelProps) {
+export function DesktopPowerShellPanel({
+  device, api, mode, shortcuts, connections, fallbackControls, useTabInfo, renderSlot,
+}: DesktopPowerShellPanelProps) {
   const labels = copy()
   const view = useSyncExternalStore(subscribeView, () => currentView, () => EMPTY_VIEW)
   const selection = useSyncExternalStore(device.subscribe, device.getSnapshot, device.getSnapshot)
@@ -589,7 +600,7 @@ export function DesktopPowerShellPanel({ device, api, mode, shortcuts, connectio
   const targetKey = target === undefined ? `missing:${selection.modelId}:${selection.profileId}` : JSON.stringify(target)
   const tabInfo = useTabInfo()
   const visible = tabInfo.sidebar.expanded && tabInfo.tab.visible
-  const fullscreen = tabInfo.sidebar.fullscreen
+  const fullscreen = fallbackControls?.fullscreen ?? tabInfo.sidebar.fullscreen
   const [status, setStatus] = useState<DesktopPowerShellStatus>('idle')
   const [output, setOutput] = useState('')
   const [failure, setFailure] = useState('')
@@ -757,9 +768,16 @@ export function DesktopPowerShellPanel({ device, api, mode, shortcuts, connectio
 
   return <section className="dshDesktopPowerShellPanel" data-terminal-mode={mode} data-fullscreen={fullscreen || undefined} aria-label={labels.title}>
     {fullscreen && connectionPane}
-    <div className="dshDesktopPowerShellSurface">
+    <div className="dshDesktopPowerShellSurface" data-connection-pane={mode === 'robot' && !fullscreen || undefined}>
       <header className="dshDesktopPowerShellHeader"><SquareTerminal aria-hidden="true" /><div><strong>{labels.title}</strong><small>{targetTitle}</small></div>
         <button type="button" aria-label={labels.reconnect} title={labels.reconnect} onClick={() => { setGeneration(value => value + 1) }}><RotateCcw aria-hidden="true" /></button>
+        {fallbackControls !== undefined && <>
+          <button type="button" aria-label={fullscreen ? labels.exitFullscreen : labels.fullscreen}
+            title={fullscreen ? labels.exitFullscreen : labels.fullscreen} onClick={fallbackControls.onToggleFullscreen}>
+            {fullscreen ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}
+          </button>
+          <button type="button" aria-label={labels.close} title={labels.close} onClick={fallbackControls.onClose}><X aria-hidden="true" /></button>
+        </>}
       </header>
       {!fullscreen && connectionPane}
       <div className="dshDesktopPowerShellScroll" ref={scrollRef} role="log" aria-live="polite">
@@ -798,42 +816,55 @@ export interface DesktopPowerShellOverlayProps {
   readonly api: DesktopPowerShellApi
   readonly shortcuts: DesktopTerminalShortcuts
   readonly connections: DesktopSshConnections
+  readonly resolveLayout?: () => Pick<DesktopLayoutState, 'openRightbar' | 'closeRightbar'> | undefined
 }
 
 /** Application-level fallback for pages where the session-scoped native Sidebar is not mounted yet. */
-export function DesktopPowerShellOverlay({ navigation, device, api, shortcuts, connections }: DesktopPowerShellOverlayProps) {
-  const labels = copy()
+export function DesktopPowerShellOverlay({
+  navigation, device, api, shortcuts, connections, resolveLayout = () => undefined,
+}: DesktopPowerShellOverlayProps) {
   const [fallbackMode, setFallbackMode] = useState<DesktopPowerShellMode>()
   const [fullscreen, setFullscreen] = useState(false)
+  const fallbackLayout = useRef<Pick<DesktopLayoutState, 'openRightbar' | 'closeRightbar'>>()
   const useFallbackTabInfo = useCallback(() => ({
     sidebar: { expanded: true, fullscreen },
     tab: { visible: true },
   } as never), [fullscreen])
-  const close = (): void => { setFallbackMode(undefined); setFullscreen(false) }
+  const close = (): void => {
+    fallbackLayout.current?.closeRightbar()
+    fallbackLayout.current = undefined
+    setFallbackMode(undefined)
+    setFullscreen(false)
+  }
+  const openFallback = (mode: DesktopPowerShellMode | undefined): void => {
+    if (mode === undefined) { close(); return }
+    fallbackLayout.current = resolveLayout()
+    fallbackLayout.current?.openRightbar(true, false)
+    setFallbackMode(mode)
+    setFullscreen(false)
+  }
+  const toggleFullscreen = (): void => {
+    setFullscreen(value => {
+      const next = !value
+      fallbackLayout.current?.openRightbar(true, next)
+      return next
+    })
+  }
+  useEffect(() => () => { fallbackLayout.current?.closeRightbar() }, [])
+  const rightbarHost = document.querySelector<HTMLElement>('.dshDesktopRightbarSurface')
+  const fallback = fallbackMode === undefined ? null : <aside className="dshDesktopPowerShellFallback" data-fullscreen={fullscreen || undefined}>
+    {createElement(DesktopPowerShellPanel, {
+      key: fallbackMode, device, api, mode: fallbackMode, shortcuts, connections,
+      fallbackControls: { fullscreen, onToggleFullscreen: toggleFullscreen, onClose: close },
+      useTabInfo: useFallbackTabInfo,
+      renderSlot: (_name: string, owner: DesktopPowerShellFooterActionContext) =>
+        <DesktopPowerShellApprovalActions {...owner} />,
+    } as never)}
+  </aside>
   return <>
     <DesktopPowerShellLauncher navigation={navigation} device={device} fallbackOpen={fallbackMode !== undefined}
-      onFallback={mode => { if (mode === undefined) close(); else setFallbackMode(mode) }} />
-    {fallbackMode !== undefined && <aside className="dshDesktopPowerShellFallback" data-fullscreen={fullscreen || undefined}>
-      <nav className="dshDesktopPowerShellFallbackNav" aria-label={labels.title}>
-        <button type="button" data-active={fallbackMode === 'local' || undefined} onClick={() => { setFallbackMode('local') }}>
-          {labels.localTab}
-        </button>
-        <button type="button" data-active={fallbackMode === 'robot' || undefined} onClick={() => { setFallbackMode('robot') }}>
-          {labels.robotTab}
-        </button>
-        <button type="button" aria-label={fullscreen ? labels.exitFullscreen : labels.fullscreen}
-          title={fullscreen ? labels.exitFullscreen : labels.fullscreen} onClick={() => { setFullscreen(value => !value) }}>
-          {fullscreen ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}
-        </button>
-        <button type="button" aria-label={labels.close} title={labels.close} onClick={close}><X aria-hidden="true" /></button>
-      </nav>
-      {createElement(DesktopPowerShellPanel, {
-        key: fallbackMode, device, api, mode: fallbackMode, shortcuts, connections,
-        useTabInfo: useFallbackTabInfo,
-        renderSlot: (_name: string, owner: DesktopPowerShellFooterActionContext) =>
-          <DesktopPowerShellApprovalActions {...owner} />,
-      } as never)}
-    </aside>}
+      onFallback={openFallback} />
+    {fallback !== null && (rightbarHost === null ? fallback : createPortal(fallback, rightbarHost))}
   </>
 }
 
@@ -909,7 +940,10 @@ export function applyDesktopPowerShell(
   if (launcherSurface === 'shell-overlay') {
     ctx.slots.inject('shell.overlay', () => ctx.slots.register({
       name: 'shell.overlay', id: 'desktop-powershell-launcher', order: 90,
-      inject: () => ({ navigation, device, api, shortcuts, connections }),
+      inject: () => ({
+        navigation, device, api, shortcuts, connections,
+        resolveLayout: () => ctx.reflect.get('layout', false) as DesktopLayoutState | undefined,
+      }),
     }, DesktopPowerShellOverlay))
   } else {
     ctx.effect(() => installCompatibilityPowerShellLauncher(navigation, device, api, shortcuts, connections),
